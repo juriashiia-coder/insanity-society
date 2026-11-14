@@ -15,7 +15,7 @@
   const soloNumero = (v) => { const d = String(v || '').replace(/\D/g, ''); return d ? parseInt(d, 10) : null; };
 
   const BUCKET = 'productos';
-  const TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'Única'];
+  const TALLAS = ['XS', 'S', 'M', 'L', 'XL', '2XL', '3XL', '4XL', 'Única'];
   const vistas = ['vistaConfig', 'vistaLogin', 'vistaSinPermiso', 'vistaPanel'];
   const mostrar = (id) => vistas.forEach((v) => $('#' + v).classList.toggle('hidden', v !== id));
 

@@ -254,7 +254,7 @@
       </label>`).join('');
   }
   function colorCss(c) {
-    const m = { negro: '#111', blanco: '#f2f2f2', gris: '#8a8a8a', 'gris claro': '#c4c4c4', 'gris oscuro': '#4a4a4a', 'verde militar': '#4b5320', 'azul turqui': '#1b2a4a', beige: '#d8c3a5', vinotinto: '#5e0b1a', rojo: '#c1121f' };
+    const m = { negro: '#111', blanco: '#f2f2f2', gris: '#8a8a8a', 'gris claro': '#c4c4c4', 'gris oscuro': '#4a4a4a', 'verde militar': '#4b5320', 'azul turqui': '#1b2a4a', azul: '#1f3a8a', 'azul oscuro': '#14213d', beige: '#d8c3a5', arena: '#c9b48f', cafe: '#5b3a24', vinotinto: '#5e0b1a', rojo: '#c1121f', rosado: '#e86ca8', 'mora leche': '#b79fc4', 'verde pastel': '#a8d5ba' };
     return m[slug(c).replace(/-/g, ' ')] || '#666';
   }
 
@@ -292,7 +292,7 @@
           : `
             ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + p.id, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
             <fieldset class="opciones"><legend>Color: <span class="color-sel">${esc(colorIni)}</span></legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
-            <fieldset class="opciones"><legend>Talla</legend>${chips('talla-' + p.id, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
+            <fieldset class="opciones"><legend>Talla <button type="button" class="guia-link" data-guia>Guía de tallas</button></legend>${chips('talla-' + p.id, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
             <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
             <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar<span class="add-extra"> al carrito</span></button>`}
         </div>
@@ -466,7 +466,7 @@
     color: (p) => p.colores
   };
   const etiqueta = (grupo, v) => (grupo === 'categoria' ? CATEGORIAS[v] || v : v);
-  const ORDEN_TALLAS = ['S', 'M', 'L', 'XL', 'Única'];
+  const ORDEN_TALLAS = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2XL', '3XL', '4XL', 'Única'];
 
   function opcionesUnicas(grupo) {
     const set = new Set();
@@ -736,10 +736,24 @@
     } catch { /* sin almacenamiento */ }
   }
 
+  // ---------- Guía de tallas ----------
+  const guiaModal = $('#guiaModal');
+  function setGuia(open) {
+    if (!guiaModal) return;
+    guiaModal.classList.toggle('hidden', !open);
+    document.body.classList.toggle('no-scroll', open);
+    if (open) { $('#cerrarGuia')?.focus(); const a = $('#guiaWhatsapp'); if (a) a.href = `https://wa.me/${numeroWa}?text=${encodeURIComponent('Hola, necesito ayuda para elegir mi talla')}`; }
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest('[data-guia]')) { e.preventDefault(); setGuia(true); } });
+  $('#cerrarGuia')?.addEventListener('click', () => setGuia(false));
+  $('#cerrarGuia2')?.addEventListener('click', () => setGuia(false));
+  guiaModal?.addEventListener('click', (e) => { if (e.target === guiaModal) setGuia(false); });
+
   // ---------- Tecla Escape cierra lo que esté abierto ----------
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
+    if (guiaModal && !guiaModal.classList.contains('hidden')) setGuia(false);
+    else if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
     else if (panel.classList.contains('open')) setPanel(false);
     else if (carritoPanel.classList.contains('active')) setCarrito(false);
     else setMenu(false);
