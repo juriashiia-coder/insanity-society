@@ -62,15 +62,15 @@
         <div class="hero-overlay"></div>
         <div class="hero-content">
           <h1 id="home-title">No es solo ropa.<br />Es un manifiesto.</h1>
-          <p>Fuerza. Disciplina. Dolor y gloria. Esto es para quienes desafían sus límites.</p>
+          <p id="home-sub">Fuerza. Disciplina. Dolor y gloria. Esto es para quienes desafían sus límites.</p>
           <div class="hero-ctas">
-            <a class="btn-primario" href="#tienda" data-tab="tienda">Entrar a la tienda</a>
-            <a class="btn-secundario" href="#colecciones" data-tab="colecciones">Explorar colecciones</a>
+            <a id="home-btn-tienda" class="btn-primario" href="#tienda" data-tab="tienda">Entrar a la tienda</a>
+            <a id="home-btn-colecciones" class="btn-secundario" href="#colecciones" data-tab="colecciones">Explorar colecciones</a>
           </div>
         </div>
       </div>
 
-      <div class="home-strip">
+      <div class="home-strip" id="homeStrip">
         <div><strong>Envíos</strong><span>a todo Colombia</span></div>
         <div><strong>Pedido directo</strong><span>por WhatsApp</span></div>
         <div><strong>Algodón premium</strong><span>200 g · corte oversize</span></div>
@@ -80,7 +80,7 @@
     <!-- LA SOCIEDAD -->
     <section id="sociedad" class="tab-content" aria-labelledby="sociedad-title" hidden>
       <h2 id="sociedad-title">La Sociedad</h2>
-      <div class="section-intro">
+      <div class="section-intro" id="sociedadIntro">
         <p>
           Insanity Society no es una marca de ropa común: es una comunidad, un manifiesto y un estilo de vida.
           Nació en el gimnasio, entre hierro, sudor y dolor, pero su significado va más allá: representa a quienes
@@ -90,8 +90,8 @@
 
       <div class="sociedad-grid">
         <article class="soc-card">
-          <h3>Lo que representamos</h3>
-          <ul>
+          <h3 id="sociedadListaTitulo">Lo que representamos</h3>
+          <ul id="sociedadPuntos">
             <li><strong>Fuerza mental y física:</strong> cada prenda recuerda que entrenar no es solo estética; es disciplina, sacrificio y carácter.</li>
             <li><strong>Oscuridad y resiliencia:</strong> un estilo crudo, fuerte y oscuro que transmite intensidad, dolor y gloria.</li>
             <li><strong>Rebeldía con propósito:</strong> no buscamos encajar; es para quienes desafían sus límites y viven bajo sus propias reglas.</li>
@@ -99,8 +99,8 @@
           </ul>
         </article>
         <article class="soc-card manifesto">
-          <h3>Manifiesto</h3>
-          <p>
+          <h3 id="manifiestoTitulo">Manifiesto</h3>
+          <p id="manifiestoTexto">
             Entrenamos en la oscuridad para conquistar la luz. El hierro no miente; nos forja. El dolor nos afila.
             Aquí no se venden prendas: se forjan símbolos. Si eliges la comodidad, no es tu lugar.
             Si eliges el combate, bienvenido a la Sociedad.
@@ -112,14 +112,14 @@
     <!-- COLECCIONES -->
     <section id="colecciones" class="tab-content" aria-labelledby="colecciones-title" hidden>
       <h2 id="colecciones-title">Colecciones</h2>
-      <div class="section-intro">
+      <div class="section-intro" id="coleccionesIntro">
         <p>
           No son simples diseños. Cada colección cuenta una historia y rinde tributo a valores inquebrantables.
           Desde espíritus de tormenta hasta pilares que forjan la mente: esta es la esencia detrás de cada pieza.
         </p>
       </div>
 
-      <div class="colecciones-grid">
+      <div class="colecciones-grid" id="coleccionesGrid">
         <article class="col-card" data-coleccion="KYO-KI">
           <h3>KYO-KI <span class="jp">狂気</span></h3>
           <p>Significado: «locura». Energía desbordante y fuerza interior incontrolable que empuja al guerrero a superarse. «La locura no es debilidad, es el combustible de quienes no temen ir más allá».</p>
@@ -223,7 +223,7 @@
     <!-- TIENDA -->
     <section id="tienda" class="tab-content" aria-labelledby="tienda-title" hidden>
       <h2 id="tienda-title">Tienda</h2>
-      <div class="section-intro">
+      <div class="section-intro" id="tiendaIntro">
         <p>Elige color, talla y agrega al carrito. Al confirmar, tu pedido llega directo a nuestro WhatsApp y te respondemos con el pago y el envío.</p>
       </div>
 
@@ -260,7 +260,7 @@
     <!-- COMUNIDAD -->
     <section id="blog" class="tab-content" aria-labelledby="blog-title" hidden>
       <h2 id="blog-title">Comunidad</h2>
-      <div class="blog-grid">
+      <div class="blog-grid" id="blogGrid">
         <article class="blog-card blog-card--evento">
           <a href="power-meet-2025.html" class="blog-link">
             <img class="blog-thumb" src="img/Insanity%20Power%20Meet%202025/medallas.jpg" alt="Medallas del Insanity Power Meet 2025" width="1080" height="1080" loading="lazy" decoding="async" />
@@ -293,8 +293,8 @@
   <footer class="footer">
     <div class="footer-inner">
       <p class="footer-logo">INSANITY SOCIETY</p>
-      <p>Hecho en Colombia. Entrenamos en la oscuridad para conquistar la luz.</p>
-      <p><a href="https://wa.me/573241457674" target="_blank" rel="noopener">WhatsApp +57 324 145 7674</a></p>
+      <p id="footerTexto">Hecho en Colombia. Entrenamos en la oscuridad para conquistar la luz.</p>
+      <p><a id="footerWhatsapp" href="https://wa.me/573241457674" target="_blank" rel="noopener">WhatsApp +57 324 145 7674</a></p>
       <p class="footer-copy">© <span id="anio">2025</span> Insanity Society</p>
     </div>
   </footer>

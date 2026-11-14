@@ -55,6 +55,34 @@
 
     <!-- Estado: panel -->
     <section id="vistaPanel" class="hidden">
+      <nav class="admin-tabs" id="adminTabs" aria-label="Secciones del panel">
+        <button type="button" class="admin-tab active" data-seccion="productos">Productos</button>
+        <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
+        <button type="button" class="admin-tab" data-seccion="colecciones">Colecciones</button>
+        <button type="button" class="admin-tab" data-seccion="sociedad">La Sociedad</button>
+        <button type="button" class="admin-tab" data-seccion="tienda">Tienda</button>
+        <button type="button" class="admin-tab" data-seccion="comunidad">Comunidad</button>
+        <button type="button" class="admin-tab" data-seccion="general">General</button>
+      </nav>
+
+      <div id="subContenido" class="hidden">
+        <div class="admin-toolbar">
+          <h1 id="contenidoTitulo">Sección</h1>
+          <div class="admin-toolbar-acciones">
+            <a id="contenidoVer" class="btn-secundario" href="index.html" target="_blank" rel="noopener">Ver en la web ↗</a>
+          </div>
+        </div>
+        <p id="contenidoAyuda" class="admin-hint admin-ayuda"></p>
+        <p id="contenidoError" class="admin-error hidden" role="alert"></p>
+        <form id="formContenido" class="admin-form admin-contenido" novalidate></form>
+        <div class="admin-guardar-barra">
+          <span id="contenidoEstado" class="admin-hint">Sin cambios</span>
+          <button id="btnDescartar" class="btn-secundario" type="button" disabled>Descartar</button>
+          <button id="btnGuardarContenido" class="btn-primario" type="button" disabled>Guardar cambios</button>
+        </div>
+      </div>
+
+      <div id="subProductos">
       <div class="admin-toolbar">
         <h1>Productos <span id="conteo" class="admin-conteo"></span></h1>
         <div class="admin-toolbar-acciones">
@@ -69,6 +97,7 @@
       </div>
       <p id="panelError" class="admin-error hidden" role="alert"></p>
       <div id="listaProductos" class="admin-lista" aria-live="polite"></div>
+      </div>
     </section>
   </main>
 
@@ -166,5 +195,6 @@
   <script src="js/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/admin.js"></script>
+  <script src="js/admin-contenido.js"></script>
 </body>
 </html>

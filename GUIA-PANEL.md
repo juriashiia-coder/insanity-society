@@ -24,6 +24,13 @@ Tiempo estimado: 15 minutos. Los nombres de los menús de Supabase pueden variar
 
 Esto crea la tabla de productos (con los 31 productos que ya tienes), la carpeta de fotos y las reglas que impiden que alguien que no sea administrador cambie algo.
 
+### 2b. Activar la edición de secciones (Inicio, Colecciones, La Sociedad, Tienda, Comunidad, General)
+
+1. **SQL Editor** → **New query**.
+2. Pega todo el contenido de `supabase/contenido.sql` y pulsa **Run**.
+
+Esto guarda los textos actuales de la web para que puedas editarlos desde el panel. Si ya habías hecho los demás pasos, solo necesitas este.
+
 ## 3. Crear tu usuario de administrador
 
 1. Ve a **Authentication** → **Users** → **Add user** → **Create new user**.
@@ -86,6 +93,16 @@ Tu panel quedará en `https://TU-SITIO/admin.html`. No aparece en ningún menú 
 
 ## Uso diario del panel
 
+Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, Tienda, Comunidad y General**.
+
+- En las pestañas de secciones, edita los textos y pulsa **Guardar cambios** (abajo). Si sales sin guardar, el panel te avisa.
+- Las listas (colecciones, publicaciones, puntos, beneficios) se abren con un clic; usa ↑ ↓ para ordenarlas y ✕ para borrar.
+- Desmarca **Visible en la web** para esconder una colección o publicación sin borrarla.
+- El nombre de cada colección debe coincidir con la "Colección" de sus productos para que salga el botón *Ver productos*.
+- En **General** cambias el número de WhatsApp que recibe los pedidos.
+
+### Productos
+
 - **Nuevo producto:** botón *+ Nuevo producto*. El identificador se crea solo a partir del nombre.
 - **Precio vacío** = la tienda muestra *Precio por confirmar* y un botón para consultar por WhatsApp.
 - **Variantes de material** (ej. Burda / Algodón perchado): cada una con su precio; el cliente elige en la tienda.
@@ -95,7 +112,8 @@ Tu panel quedará en `https://TU-SITIO/admin.html`. No aparece en ningún menú 
 
 ## Si algo falla
 
-- **La tienda sigue funcionando:** si Supabase no responde, la tienda muestra automáticamente la lista de respaldo de `js/productos.js` (puede estar desactualizada respecto al panel).
+- **La tienda sigue funcionando:** si Supabase no responde, la web muestra los textos originales del HTML y la lista de respaldo de `js/productos.js` (pueden estar desactualizados respecto al panel).
+- **"Falta crear la tabla de contenido" en el panel:** ejecuta `supabase/contenido.sql` (paso 2b).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.
 - **"Correo o contraseña incorrectos":** revisa el usuario en *Authentication → Users*.

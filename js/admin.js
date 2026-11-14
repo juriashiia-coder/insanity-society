@@ -52,6 +52,7 @@
     if (error || !data) { mostrar('vistaSinPermiso'); return; }
     mostrar('vistaPanel');
     cargarProductos();
+    document.dispatchEvent(new CustomEvent('admin:listo'));
   }
 
   $('#formLogin').addEventListener('submit', async (e) => {
@@ -349,6 +350,16 @@
     cerrarEditor();
     cargarProductos();
   });
+
+  // Utilidades compartidas con js/admin-contenido.js
+  async function subirImagen(file, carpeta) {
+    const blob = await comprimir(file);
+    const ruta = `${carpeta}/${Date.now()}-${Math.random().toString(36).slice(2, 7)}.webp`;
+    const { error } = await sb.storage.from(BUCKET).upload(ruta, blob, { contentType: 'image/webp', cacheControl: '31536000' });
+    if (error) throw error;
+    return sb.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl;
+  }
+  window.AdminCore = { sb, toast, esc, slug, traducir, subirImagen, errorEn };
 
   sb.auth.onAuthStateChange((evento) => { if (evento === 'SIGNED_OUT') revisarSesion(); });
   revisarSesion();

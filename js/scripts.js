@@ -105,27 +105,134 @@
   // =========================================================
   const catalogo = $('#catalogo');
 
-  // Productos: desde Supabase si está configurado (js/config.js); si no, o si falla, desde js/productos.js
+  // ---------- Datos desde Supabase (js/config.js) con respaldo local ----------
+  const cfgSb = window.INSANITY_CONFIG || {};
+  const conSupabase = !!(cfgSb.supabaseUrl && cfgSb.supabaseKey);
+  async function leerTabla(consulta) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 7000);
+    try {
+      const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/${consulta}`, { headers: { apikey: cfgSb.supabaseKey }, signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r.json();
+    } finally { clearTimeout(timer); }
+  }
   async function cargarProductos() {
     const local = window.PRODUCTOS_LOCAL || [];
-    const cfg = window.INSANITY_CONFIG || {};
-    if (!cfg.supabaseUrl || !cfg.supabaseKey) return local;
+    if (!conSupabase) return local;
     if (catalogo) catalogo.innerHTML = '<p class="cargando-catalogo">Cargando productos…</p>';
     try {
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 7000);
-      const url = `${cfg.supabaseUrl.replace(/\/+$/, '')}/rest/v1/productos?select=*&activo=eq.true&order=orden.asc,nombre.asc`;
-      const r = await fetch(url, { headers: { apikey: cfg.supabaseKey }, signal: ctrl.signal });
-      clearTimeout(timer);
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      const data = await r.json();
+      const data = await leerTabla('productos?select=*&activo=eq.true&order=orden.asc,nombre.asc');
       return data.map((p) => ({ ...p, variantes: p.variantes || undefined, imagenes: p.imagenes || undefined }));
     } catch (err) {
       console.warn('No se pudo leer Supabase; se usa el catálogo local.', err);
       return local;
     }
   }
-  const PRODUCTOS = await cargarProductos();
+  async function cargarContenido() {
+    if (!conSupabase) return {};
+    try {
+      const filas = await leerTabla('contenido?select=clave,valor');
+      return Object.fromEntries(filas.map((f) => [f.clave, f.valor]));
+    } catch (err) {
+      console.warn('No se pudo leer el contenido; se usan los textos del HTML.', err);
+      return {};
+    }
+  }
+  const [PRODUCTOS, CONTENIDO] = await Promise.all([cargarProductos(), cargarContenido()]);
+
+  // ---------- Aplicar textos editables (si existen en Supabase) ----------
+  let numeroWa = WHATSAPP_NUMERO;
+  const conSaltos = (t) => esc(t).replace(/\n/g, '<br />');
+  const enlaceSeguro = (u) => {
+    const v = String(u || '').trim();
+    return v && !/^\s*(javascript|data|vbscript):/i.test(v) ? v : '';
+  };
+  const esExterno = (u) => /^https?:\/\//i.test(u);
+  const setTexto = (sel, v) => { const el = $(sel); if (el && typeof v === 'string' && v.trim()) el.textContent = v; };
+
+  function aplicarContenido(c) {
+    const ini = c.inicio;
+    if (ini) {
+      if (ini.titulo?.trim()) $('#home-title').innerHTML = conSaltos(ini.titulo);
+      setTexto('#home-sub', ini.subtitulo);
+      setTexto('#home-btn-tienda', ini.boton_tienda);
+      setTexto('#home-btn-colecciones', ini.boton_colecciones);
+      if (Array.isArray(ini.franja)) {
+        const f = ini.franja.filter((x) => x && (x.titulo || x.texto));
+        $('#homeStrip').innerHTML = f.map((x) => `<div><strong>${esc(x.titulo)}</strong><span>${esc(x.texto)}</span></div>`).join('');
+        $('#homeStrip').style.setProperty('--cols', f.length || 1);
+        $('#homeStrip').hidden = !f.length;
+      }
+      const img = enlaceSeguro(ini.imagen_portada);
+      if (img) {
+        $('.hero').style.backgroundImage = `url("${img.replace(/"/g, '%22')}")`;
+        $('.hero-video')?.setAttribute('poster', img);
+      }
+    }
+    const soc = c.sociedad;
+    if (soc) {
+      if (soc.intro?.trim()) $('#sociedadIntro').innerHTML = `<p>${conSaltos(soc.intro)}</p>`;
+      setTexto('#sociedadListaTitulo', soc.lista_titulo);
+      if (Array.isArray(soc.puntos)) {
+        $('#sociedadPuntos').innerHTML = soc.puntos.filter((x) => x && (x.titulo || x.texto))
+          .map((x) => `<li>${x.titulo ? `<strong>${esc(x.titulo)}:</strong> ` : ''}${esc(x.texto)}</li>`).join('');
+      }
+      setTexto('#manifiestoTitulo', soc.manifiesto_titulo);
+      if (soc.manifiesto?.trim()) $('#manifiestoTexto').innerHTML = conSaltos(soc.manifiesto);
+    }
+    const col = c.colecciones;
+    if (col) {
+      if (col.intro?.trim()) $('#coleccionesIntro').innerHTML = `<p>${conSaltos(col.intro)}</p>`;
+      if (Array.isArray(col.items)) {
+        $('#coleccionesGrid').innerHTML = col.items.filter((x) => x && x.visible !== false && x.nombre).map((x) => {
+          const link = enlaceSeguro(x.enlace);
+          const extra = x.leyenda || link
+            ? `<div class="raijin-legend">
+                 ${x.leyenda_titulo ? `<h4>${esc(x.leyenda_titulo)}</h4>` : ''}
+                 ${x.leyenda ? `<p>${conSaltos(x.leyenda)}</p>` : ''}
+                 ${link ? `<a class="btn-primario" href="${esc(link)}"${esExterno(link) ? ' target="_blank" rel="noopener"' : ''}>${esc(x.enlace_texto || 'Ver más')}</a>` : ''}
+               </div>` : '';
+          return `<article class="col-card${x.destacada ? ' col-card--destacada' : ''}" data-coleccion="${esc(x.nombre)}">
+              <h3>${esc(x.nombre)}${x.jp ? ` <span class="jp">${esc(x.jp)}</span>` : ''}</h3>
+              ${x.descripcion ? `<p>${conSaltos(x.descripcion)}</p>` : ''}
+              ${extra}
+            </article>`;
+        }).join('');
+      }
+    }
+    if (c.tienda?.intro?.trim()) $('#tiendaIntro').innerHTML = `<p>${conSaltos(c.tienda.intro)}</p>`;
+    const com = c.comunidad;
+    if (com && Array.isArray(com.items)) {
+      $('#blogGrid').innerHTML = com.items.filter((x) => x && x.visible !== false && x.titulo).map((x) => {
+        const link = enlaceSeguro(x.enlace);
+        const img = enlaceSeguro(x.imagen);
+        const tag = x.etiqueta ? `<span class="tag${x.etiqueta_gris ? ' tag--muted' : ''}">${esc(x.etiqueta)}</span>` : '';
+        const cuerpo = `
+          ${img ? `<img class="blog-thumb" src="${esc(img)}" alt="${esc(x.titulo)}" loading="lazy" decoding="async" />` : ''}
+          ${tag}
+          <h3>${esc(x.titulo)}</h3>
+          ${x.fecha ? `<p class="blog-fecha">${esc(x.fecha)}</p>` : ''}
+          ${x.resumen ? `<p>${conSaltos(x.resumen)}</p>` : ''}
+          ${link ? `<span class="blog-mas">${esc(x.enlace_texto || 'Ver más')} →</span>` : ''}`;
+        const clases = ['blog-card', x.destacada ? 'blog-card--evento' : '', img ? 'blog-card--img' : ''].filter(Boolean).join(' ');
+        return link
+          ? `<article class="${clases}"><a class="blog-link" href="${esc(link)}"${esExterno(link) ? ' target="_blank" rel="noopener"' : ''}>${cuerpo}</a></article>`
+          : `<article class="${clases}">${cuerpo}</article>`;
+      }).join('');
+    }
+    const gen = c.general;
+    if (gen) {
+      if (/^57\d{10}$/.test(gen.whatsapp || '')) {
+        numeroWa = gen.whatsapp;
+        const a = $('#footerWhatsapp');
+        if (a) { a.href = `https://wa.me/${numeroWa}`; a.textContent = `WhatsApp +57 ${numeroWa.slice(2, 5)} ${numeroWa.slice(5, 8)} ${numeroWa.slice(8)}`; }
+      }
+      setTexto('#footerTexto', gen.pie);
+    }
+  }
+  try { aplicarContenido(CONTENIDO); } catch (err) { console.warn('Contenido con formato inesperado; se mantienen los textos del HTML.', err); }
+
   const productosPorId = new Map(PRODUCTOS.map((p) => [p.id, p]));
 
   function imagenesDe(p, color) {
@@ -181,7 +288,7 @@
           <p class="precio">${sinPrecio ? 'Precio por confirmar' : dinero(precio)}</p>
           ${sinPrecio ? `
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
-               href="https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
+               href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
           : `
             ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + p.id, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
             <fieldset class="opciones"><legend>Color${p.colores.length > 1 ? '' : ': ' + esc(colorIni)}</legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
@@ -440,9 +547,10 @@
   };
   { const { id, col } = leerHash(); if (id === 'tienda' && col) filtrarColeccionDesdeHash(col); }
 
+  const slugsConProductos = new Map(Array.from(coleccionesConProductos, (c) => [slug(c), c]));
   $$('.col-card[data-coleccion]').forEach((card) => {
-    const col = card.dataset.coleccion;
-    if (!coleccionesConProductos.has(col)) return;
+    const col = slugsConProductos.get(slug(card.dataset.coleccion));
+    if (!col) return;
     const btn = document.createElement('a');
     btn.href = '#tienda/' + encodeURIComponent(col);
     btn.className = 'col-cta';
@@ -588,7 +696,7 @@
       f.notas.value.trim() ? `Notas: ${f.notas.value.trim()}` : null
     ].filter((l) => l !== null).join('\n');
 
-    const url = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`;
+    const url = `https://wa.me/${numeroWa}?text=${encodeURIComponent(mensaje)}`;
     const win = window.open(url, '_blank');
     if (win) win.opener = null; else location.href = url; // si el navegador bloquea la ventana
 
