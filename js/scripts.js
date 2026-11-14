@@ -248,9 +248,9 @@
 
   function chips(nombre, valores, tipo, seleccionado) {
     return valores.map((v) => `
-      <label class="chip chip--${tipo}">
+      <label class="chip chip--${tipo}" title="${esc(v)}">
         <input type="radio" name="${nombre}" value="${esc(v)}" ${v === seleccionado ? 'checked' : ''} />
-        <span>${tipo === 'color' ? `<i class="swatch" style="--sw:${colorCss(v)}"></i>` : ''}${esc(v)}</span>
+        <span>${tipo === 'color' ? `<i class="swatch" style="--sw:${colorCss(v)}"></i>` : ''}<span class="chip-txt">${esc(v)}</span></span>
       </label>`).join('');
   }
   function colorCss(c) {
@@ -291,10 +291,10 @@
                href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
           : `
             ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + p.id, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
-            <fieldset class="opciones"><legend>Color${p.colores.length > 1 ? '' : ': ' + esc(colorIni)}</legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
+            <fieldset class="opciones"><legend>Color: <span class="color-sel">${esc(colorIni)}</span></legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
             <fieldset class="opciones"><legend>Talla</legend>${chips('talla-' + p.id, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
             <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
-            <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar al carrito</button>`}
+            <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar<span class="add-extra"> al carrito</span></button>`}
         </div>
       </article>`;
   }
@@ -333,7 +333,7 @@
     const card = e.target.closest('.producto');
     if (!card) return;
     const p = productosPorId.get(card.dataset.id);
-    if (e.target.name.startsWith('color-')) actualizarImagen(card, p);
+    if (e.target.name.startsWith('color-')) { actualizarImagen(card, p); const cs = $('.color-sel', card); if (cs) cs.textContent = e.target.value; }
     if (e.target.name.startsWith('var-')) $('.precio', card).textContent = dinero(precioDe(p, e.target.value));
     if (e.target.name.startsWith('talla-')) $('.opciones-error', card)?.classList.add('hidden');
   });
@@ -706,6 +706,35 @@
     setCheckout(false);
     toast('¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
   });
+
+  // ---------- Acceso secreto al panel ----------
+  // Tocar 5 veces seguidas el logo del pie de página abre admin.html.
+  // La seguridad real sigue estando en el inicio de sesión y en la base de datos.
+  const logoPie = $('.footer-logo');
+  if (logoPie) {
+    let toques = 0, reinicio;
+    logoPie.addEventListener('click', () => {
+      toques += 1;
+      clearTimeout(reinicio);
+      reinicio = setTimeout(() => { toques = 0; }, 1500);
+      if (toques >= 5) {
+        toques = 0;
+        navigator.vibrate?.(40);
+        location.href = 'admin.html';
+      }
+    });
+    // Si este dispositivo ya tiene sesión iniciada en el panel, mostrar un acceso discreto
+    try {
+      const conSesion = Object.keys(localStorage).some((k) => /^sb-.+-auth-token$/.test(k));
+      if (conSesion) {
+        const a = document.createElement('a');
+        a.href = 'admin.html';
+        a.className = 'footer-admin';
+        a.textContent = 'Panel';
+        logoPie.closest('.footer-inner')?.appendChild(a);
+      }
+    } catch { /* sin almacenamiento */ }
+  }
 
   // ---------- Tecla Escape cierra lo que esté abierto ----------
   document.addEventListener('keydown', (e) => {
