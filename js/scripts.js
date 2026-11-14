@@ -1,990 +1,610 @@
-// ----------------------------
-// SELECCIÓN DE ELEMENTOS
-// ----------------------------
-let botonesAgregar = document.querySelectorAll(".agregar-carrito");
-const listaCarrito = document.querySelector("#lista-carrito");
-const totalCarrito = document.querySelector("#total");
-const contadorCarrito = document.querySelector("#contadorCarrito");
-const carritoPanel = document.querySelector("#carrito");
-const abrirCarrito = document.querySelector("#toggleCarrito");
-const cerrarCarrito = document.querySelector("#cerrarCarrito");
+/* =========================================================
+   INSANITY SOCIETY — lógica del sitio
+   Requiere js/productos.js (PRODUCTOS, CATEGORIAS, WHATSAPP_NUMERO)
+   ========================================================= */
+(async () => {
+  'use strict';
 
-// Controles móviles
-const mobileMenuToggle = document.querySelector('#mobileMenuToggle');
-const toggleCarritoMobile = document.querySelector('#toggleCarritoMobile');
-const mobileMenu = document.querySelector('#mobileMenu');
-const mobileOpenCarrito = document.querySelector('#mobileOpenCarrito');
-const mobileMenuLinks = document.querySelectorAll('.mobile-menu-link');
-
-// Navbar
-const navbar = document.querySelector('.navbar');
-const root = document.documentElement;
-
-// Estado para anclar el carrito al hacer click
-let carritoFijado = false;
-
-// Array para guardar productos en el carrito
-let carrito = [];
-
-// Utilidad: formato de moneda con separadores
-const formatearDinero = (valor) => {
-  const n = Number(valor) || 0;
-  return n.toLocaleString('es-CO', { minimumFractionDigits: 0 });
-};
-
-// ----------------------------
-// FUNCIÓN: AGREGAR PRODUCTO
-// ----------------------------
-function agregarProducto(nombre, precio, talla = null, coleccion = null, color = null) {
-  const key = `${nombre}__${color ?? 'SC'}__${talla ?? "SN"}`;
-  const existente = carrito.find(item => item.key === key);
-
-  if (existente) {
-    existente.cantidad++;
-  } else {
-    carrito.push({ key, nombre, precio, talla, coleccion, color, cantidad: 1 });
-  }
-  actualizarCarrito();
-}
-
-// ----------------------------
-// FUNCIÓN: ELIMINAR PRODUCTO
-// ----------------------------
-function eliminarProducto(nombre) {
-  carrito = carrito.filter(item => item.nombre !== nombre);
-  actualizarCarrito();
-}
-
-// ----------------------------
-// FUNCIÓN: ACTUALIZAR CARRITO
-// ----------------------------
-function actualizarCarrito() {
-  listaCarrito.innerHTML = "";
-  let total = 0;
-  let cantidadTotal = 0;
-
-  carrito.forEach(item => {
-    const li = document.createElement("li");
-    const tallaTxt = item.talla ? `Talla: ${item.talla}` : 'Talla: N/A';
-    const qty = item.cantidad;
-    const unit = formatearDinero(item.precio);
-    const subtotal = formatearDinero(item.precio * qty);
-    const colorTxt = item.color ? ` · Color: ${item.color}` : '';
-    li.innerHTML = `
-      <div style="display:flex; flex-direction:column; gap:2px; max-width: 100%;">
-        <strong>${item.nombre}</strong>
-        <small style="color:#bbb;">${tallaTxt}${colorTxt} · Cant: x${qty} · Unit: ${unit}</small>
-      </div>
-      <span style="margin-left:auto; font-weight:700; color: var(--accent);">${subtotal}</span>
-      <button class="eliminar" title="Quitar">X</button>
-    `;
-
-    li.querySelector(".eliminar").addEventListener("click", () => {
-      eliminarProducto(item.nombre);
-    });
-
-    listaCarrito.appendChild(li);
-
-    total += item.precio * item.cantidad;
-    cantidadTotal += item.cantidad;
-  });
-
-  totalCarrito.textContent = `${formatearDinero(total)}`;
-  
-  // Mostrar u ocultar contador
-  if (cantidadTotal > 0) {
-    contadorCarrito.textContent = cantidadTotal;
-    contadorCarrito.classList.remove("hidden");
-  } else {
-    contadorCarrito.classList.add("hidden");
-  }
-
-  // Habilita o deshabilita el botón de pedido
-  const btnPedido = document.querySelector('#realizarPedido');
-  if (btnPedido) btnPedido.disabled = carrito.length === 0;
-}
-
-// ----------------------------
-// EVENTOS EN BOTONES DE PRODUCTOS
-// ----------------------------
-function crearSelectorTallas(boton) {
-  // Evitar duplicados
-  if (boton.nextElementSibling && boton.nextElementSibling.classList.contains("tallas-menu")) return;
-
-  const tallas = (boton.dataset.tallas || "").split(",").map(t => t.trim()).filter(Boolean);
-
-  // Detectar si el producto tiene variación de color por la UI (color-toggle presente)
-  const card = boton.closest('.card.producto');
-  const colorBtns = card ? card.querySelectorAll('.color-btn') : null;
-  const tieneColor = colorBtns && colorBtns.length > 0;
-
-  const nombre = boton.dataset.nombre;
-  const precio = parseFloat(boton.dataset.precio);
-  const coleccion = boton.dataset.coleccion || null;
-
-  // Si no hay tallas y no hay color, agregar directo
-  if (!tallas.length && !tieneColor) {
-    agregarProducto(nombre, precio, null, coleccion, null);
-    return;
-  }
-
-  // Ocultar botón y construir selector(es)
-  boton.style.display = "none";
-  const contenedor = document.createElement("div");
-  contenedor.className = "tallas-menu";
-
-  let colorSeleccionado = null;
-
-  // Bloque de color si aplica
-  if (tieneColor) {
-    const labelColor = document.createElement('p');
-    labelColor.textContent = 'Elige color:';
-    contenedor.appendChild(labelColor);
-
-    colorBtns.forEach(btn => {
-      const chip = document.createElement('button');
-      chip.type = 'button';
-      chip.className = 'talla-opcion';
-      chip.textContent = btn.dataset.color.charAt(0).toUpperCase() + btn.dataset.color.slice(1);
-      chip.addEventListener('click', () => {
-        colorSeleccionado = btn.dataset.color; // 'blanco' | 'negro'
-        // Reflejar visualmente selección de color en tarjeta
-        card.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        // Cambiar imagen acorde al color manteniendo vista actual
-        const media = card.querySelector('.product-media');
-        const img = card.querySelector('.product-img');
-        const viewBtnActivo = card.querySelector('.view-btn.active');
-        const view = viewBtnActivo ? viewBtnActivo.dataset.view : 'front';
-        const key = `${view}-${colorSeleccionado}`;
-        const src = media.dataset[key];
-        if (src) img.src = src;
-      });
-      contenedor.appendChild(chip);
-    });
-  }
-
-  // Bloque de tallas si aplica
-  if (tallas.length) {
-    const label = document.createElement("p");
-    label.textContent = "Elige tu talla:";
-    contenedor.appendChild(label);
-
-    tallas.forEach(talla => {
-      const chip = document.createElement("button");
-      chip.type = "button";
-      chip.className = "talla-opcion";
-      chip.textContent = talla;
-      chip.addEventListener("click", () => {
-        // Validar color requerido si aplica
-        if (tieneColor && !colorSeleccionado) {
-          // Auto-seleccionar el color activo en la tarjeta si existe
-          const activo = card.querySelector('.color-btn.active');
-          colorSeleccionado = activo ? activo.dataset.color : null;
-          if (!colorSeleccionado) return; // obliga a elegir color primero
-        }
-        // Al seleccionar talla, agregar al carrito y cerrar menú
-        contenedor.remove();
-        boton.style.display = "inline-block";
-        boton.textContent = "Agregar al carrito";
-
-        const nombreConColor = (tieneColor && colorSeleccionado)
-          ? `${nombre} (${colorSeleccionado.charAt(0).toUpperCase() + colorSeleccionado.slice(1)})`
-          : nombre;
-
-        agregarProducto(
-          nombreConColor,
-          precio,
-          talla,
-          coleccion,
-          tieneColor ? colorSeleccionado : null
-        );
-      });
-      contenedor.appendChild(chip);
-    });
-  }
-
-  // Botón para cancelar selección
-  const cancelar = document.createElement("button");
-  cancelar.type = "button";
-  cancelar.className = "talla-opcion";
-  cancelar.textContent = "Cancelar";
-  cancelar.style.background = "#333";
-  cancelar.addEventListener("click", () => {
-    contenedor.remove();
-    boton.style.display = "inline-block";
-  });
-  contenedor.appendChild(cancelar);
-
-  boton.parentElement.appendChild(contenedor);
-}
-
-botonesAgregar.forEach(boton => {
-  boton.addEventListener("click", e => {
-    crearSelectorTallas(e.currentTarget);
-  });
-});
-
-// ----------------------------
-// TOGGLE DEL CARRITO (según dispositivo)
-// ----------------------------
-const mediaDesktop = window.matchMedia('(hover: hover) and (pointer: fine)');
-
-function configurarCarritoPorDispositivo() {
-  // Reset de estado visual
-  carritoFijado = false;
-  carritoPanel.classList.remove('active', 'hover-open');
-
-  if (mediaDesktop.matches) {
-    // Escritorio: hover para previsualizar, click para fijar/desfijar
-    if (abrirCarrito) {
-      abrirCarrito.addEventListener("click", () => {
-        carritoFijado = !carritoFijado;
-        carritoPanel.classList.toggle("active", carritoFijado);
-      });
-
-      abrirCarrito.addEventListener("mouseenter", () => {
-        if (!carritoFijado) carritoPanel.classList.add("hover-open");
-      });
-      abrirCarrito.addEventListener("mouseleave", () => {
-        if (!carritoFijado) carritoPanel.classList.remove("hover-open");
-      });
-    }
-
-    carritoPanel.addEventListener("mouseenter", () => {
-      if (!carritoFijado) carritoPanel.classList.add("hover-open");
-    });
-    carritoPanel.addEventListener("mouseleave", () => {
-      if (!carritoFijado) carritoPanel.classList.remove("hover-open");
-    });
-  } else {
-    // Móvil/Tablet: solo click para abrir y se mantiene hasta cerrar con X
-    const abrirCarritoMovil = () => {
-      carritoFijado = true;
-      carritoPanel.classList.add("active");
-      carritoPanel.classList.remove("hover-open");
-      cerrarMobileMenu();
-      // Evitar scroll del body cuando carrito está abierto en móvil
-      document.body.style.overflow = 'hidden';
-    };
-    if (toggleCarritoMobile) toggleCarritoMobile.addEventListener("click", abrirCarritoMovil);
-    if (mobileOpenCarrito) mobileOpenCarrito.addEventListener("click", abrirCarritoMovil);
-  }
-}
-
-configurarCarritoPorDispositivo();
-
-cerrarCarrito.addEventListener("click", () => {
-  carritoFijado = false;
-  carritoPanel.classList.remove("active", "hover-open");
-  // Restaurar scroll del body
-  document.body.style.overflow = '';
-});
-
-// ----------------------------
-// NAVBAR móvil: shrink al hacer scroll + menú
-// ----------------------------
-function onScrollMobileNavbar() {
-  if (mediaDesktop.matches) return; // solo móvil/tablet
-  const scrolled = window.scrollY > 20;
-  navbar.classList.toggle('shrink', scrolled);
-}
-window.addEventListener('scroll', onScrollMobileNavbar, { passive: true });
-
-// Ajustar padding-top dinámico según altura de la navbar en móvil
-function updateHeaderOffset() {
-  if (!navbar) return;
-  const h = navbar.getBoundingClientRect().height;
-  root.style.setProperty('--header-offset', `${Math.ceil(h) + 8}px`);
-}
-window.addEventListener('load', updateHeaderOffset);
-window.addEventListener('resize', updateHeaderOffset);
-const ro = new ResizeObserver(updateHeaderOffset);
-if (navbar && ro) ro.observe(navbar);
-
-function cerrarMobileMenu() {
-  if (!mobileMenu) return;
-  mobileMenu.classList.add('hidden');
-  mobileMenu.setAttribute('aria-hidden', 'true');
-}
-function toggleMobileMenu() {
-  if (!mobileMenu) return;
-  const opened = mobileMenu.classList.toggle('hidden');
-  mobileMenu.setAttribute('aria-hidden', opened ? 'true' : 'false');
-}
-if (mobileMenuToggle) mobileMenuToggle.addEventListener('click', (e) => {
-  e.stopPropagation();
-  toggleMobileMenu();
-});
-if (mobileMenu) {
-  mobileMenu.addEventListener('click', (e) => e.stopPropagation());
-}
-if (mobileMenuLinks && mobileMenuLinks.length) {
-  mobileMenuLinks.forEach(btn => btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const tabId = btn.dataset.tab;
-    if (tabId) {
-      document.querySelectorAll('.tab-link').forEach(l => l.classList.remove('active'));
-      activarTabConAnimacion(tabId);
-      const desktopBtn = document.querySelector(`.tab-link[data-tab="${tabId}"]`);
-      if (desktopBtn) desktopBtn.classList.add('active');
-    }
-    cerrarMobileMenu();
-  }));
-}
-// Cerrar menú al hacer click/tap fuera
-window.addEventListener('click', (e) => {
-  const target = e.target;
-  const clickedToggle = mobileMenuToggle && mobileMenuToggle.contains(target);
-  const clickedMenu = mobileMenu && mobileMenu.contains(target);
-  const clickedCartButtons = (toggleCarritoMobile && toggleCarritoMobile.contains(target)) || (mobileOpenCarrito && mobileOpenCarrito.contains(target));
-  if (!clickedToggle && !clickedMenu && !clickedCartButtons) {
-    cerrarMobileMenu();
-  }
-}, { passive: true });
-
-// ----------------------------
-// REALIZAR PEDIDO (modal resumen)
-// ----------------------------
-const btnPedido = document.querySelector('#realizarPedido');
-const modal = document.querySelector('#pedidoModal');
-const modalCerrarIcon = document.querySelector('#cerrarPedidoModal');
-const modalCerrarBtn = document.querySelector('#cerrarPedido');
-const modalDetalle = document.querySelector('#pedidoDetalle');
-const modalConfirmar = document.querySelector('#confirmarPedido');
-
-function abrirModalPedido() {
-  // Construir detalle del pedido
-  if (!modal || !modalDetalle) return;
-
-  if (!carrito.length) {
-    modalDetalle.innerHTML = '<p>Tu carrito está vacío.</p>';
-  } else {
-    const itemsHtml = carrito.map(item => {
-      const tallaTxt = item.talla ? `Talla: ${item.talla}` : 'Talla: N/A';
-      const colTxt = item.coleccion ? `Colección: ${item.coleccion}` : 'Colección: N/A';
-      const subtotal = `${formatearDinero(item.precio * item.cantidad)}`;
-      return `<li>${item.nombre} — ${tallaTxt} — ${colTxt} — Cant: ${item.cantidad} — Subtotal: ${subtotal}</li>`;
-    }).join('');
-
-    modalDetalle.innerHTML = `
-      <ul style="padding-left: 1rem; list-style: disc;">
-        ${itemsHtml}
-      </ul>
-      <p style="margin-top: .75rem; font-weight: 700;">Total: ${totalCarrito.textContent}</p>
-    `;
-  }
-
-  modal.classList.remove('hidden');
-}
-
-function cerrarModalPedido() {
-  if (!modal) return;
-  modal.classList.add('hidden');
-}
-
-if (btnPedido) btnPedido.addEventListener('click', abrirModalPedido);
-if (modalCerrarIcon) modalCerrarIcon.addEventListener('click', cerrarModalPedido);
-if (modalCerrarBtn) modalCerrarBtn.addEventListener('click', cerrarModalPedido);
-if (modal) modal.addEventListener('click', (e) => {
-  if (e.target === modal) cerrarModalPedido();
-});
-
-// Confirmar pedido -> abrir checkout
-if (modalConfirmar) {
-  modalConfirmar.addEventListener('click', () => {
-    if (!carrito.length) return;
-    cerrarModalPedido();
-    abrirCheckout();
-  });
-}
-
-// ----------------------------
-// CHECKOUT: Modal con datos de envío y WhatsApp
-// ----------------------------
-const checkoutModal = document.querySelector('#checkoutModal');
-const checkoutResumen = document.querySelector('#checkoutResumen');
-const checkoutTotal = document.querySelector('#checkoutTotal');
-const cerrarCheckout = document.querySelector('#cerrarCheckout');
-const cerrarCheckoutModal = document.querySelector('#cerrarCheckoutModal');
-const enviarWhatsapp = document.querySelector('#enviarWhatsapp');
-const checkoutForm = document.querySelector('#checkoutForm');
-const fNombreApellido = document.querySelector('#nombreApellido');
-const fCedula = document.querySelector('#cedula');
-const fDepartamento = document.querySelector('#departamento');
-const fCiudad = document.querySelector('#ciudad');
-const fCiudadOtra = document.querySelector('#ciudadOtra');
-const fDireccion = document.querySelector('#direccion');
-const fBarrio = document.querySelector('#barrio');
-
-// Mapa de departamentos -> ciudades (lista acotada + opción "Otra")
-const CIUDADES_CO = {
-  'Amazonas': ['Leticia', 'Otra'],
-  'Antioquia': ['Medellín', 'Bello', 'Envigado', 'Itagüí', 'Rionegro', 'Apartadó', 'Turbo', 'Caucasia', 'La Ceja', 'Sabaneta', 'Otra'],
-  'Arauca': ['Arauca', 'Saravena', 'Otra'],
-  'Atlántico': ['Barranquilla', 'Soledad', 'Malambo', 'Galapa', 'Sabanalarga', 'Puerto Colombia', 'Otra'],
-  'Bolívar': ['Cartagena', 'Magangué', 'Turbaco', 'Otra'],
-  'Boyacá': ['Tunja', 'Duitama', 'Sogamoso', 'Otra'],
-  'Caldas': ['Manizales', 'Villamaría', 'Chinchiná', 'Otra'],
-  'Caquetá': ['Florencia', 'San Vicente del Caguán', 'Otra'],
-  'Casanare': ['Yopal', 'Villanueva', 'Otra'],
-  'Cauca': ['Popayán', 'Santander de Quilichao', 'Otra'],
-  'Cesar': ['Valledupar', 'Aguachica', 'Otra'],
-  'Chocó': ['Quibdó', 'Istmina', 'Otra'],
-  'Córdoba': ['Montería', 'Lorica', 'Cereté', 'Otra'],
-  'Cundinamarca': ['Soacha', 'Chía', 'Zipaquirá', 'Facatativá', 'Girardot', 'Fusagasugá', 'Cajicá', 'Mosquera', 'Otra'],
-  'Guainía': ['Inírida', 'Otra'],
-  'Guaviare': ['San José del Guaviare', 'Otra'],
-  'Huila': ['Neiva', 'Pitalito', 'Garzón', 'Otra'],
-  'La Guajira': ['Riohacha', 'Maicao', 'Uribia', 'Otra'],
-  'Magdalena': ['Santa Marta', 'Ciénaga', 'Fundación', 'Otra'],
-  'Meta': ['Villavicencio', 'Acacías', 'Granada', 'Otra'],
-  'Nariño': ['Pasto', 'Ipiales', 'Tumaco', 'Otra'],
-  'Norte de Santander': ['Cúcuta', 'Ocaña', 'Villa del Rosario', 'Los Patios', 'Otra'],
-  'Putumayo': ['Mocoa', 'Puerto Asís', 'Orito', 'Otra'],
-  'Quindío': ['Armenia', 'La Tebaida', 'Montenegro', 'Otra'],
-  'Risaralda': ['Pereira', 'Dosquebradas', 'La Virginia', 'Otra'],
-  'San Andrés y Providencia': ['San Andrés', 'Providencia', 'Otra'],
-  'Santander': ['Bucaramanga', 'Floridablanca', 'Giron', 'Piedecuesta', 'Barrancabermeja', 'Otra'],
-  'Sucre': ['Sincelejo', 'Corozal', 'Otra'],
-  'Tolima': ['Ibagué', 'Espinal', 'Honda', 'Otra'],
-  'Valle del Cauca': ['Cali', 'Palmira', 'Buenaventura', 'Tuluá', 'Cartago', 'Buga', 'Yumbo', 'Otra'],
-  'Vaupés': ['Mitú', 'Otra'],
-  'Vichada': ['Puerto Carreño', 'Otra']
-};
-
-function abrirCheckout() {
-  if (!checkoutModal) return;
-
-  // Construir resumen
-  const itemsHtml = carrito.map(item => {
-    const tallaTxt = item.talla ? `Talla: ${item.talla}` : 'Talla: N/A';
-    const colTxt = item.coleccion ? `Colección: ${item.coleccion}` : 'Colección: N/A';
-    const subtotal = `${formatearDinero(item.precio * item.cantidad)}`;
-    return `<li>${item.nombre} — ${tallaTxt} — ${colTxt} — Cant: ${item.cantidad} — Subtotal: ${subtotal}</li>`;
-  }).join('');
-
-  if (checkoutResumen) {
-    checkoutResumen.innerHTML = `<ul style="padding-left: 1rem; list-style: disc;">${itemsHtml}</ul>`;
-  }
-  if (checkoutTotal) {
-    checkoutTotal.textContent = `Total: ${totalCarrito.textContent}`;
-  }
-
-  // Reset de formulario
-  if (checkoutForm) checkoutForm.reset();
-  if (fCiudadOtra) fCiudadOtra.classList.add('hidden');
-
-  checkoutModal.classList.remove('hidden');
-  checkoutModal.setAttribute('aria-hidden', 'false');
-
-  validarCheckout();
-}
-
-function cerrarCheckoutFn() {
-  if (!checkoutModal) return;
-  checkoutModal.classList.add('hidden');
-  checkoutModal.setAttribute('aria-hidden', 'true');
-}
-
-function poblarCiudades(dep) {
-  if (!fCiudad) return;
-  fCiudad.innerHTML = '';
-  const lista = CIUDADES_CO[dep] || ['Otra'];
-  const opt0 = document.createElement('option');
-  opt0.value = '';
-  opt0.textContent = 'Seleccione una ciudad';
-  opt0.disabled = true; opt0.selected = true;
-  fCiudad.appendChild(opt0);
-  lista.forEach(c => {
-    const op = document.createElement('option');
-    op.value = c;
-    op.textContent = c;
-    fCiudad.appendChild(op);
-  });
-}
-
-function validarCheckout() {
-  const mark = (el, ok) => {
-    if (!el) return;
-    el.classList.toggle('is-invalid', !ok);
-    el.classList.toggle('is-valid', ok);
+  // ---------- Utilidades ----------
+  const $ = (sel, ctx = document) => ctx.querySelector(sel);
+  const $$ = (sel, ctx = document) => Array.from(ctx.querySelectorAll(sel));
+  const dinero = (n) => '$' + (Number(n) || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const slug = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const storage = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }
   };
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  const nombreOk = fNombreApellido && fNombreApellido.value.trim().length >= 3;
-  const cedulaOk = fCedula && /^[0-9]{5,}$/.test(fCedula.value.trim());
-  const depOk = fDepartamento && fDepartamento.value.trim().length > 0;
-  let ciudadOk = false;
-  if (fCiudad && fCiudad.value === 'Otra') {
-    if (fCiudadOtra) fCiudadOtra.classList.remove('hidden');
-    ciudadOk = fCiudadOtra && fCiudadOtra.value.trim().length >= 2;
-  } else {
-    if (fCiudadOtra) {
-      fCiudadOtra.classList.add('hidden');
-      fCiudadOtra.classList.remove('is-invalid', 'is-valid');
-    }
-    ciudadOk = fCiudad && fCiudad.value && fCiudad.value !== '';
-  }
-  const dirOk = fDireccion && fDireccion.value.trim().length >= 4;
-  const barrioOk = fBarrio && fBarrio.value.trim().length >= 2;
-
-  // Aplicar estilos de validación
-  mark(fNombreApellido, !!nombreOk);
-  mark(fCedula, !!cedulaOk);
-  mark(fDepartamento, !!depOk);
-  if (fCiudad) {
-    const ciudadSelectOk = fCiudad.value && fCiudad.value !== '';
-    mark(fCiudad, !!ciudadSelectOk);
-  }
-  if (fCiudad && fCiudad.value === 'Otra') {
-    mark(fCiudadOtra, !!ciudadOk);
-  }
-  mark(fDireccion, !!dirOk);
-  mark(fBarrio, !!barrioOk);
-
-  const valido = nombreOk && cedulaOk && depOk && ciudadOk && dirOk && barrioOk;
-  if (enviarWhatsapp) enviarWhatsapp.disabled = !valido;
-  return valido;
-}
-
-// Cierre checkout
-if (cerrarCheckout) cerrarCheckout.addEventListener('click', cerrarCheckoutFn);
-if (cerrarCheckoutModal) cerrarCheckoutModal.addEventListener('click', cerrarCheckoutFn);
-if (checkoutModal) checkoutModal.addEventListener('click', (e) => {
-  if (e.target === checkoutModal) cerrarCheckoutFn();
-});
-
-// Eventos del formulario
-if (checkoutForm) {
-  ['input','change'].forEach(evt => checkoutForm.addEventListener(evt, validarCheckout));
-}
-if (fDepartamento) {
-  fDepartamento.addEventListener('change', (e) => {
-    const dep = e.target.value;
-    poblarCiudades(dep);
-    validarCheckout();
-  });
-}
-if (fCiudad) {
-  fCiudad.addEventListener('change', () => {
-    validarCheckout();
-  });
-}
-
-// Enviar WhatsApp con todos los datos
-if (enviarWhatsapp) {
-  enviarWhatsapp.addEventListener('click', () => {
-    if (!validarCheckout() || !carrito.length) return;
-
-    const dep = fDepartamento.value;
-    const ciudad = (fCiudad.value === 'Otra' ? (fCiudadOtra.value.trim()) : fCiudad.value);
-    const datos = {
-      nombre: fNombreApellido.value.trim(),
-      cedula: fCedula.value.trim(),
-      departamento: dep,
-      ciudad,
-      direccion: fDireccion.value.trim(),
-      barrio: fBarrio.value.trim(),
-    };
-
-    const items = carrito.map(item => {
-      const col = item.coleccion ? `Colección: ${item.coleccion}` : 'Colección: N/A';
-      const talla = item.talla ? `Talla: ${item.talla}` : 'Talla: N/A';
-      const subtotal = formatearDinero(item.precio * item.cantidad);
-      return `• ${item.nombre} | ${col} | ${talla} | Cant: ${item.cantidad} | Subtotal: ${subtotal}`;
-    }).join('\n');
-
-    const totalTxt = totalCarrito.textContent;
-
-    const mensaje = [
-      'Hola, quiero realizar el siguiente pedido:',
-      items,
-      '',
-      `Total: ${totalTxt}`,
-      '',
-      'Datos del cliente:',
-      `Nombre y Apellido: ${datos.nombre}`,
-      `Cédula: ${datos.cedula}`,
-      `Departamento: ${datos.departamento}`,
-      `Ciudad: ${datos.ciudad}`,
-      `Dirección: ${datos.direccion}`,
-      `Barrio: ${datos.barrio}`
-    ].join('\n');
-
-    const numero = '573241457674'; // +57 Colombia
-    const url = `https://wa.me/${numero}?text=${encodeURIComponent(mensaje)}`;
-
-    // Abrir WhatsApp en nueva pestaña/ventana
-    window.open(url, '_blank');
-
-    // Post-acción: cerrar checkout y vaciar carrito para dejar la página limpia al volver
-    cerrarCheckoutFn();
-    carrito = [];
-    actualizarCarrito();
-    carritoPanel.classList.remove('active', 'hover-open');
-    carritoFijado = false;
-  });
-}
-
-// ----------------------------
-// SISTEMA DE TABS (SPA)
-// ----------------------------
-const tabLinks = document.querySelectorAll(".tab-link");
-const tabContents = document.querySelectorAll(".tab-content");
-
-function activarTabConAnimacion(id) {
-  const actual = document.querySelector(".tab-content.active");
-  const siguiente = document.getElementById(id);
-  if (actual === siguiente) return;
-
-  if (actual) {
-    actual.classList.remove("active", "fade-in");
-    actual.classList.add("fade-out");
+  const toastEl = $('#toast');
+  let toastTimer;
+  function toast(msg) {
+    if (!toastEl) return;
+    toastEl.textContent = msg;
+    toastEl.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 2600);
   }
 
-  // Espera la animación de salida y luego muestra la siguiente
-  setTimeout(() => {
-    if (actual) actual.classList.remove("fade-out");
-    siguiente.classList.add("active", "fade-in");
-    // Re-vincular listeners de tallas y vista/color tras cambiar de pestaña
-    inicializarInteraccionesCatalogo();
-  }, 250);
-}
+  const anio = $('#anio');
+  if (anio) anio.textContent = new Date().getFullYear();
 
-tabLinks.forEach(link => {
-  link.addEventListener("click", () => {
-    tabLinks.forEach(l => l.classList.remove("active"));
-    link.classList.add("active");
-    activarTabConAnimacion(link.dataset.tab);
-  });
-});
+  // ---------- Navbar: altura dinámica ----------
+  const navbar = $('#navbar');
+  function updateHeaderOffset() {
+    if (!navbar) return;
+    document.documentElement.style.setProperty('--header-offset', Math.ceil(navbar.getBoundingClientRect().height) + 'px');
+  }
+  updateHeaderOffset();
+  if ('ResizeObserver' in window && navbar) new ResizeObserver(updateHeaderOffset).observe(navbar);
+  window.addEventListener('scroll', () => navbar && navbar.classList.toggle('shrink', window.scrollY > 20), { passive: true });
 
-// ----------------------------
-// PREVISUALIZACIÓN DE PRODUCTO: Vista pecho/espalda y color
-// ----------------------------
-function inicializarInteraccionesCatalogo() {
-  // Botones agregar (recolectar de nuevo por si se cargaron nuevos nodos)
-  botonesAgregar = document.querySelectorAll('.agregar-carrito');
-  botonesAgregar.forEach(boton => {
-    if (!boton.__tallasBinded) {
-      boton.addEventListener('click', (e) => crearSelectorTallas(e.currentTarget));
-      boton.__tallasBinded = true;
-    }
+  // ---------- Menú móvil ----------
+  const menuToggle = $('#mobileMenuToggle');
+  const mobileMenu = $('#mobileMenu');
+  function setMenu(open) {
+    if (!mobileMenu) return;
+    mobileMenu.classList.toggle('hidden', !open);
+    menuToggle?.setAttribute('aria-expanded', String(open));
+    menuToggle?.classList.toggle('open', open);
+  }
+  menuToggle?.addEventListener('click', (e) => { e.stopPropagation(); setMenu(mobileMenu.classList.contains('hidden')); });
+  document.addEventListener('click', (e) => {
+    if (mobileMenu && !mobileMenu.contains(e.target) && !menuToggle?.contains(e.target)) setMenu(false);
   });
 
-  // Vista pecho/espalda
-  // Asignación de rutas pecho/espalda por mapa (si existe)
-  document.querySelectorAll('.producto').forEach(card => {
-    const name = (card.querySelector('h3')?.textContent || '').trim();
-    if (PRODUCT_IMAGE_MAP[name]) {
-      const media = card.querySelector('.product-media');
-      if (media) {
-        media.dataset.front = PRODUCT_IMAGE_MAP[name].front;
-        media.dataset.back = PRODUCT_IMAGE_MAP[name].back;
-      }
-    }
-  });
+  // ---------- Pestañas con URL (#inicio, #tienda...) ----------
+  const secciones = $$('.tab-content');
+  const idsValidos = secciones.map((s) => s.id);
 
-  document.querySelectorAll('.producto .view-btn').forEach(btn => {
-    if (btn.__viewBinded) return;
-    btn.addEventListener('click', () => {
-      const cont = btn.closest('.producto');
-      const media = cont.querySelector('.product-media');
-      const img = cont.querySelector('.product-img');
-      const view = btn.dataset.view; // 'front' | 'back'
-
-      // Alternar estado visual
-      cont.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Soporte para productos con colores (dragon)
-      const colorActivoBtn = cont.querySelector('.color-btn.active');
-      const color = colorActivoBtn ? colorActivoBtn.dataset.color : null; // 'blanco' | 'negro'
-
-      let src = '';
-      if (color && media.dataset[`front-${color}`]) {
-        // Producto con colores
-        const key = `${view}-${color}`; // ej: front-blanco
-        src = media.dataset[key];
-      } else {
-        // Producto sin colores
-        src = media.dataset[view === 'front' ? 'front' : 'back'];
-      }
-      if (src) img.src = src;
+  function mostrarSeccion(id, { scroll = true } = {}) {
+    if (!idsValidos.includes(id)) id = 'home';
+    secciones.forEach((s) => {
+      const activa = s.id === id;
+      s.hidden = !activa;
+      s.classList.toggle('active', activa);
+      if (activa && !reduceMotion) { s.classList.remove('fade-in'); void s.offsetWidth; s.classList.add('fade-in'); }
     });
-    btn.__viewBinded = true;
-  });
-
-  // Selector de color (solo Dragon)
-  document.querySelectorAll('.producto .color-btn').forEach(btn => {
-    if (btn.__colorBinded) return;
-    btn.addEventListener('click', () => {
-      const cont = btn.closest('.producto');
-      const media = cont.querySelector('.product-media');
-      const img = cont.querySelector('.product-img');
-      const color = btn.dataset.color; // 'blanco' | 'negro'
-
-      cont.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-
-      // Mantener vista actual (pecho/espalda)
-      const viewBtnActivo = cont.querySelector('.view-btn.active');
-      const view = viewBtnActivo ? viewBtnActivo.dataset.view : 'front';
-
-      const key = `${view}-${color}`;
-      const src = media.dataset[key];
-      if (src) img.src = src;
+    $$('.tab-link').forEach((a) => {
+      const activo = a.dataset.tab === id;
+      a.classList.toggle('active', activo);
+      if (activo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
-    btn.__colorBinded = true;
-  });
-}
-
-// Inicializar al cargar
-window.addEventListener('load', inicializarInteraccionesCatalogo);
-
-// ----------------------------
-// FILTROS DE TIENDA
-// ----------------------------
-(function initFiltros() {
-  const tienda = document.querySelector('#tienda');
-  if (!tienda) return;
-
-  const panel = document.querySelector('#filtersPanel');
-  const overlay = document.querySelector('#filtersOverlay');
-  const btnOpen = document.querySelector('#openFilters');
-  const btnClose = document.querySelector('#closeFilters');
-  const btnApply = document.querySelector('#applyFilters');
-  const btnReset = document.querySelector('#resetFilters');
-  const btnClear = document.querySelector('#clearFilters');
-  const noResultados = document.querySelector('#noResultados');
-
-  const contCategoria = document.querySelector('#filtroCategoria');
-  const contColeccion = document.querySelector('#filtroColeccion');
-  const contTalla = document.querySelector('#filtroTalla');
-  const contColor = document.querySelector('#filtroColor');
-
-  const productos = Array.from(tienda.querySelectorAll('.card.producto'));
-
-  // Mapa de imágenes por producto (opcional): permite definir rutas de pecho/espalda
-  // clave: texto exacto del h3 del producto
-  const PRODUCT_IMAGE_MAP = {
-    // Ejemplo:
-    // 'Camiseta Oversize KYO-KI': {
-    //   front: 'img/KYO-KI/camiseta-oversize/negro-frente.png',
-    //   back:  'img/KYO-KI/camiseta-oversize/negro-espalda.png'
-    // }
-  };
-
-  // Inferir y normalizar atributos de productos
-  const normaliza = (s) => (s || '').toString().trim().toLowerCase();
-  productos.forEach(prod => {
-    // Colección: ya existe en data-coleccion
-    const col = prod.getAttribute('data-coleccion');
-    if (col) prod.setAttribute('data-coleccion', col);
-
-    // Categoría: inferir por texto del h3 o párrafo
-    let categoria = 'camiseta';
-    const title = (prod.querySelector('h3')?.textContent || '').toLowerCase();
-    const ptxt = (prod.querySelector('p')?.textContent || '').toLowerCase();
-    if (title.includes('sudadera')) categoria = 'sudadera';
-    else if (title.includes('pantaloneta')) categoria = 'pantaloneta';
-    else if (title.includes('crop')) categoria = 'top';
-    else if (title.includes('short')) categoria = 'short';
-    else if (title.includes('compresión') || title.includes('compresion')) categoria = 'camiseta';
-    prod.setAttribute('data-categoria', categoria);
-
-    // Tallas: a partir de data-tallas del botón
-    const btn = prod.querySelector('.agregar-carrito');
-    const tallas = (btn?.dataset.tallas || '')
-      .split(',').map(t=>t.trim().toUpperCase()).filter(Boolean);
-    if (tallas.length) prod.setAttribute('data-tallas', tallas.join(','));
-
-    // Colores: buscar en el texto del párrafo principal
-    let colores = [];
-    const coloresTxt = ptxt.split('colores:')[1] || ptxt.split(' • ')[2] || '';
-    if (coloresTxt) {
-      colores = coloresTxt
-        .replace(/\.|\n/g,'')
-        .split(/[\/•,]/)
-        .map(c=>c.trim())
-        .filter(Boolean);
-    }
-    // Si no detecta, intenta por imagen (negro por defecto)
-    if (!colores.length) colores = ['negro'];
-    prod.setAttribute('data-colores', colores.join(','));
-  });
-
-  // Construir opciones únicas
-  const setCategorias = new Set();
-  const setColecciones = new Set();
-  const setTallas = new Set();
-  const setColores = new Set();
-
-  productos.forEach(prod => {
-    setCategorias.add(normaliza(prod.dataset.categoria));
-    setColecciones.add(prod.dataset.coleccion);
-    (prod.dataset.tallas || '').split(',').filter(Boolean).forEach(t => setTallas.add(t.toUpperCase()));
-    (prod.dataset.colores || '').split(',').filter(Boolean).forEach(c => setColores.add(normaliza(c)));
-  });
-
-  const crearChip = (name, value) => {
-    const id = `${name}-${value}`.replace(/\s+/g,'-').toLowerCase();
-    const label = document.createElement('label');
-    label.className = 'filter-chip';
-    label.setAttribute('for', id);
-    const input = document.createElement('input');
-    input.type = 'checkbox';
-    input.id = id;
-    input.name = name;
-    input.value = value;
-    label.appendChild(input);
-    label.appendChild(document.createTextNode(' ' + value));
-    return label;
-  };
-
-  // Poblar contenedores (inicial)
-  function renderOpciones({ cats, cols, tllas, colsColores }, keepChecked = true) {
-    const render = (cont, name, valores) => {
-      const checked = new Set(Array.from(cont.querySelectorAll('input[name="'+name+'"]:checked')).map(i=>i.value.toLowerCase()));
-      cont.innerHTML = '';
-      valores.forEach(v => {
-        const chip = crearChip(name, v);
-        if (keepChecked && checked.has(v.toLowerCase())) chip.querySelector('input').checked = true;
-        cont.appendChild(chip);
-      });
-    };
-    render(contCategoria, 'categoria', Array.from(cats).sort());
-    render(contColeccion, 'coleccion', Array.from(cols).sort());
-    render(contTalla, 'talla', Array.from(tllas).sort());
-    render(contColor, 'color', Array.from(colsColores).sort());
+    setMenu(false);
+    if (scroll) window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
+    const titulos = { home: 'Insanity Society — Ropa de entrenamiento con carácter', colecciones: 'Colecciones', sociedad: 'La Sociedad', tienda: 'Tienda', blog: 'Comunidad' };
+    document.title = id === 'home' ? titulos.home : `${titulos[id]} | Insanity Society`;
   }
-  renderOpciones({ cats: setCategorias, cols: setColecciones, tllas: setTallas, colsColores: setColores });
+  // Admite #tienda/RAIJIN para abrir la tienda filtrada por colección
+  const leerHash = () => {
+    const [id, col] = decodeURIComponent(location.hash.slice(1)).split('/');
+    return { id: id || 'home', col: col || null };
+  };
+  let filtrarColeccionDesdeHash = () => {}; // se define en la sección de filtros
+  window.addEventListener('hashchange', () => {
+    const { id, col } = leerHash();
+    mostrarSeccion(id);
+    if (id === 'tienda' && col) filtrarColeccionDesdeHash(col);
+  });
+  mostrarSeccion(leerHash().id, { scroll: false });
 
-  // Estado de filtros
+  // ---------- Video de portada: solo en conexiones/pantallas que lo aguanten ----------
+  const heroVideo = $('.hero-video');
+  if (heroVideo && heroVideo.dataset.src) {
+    const conn = navigator.connection || {};
+    const ligero = conn.saveData || /(^|-)2g$/.test(conn.effectiveType || '');
+    if (!reduceMotion && !ligero && window.matchMedia('(min-width: 768px)').matches) {
+      heroVideo.src = heroVideo.dataset.src;
+      heroVideo.play().catch(() => {});
+    }
+  }
+
+  // =========================================================
+  // CATÁLOGO
+  // =========================================================
+  const catalogo = $('#catalogo');
+
+  // Productos: desde Supabase si está configurado (js/config.js); si no, o si falla, desde js/productos.js
+  async function cargarProductos() {
+    const local = window.PRODUCTOS_LOCAL || [];
+    const cfg = window.INSANITY_CONFIG || {};
+    if (!cfg.supabaseUrl || !cfg.supabaseKey) return local;
+    if (catalogo) catalogo.innerHTML = '<p class="cargando-catalogo">Cargando productos…</p>';
+    try {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 7000);
+      const url = `${cfg.supabaseUrl.replace(/\/+$/, '')}/rest/v1/productos?select=*&activo=eq.true&order=orden.asc,nombre.asc`;
+      const r = await fetch(url, { headers: { apikey: cfg.supabaseKey }, signal: ctrl.signal });
+      clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const data = await r.json();
+      return data.map((p) => ({ ...p, variantes: p.variantes || undefined, imagenes: p.imagenes || undefined }));
+    } catch (err) {
+      console.warn('No se pudo leer Supabase; se usa el catálogo local.', err);
+      return local;
+    }
+  }
+  const PRODUCTOS = await cargarProductos();
+  const productosPorId = new Map(PRODUCTOS.map((p) => [p.id, p]));
+
+  function imagenesDe(p, color) {
+    if (!p.imagenes) return null;
+    if (p.imagenes[color]) return { ...p.imagenes[color], referencia: false };
+    const primera = Object.keys(p.imagenes)[0];
+    return primera ? { ...p.imagenes[primera], referencia: true, colorRef: primera } : null;
+  }
+  function precioDe(p, varianteNombre) {
+    const v = p.variantes?.find((x) => x.nombre === varianteNombre);
+    return v ? v.precio : p.precio;
+  }
+
+  function chips(nombre, valores, tipo, seleccionado) {
+    return valores.map((v) => `
+      <label class="chip chip--${tipo}">
+        <input type="radio" name="${nombre}" value="${esc(v)}" ${v === seleccionado ? 'checked' : ''} />
+        <span>${tipo === 'color' ? `<i class="swatch" style="--sw:${colorCss(v)}"></i>` : ''}${esc(v)}</span>
+      </label>`).join('');
+  }
+  function colorCss(c) {
+    const m = { negro: '#111', blanco: '#f2f2f2', gris: '#8a8a8a', 'gris claro': '#c4c4c4', 'gris oscuro': '#4a4a4a', 'verde militar': '#4b5320', 'azul turqui': '#1b2a4a', beige: '#d8c3a5', vinotinto: '#5e0b1a', rojo: '#c1121f' };
+    return m[slug(c).replace(/-/g, ' ')] || '#666';
+  }
+
+  function tarjetaProducto(p) {
+    const colorIni = p.colores[0];
+    const varIni = p.variantes?.[0]?.nombre;
+    const imgs = imagenesDe(p, colorIni);
+    const precio = precioDe(p, varIni);
+    const sinPrecio = p.precio == null;
+
+    const media = imgs
+      ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)} — frente" width="900" height="900" loading="lazy" decoding="async" />`
+      : '';
+    const vista = imgs?.espalda
+      ? `<div class="view-toggle" role="group" aria-label="Vista">
+           <button type="button" class="view-btn active" data-view="frente" aria-pressed="true">Frente</button>
+           <button type="button" class="view-btn" data-view="espalda" aria-pressed="false">Espalda</button>
+         </div>` : '';
+
+    return `
+      <article class="card producto" data-id="${esc(p.id)}">
+        <div class="product-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}">
+          ${media}
+          <span class="foto-ref ${imgs?.referencia ? '' : 'hidden'}">Foto de referencia</span>
+          ${vista}
+        </div>
+        <div class="producto-info">
+          <p class="producto-col">${esc(p.coleccion)}</p>
+          <h4 class="producto-nombre">${esc(p.nombre)}</h4>
+          <p class="producto-material">${esc(p.material)}</p>
+          <p class="precio">${sinPrecio ? 'Precio por confirmar' : dinero(precio)}</p>
+          ${sinPrecio ? `
+            <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
+               href="https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
+          : `
+            ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + p.id, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
+            <fieldset class="opciones"><legend>Color${p.colores.length > 1 ? '' : ': ' + esc(colorIni)}</legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
+            <fieldset class="opciones"><legend>Talla</legend>${chips('talla-' + p.id, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
+            <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
+            <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar al carrito</button>`}
+        </div>
+      </article>`;
+  }
+
+  function renderCatalogo() {
+    if (!catalogo) return;
+    catalogo.innerHTML = `<div class="productos">${PRODUCTOS.map(tarjetaProducto).join('')}</div>`;
+  }
+  renderCatalogo();
+
+  // Imagen que no carga → recuadro con el nombre de la colección
+  catalogo?.addEventListener('error', (e) => {
+    if (e.target.matches?.('.product-img')) {
+      const media = e.target.closest('.product-media');
+      e.target.remove();
+      media.classList.add('sin-foto');
+      media.querySelector('.view-toggle')?.remove();
+    }
+  }, true);
+
+  // Interacciones de tarjeta (delegadas)
+  catalogo?.addEventListener('click', (e) => {
+    const card = e.target.closest('.producto');
+    if (!card) return;
+    const p = productosPorId.get(card.dataset.id);
+
+    const vb = e.target.closest('.view-btn');
+    if (vb) {
+      $$('.view-btn', card).forEach((b) => { b.classList.toggle('active', b === vb); b.setAttribute('aria-pressed', String(b === vb)); });
+      actualizarImagen(card, p);
+      return;
+    }
+    if (e.target.closest('.agregar-carrito')) agregarDesdeTarjeta(card, p);
+  });
+  catalogo?.addEventListener('change', (e) => {
+    const card = e.target.closest('.producto');
+    if (!card) return;
+    const p = productosPorId.get(card.dataset.id);
+    if (e.target.name.startsWith('color-')) actualizarImagen(card, p);
+    if (e.target.name.startsWith('var-')) $('.precio', card).textContent = dinero(precioDe(p, e.target.value));
+    if (e.target.name.startsWith('talla-')) $('.opciones-error', card)?.classList.add('hidden');
+  });
+
+  const valorSel = (card, name) => (card.querySelector(`input[name="${CSS.escape(name)}"]:checked`) || card.querySelector(`input[type=hidden][name="${CSS.escape(name)}"]`))?.value || null;
+
+  function actualizarImagen(card, p) {
+    const img = $('.product-img', card);
+    if (!img) return;
+    const color = valorSel(card, 'color-' + p.id) || p.colores[0];
+    const imgs = imagenesDe(p, color);
+    if (!imgs) return;
+    const vista = $('.view-btn.active', card)?.dataset.view || 'frente';
+    const src = imgs[vista] || imgs.frente;
+    if (img.getAttribute('src') !== src) img.src = src;
+    img.alt = `${p.nombre} — ${vista}`;
+    $('.foto-ref', card)?.classList.toggle('hidden', !imgs.referencia);
+  }
+
+  // =========================================================
+  // CARRITO
+  // =========================================================
+  const CLAVE_CARRITO = 'insanity-carrito-v2';
+  const carritoPanel = $('#carrito');
+  const carritoOverlay = $('#carritoOverlay');
+  const listaCarrito = $('#lista-carrito');
+  const totalEl = $('#total');
+  const contador = $('#contadorCarrito');
+  const btnPedido = $('#realizarPedido');
+  const btnCarrito = $('#toggleCarrito');
+
+  // Cargar y validar contra el catálogo actual (precios siempre vigentes)
+  let carrito = (storage.get(CLAVE_CARRITO) || []).filter((it) => {
+    const p = productosPorId.get(it.id);
+    if (!p || p.precio == null) return false;
+    it.precio = precioDe(p, it.variante);
+    it.nombre = p.nombre;
+    it.cantidad = Math.max(1, Math.min(20, parseInt(it.cantidad, 10) || 1));
+    return true;
+  });
+
+  function agregarDesdeTarjeta(card, p) {
+    const talla = valorSel(card, 'talla-' + p.id);
+    if (!talla) {
+      $('.opciones-error', card)?.classList.remove('hidden');
+      card.querySelector(`input[name="${CSS.escape('talla-' + p.id)}"]`)?.focus();
+      return;
+    }
+    const color = valorSel(card, 'color-' + p.id) || p.colores[0];
+    const variante = p.variantes ? valorSel(card, 'var-' + p.id) : null;
+    const key = [p.id, color, talla, variante || ''].join('|');
+    const existente = carrito.find((i) => i.key === key);
+    if (existente) existente.cantidad = Math.min(20, existente.cantidad + 1);
+    else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), cantidad: 1 });
+    guardarYRender();
+    toast(`Agregado: ${p.nombre} · ${color} · ${talla}`);
+    btnCarrito?.classList.remove('pulse'); void btnCarrito?.offsetWidth; btnCarrito?.classList.add('pulse');
+  }
+
+  const totalCarrito = () => carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  const detalleItem = (i) => [i.variante, `Color: ${i.color}`, `Talla: ${i.talla}`].filter(Boolean).join(' · ');
+
+  function guardarYRender() {
+    storage.set(CLAVE_CARRITO, carrito);
+    const unidades = carrito.reduce((s, i) => s + i.cantidad, 0);
+    listaCarrito.innerHTML = carrito.map((i) => `
+      <li class="item-carrito" data-key="${esc(i.key)}">
+        <div class="item-info">
+          <strong>${esc(i.nombre)}</strong>
+          <small>${esc(detalleItem(i))}</small>
+          <small>${dinero(i.precio)} c/u</small>
+        </div>
+        <div class="item-acciones">
+          <div class="qty" role="group" aria-label="Cantidad">
+            <button type="button" data-accion="menos" aria-label="Quitar una unidad">−</button>
+            <span>${i.cantidad}</span>
+            <button type="button" data-accion="mas" aria-label="Agregar una unidad">+</button>
+          </div>
+          <span class="item-subtotal">${dinero(i.precio * i.cantidad)}</span>
+          <button type="button" class="item-quitar" data-accion="quitar" aria-label="Eliminar ${esc(i.nombre)}">Eliminar</button>
+        </div>
+      </li>`).join('');
+    $('#carritoVacio')?.classList.toggle('hidden', carrito.length > 0);
+    totalEl.textContent = dinero(totalCarrito());
+    contador.textContent = unidades;
+    contador.classList.toggle('hidden', unidades === 0);
+    btnPedido.disabled = carrito.length === 0;
+  }
+
+  listaCarrito?.addEventListener('click', (e) => {
+    const btn = e.target.closest('button[data-accion]');
+    if (!btn) return;
+    const key = btn.closest('.item-carrito').dataset.key;
+    const item = carrito.find((i) => i.key === key);
+    if (!item) return;
+    if (btn.dataset.accion === 'mas') item.cantidad = Math.min(20, item.cantidad + 1);
+    if (btn.dataset.accion === 'menos') item.cantidad -= 1;
+    if (btn.dataset.accion === 'quitar' || item.cantidad < 1) carrito = carrito.filter((i) => i.key !== key);
+    guardarYRender();
+  });
+
+  let ultimoFoco = null;
+  function setCarrito(open) {
+    if (open) ultimoFoco = document.activeElement;
+    carritoPanel.classList.toggle('active', open);
+    carritoPanel.setAttribute('aria-hidden', String(!open));
+    carritoOverlay.classList.toggle('hidden', !open);
+    btnCarrito?.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('no-scroll', open);
+    if (open) $('#cerrarCarrito')?.focus(); else ultimoFoco?.focus?.();
+  }
+  btnCarrito?.addEventListener('click', () => setCarrito(!carritoPanel.classList.contains('active')));
+  $('#cerrarCarrito')?.addEventListener('click', () => setCarrito(false));
+  carritoOverlay?.addEventListener('click', () => setCarrito(false));
+
+  guardarYRender();
+
+  // =========================================================
+  // FILTROS
+  // =========================================================
   const filtros = { categoria: new Set(), coleccion: new Set(), talla: new Set(), color: new Set() };
+  const panel = $('#filtersPanel');
+  const filtersOverlay = $('#filtersOverlay');
+  const btnFiltros = $('#openFilters');
 
-  function leerSeleccion() {
-    ['categoria','coleccion','talla','color'].forEach(key => {
-      filtros[key].clear();
-      tienda.querySelectorAll(`input[name="${key}"]:checked`).forEach(chk => filtros[key].add(normaliza(chk.value)));
+  const valoresDe = {
+    categoria: (p) => [p.categoria],
+    coleccion: (p) => [p.coleccion],
+    talla: (p) => p.tallas,
+    color: (p) => p.colores
+  };
+  const etiqueta = (grupo, v) => (grupo === 'categoria' ? CATEGORIAS[v] || v : v);
+  const ORDEN_TALLAS = ['S', 'M', 'L', 'XL', 'Única'];
+
+  function opcionesUnicas(grupo) {
+    const set = new Set();
+    PRODUCTOS.forEach((p) => valoresDe[grupo](p).forEach((v) => set.add(v)));
+    const arr = Array.from(set);
+    if (grupo === 'talla') return arr.sort((a, b) => ORDEN_TALLAS.indexOf(a) - ORDEN_TALLAS.indexOf(b));
+    if (grupo === 'coleccion') return arr; // orden del catálogo
+    return arr.sort((a, b) => etiqueta(grupo, a).localeCompare(etiqueta(grupo, b), 'es'));
+  }
+
+  function renderOpcionesFiltro() {
+    const conts = { categoria: '#filtroCategoria', coleccion: '#filtroColeccion', talla: '#filtroTalla', color: '#filtroColor' };
+    Object.entries(conts).forEach(([g, sel]) => {
+      const cont = $(sel);
+      if (!cont) return;
+      cont.innerHTML = opcionesUnicas(g).map((v) => `
+        <label class="chip">
+          <input type="checkbox" name="f-${g}" value="${esc(v)}" ${filtros[g].has(v) ? 'checked' : ''} />
+          <span>${g === 'color' ? `<i class="swatch" style="--sw:${colorCss(v)}"></i>` : ''}${esc(etiqueta(g, v))}</span>
+        </label>`).join('');
     });
   }
 
-  function coincide(prod) {
-    const by = (key, valGetter) => {
-      if (!filtros[key].size) return true; // sin filtro en ese grupo
-      const val = valGetter();
-      if (Array.isArray(val)) {
-        return Array.from(filtros[key]).every(v => val.includes(v));
-      }
-      return filtros[key].has(normaliza(val));
-    };
+  const coincide = (p) => Object.entries(filtros).every(([g, set]) => !set.size || valoresDe[g](p).some((v) => set.has(v)));
 
-    const okCategoria = by('categoria', () => normaliza(prod.dataset.categoria));
-    const okColeccion = by('coleccion', () => prod.dataset.coleccion);
-    const okTalla = by('talla', () => (prod.dataset.tallas || '').split(',').map(t=>t.trim().toUpperCase()));
-    const okColor = by('color', () => (prod.dataset.colores || '').split(',').map(c=>normaliza(c)));
-
-    return okCategoria && okColeccion && okTalla && okColor;
-  }
-
-  function opcionesDisponibles() {
-    // Calcula opciones válidas restantes dado el estado actual de filtros (parciales)
-    const cats = new Set();
-    const cols = new Set();
-    const tllas = new Set();
-    const colsColores = new Set();
-
-    productos.forEach(prod => {
-      if (!coincide(prod)) return;
-      cats.add(prod.dataset.categoria.toLowerCase());
-      cols.add(prod.dataset.coleccion);
-      (prod.dataset.tallas || '').split(',').filter(Boolean).forEach(t => tllas.add(t.toUpperCase()));
-      (prod.dataset.colores || '').split(',').filter(Boolean).map(c=>c.toLowerCase()).forEach(c => colsColores.add(c));
-    });
-    return { cats, cols, tllas, colsColores };
-  }
-
-  function rebindCheckboxChange() {
-    tienda.querySelectorAll('#filtersPanel input[type="checkbox"]').forEach(chk => {
-      chk.addEventListener('change', () => {
-        aplicarFiltros(false);
-      }, { once: true });
-    });
-  }
-
-  function aplicarFiltros(closePanel = true) {
-    leerSeleccion();
+  function aplicarFiltros() {
     let visibles = 0;
-    productos.forEach(prod => {
-      const show = coincide(prod);
-      prod.style.display = show ? '' : 'none';
-      if (show) visibles++;
+    $$('.producto', catalogo).forEach((card) => {
+      const ok = coincide(productosPorId.get(card.dataset.id));
+      card.hidden = !ok;
+      if (ok) visibles++;
     });
-    if (noResultados) noResultados.classList.toggle('hidden', visibles !== 0);
-
-    // Ocultar/mostrar secciones (contenedor .productos) y su h3 previo según resultados
-    const secciones = tienda.querySelectorAll('.catalogo-titulo + .productos');
-    secciones.forEach(sec => {
-      const cards = Array.from(sec.querySelectorAll('.card.producto'));
-      const visiblesSec = cards.filter(c => c.style.display !== 'none');
-      const hayVisibles = visiblesSec.length > 0;
-      const titulo = sec.previousElementSibling && sec.previousElementSibling.matches('.catalogo-titulo') ? sec.previousElementSibling : null;
-      sec.style.display = hayVisibles ? '' : 'none';
-      if (titulo) titulo.style.display = hayVisibles ? '' : 'none';
-    });
-
-    // Recalcular opciones disponibles y re-render de checkboxes conservando los seleccionados
-    const disp = opcionesDisponibles();
-    renderOpciones(disp, true);
-    // Volver a enlazar eventos change a los inputs nuevos
-    rebindCheckboxChange();
-
-    if (closePanel) cerrarPanel();
+    $('#noResultados')?.classList.toggle('hidden', visibles > 0);
+    const activos = Object.values(filtros).reduce((s, set) => s + set.size, 0);
+    const badge = $('#filtrosActivos');
+    if (badge) { badge.textContent = activos; badge.classList.toggle('hidden', activos === 0); }
+    const txt = $('#resultadosTxt');
+    if (txt) txt.textContent = activos ? `${visibles} producto${visibles === 1 ? '' : 's'}` : '';
+    const ap = $('#applyFilters');
+    if (ap) ap.textContent = `Ver ${visibles} resultado${visibles === 1 ? '' : 's'}`;
   }
 
-  function limpiarFiltrosUI() {
-    tienda.querySelectorAll('#filtersPanel input[type="checkbox"]').forEach(chk => chk.checked = false);
-  }
-
-  function abrirPanel() {
-    if (!panel || !overlay) return;
-    panel.classList.add('open');
-    panel.classList.remove('hidden');
-    overlay.classList.remove('hidden');
-    panel.setAttribute('aria-hidden','false');
-    overlay.setAttribute('aria-hidden','false');
-    btnOpen?.setAttribute('aria-expanded','true');
-  }
-  function cerrarPanel() {
-    if (!panel || !overlay) return;
-    panel.classList.remove('open');
-    overlay.classList.add('hidden');
-    panel.setAttribute('aria-hidden','true');
-    overlay.setAttribute('aria-hidden','true');
-    btnOpen?.setAttribute('aria-expanded','false');
-  }
-
-  // Bindings
-  btnOpen?.addEventListener('click', (e)=>{ e.stopPropagation(); abrirPanel(); });
-  btnClose?.addEventListener('click', cerrarPanel);
-  overlay?.addEventListener('click', cerrarPanel);
-
-  // Click fuera del panel (desktop)
-  window.addEventListener('click', (e) => {
-    if (!panel || panel.classList.contains('hidden')) return;
-    const t = e.target;
-    if (panel.contains(t) || (btnOpen && btnOpen.contains(t))) return;
-    cerrarPanel();
+  panel?.addEventListener('change', (e) => {
+    const m = e.target.name?.match(/^f-(.+)$/);
+    if (!m) return;
+    filtros[m[1]][e.target.checked ? 'add' : 'delete'](e.target.value);
+    aplicarFiltros();
   });
 
-  btnApply?.addEventListener('click', () => { aplicarFiltros(true); });
-  btnReset?.addEventListener('click', () => { limpiarFiltrosUI(); aplicarFiltros(false); });
-  btnClear?.addEventListener('click', () => { limpiarFiltrosUI(); aplicarFiltros(false); });
+  function limpiarFiltros() { Object.values(filtros).forEach((s) => s.clear()); renderOpcionesFiltro(); aplicarFiltros(); }
+  function setPanel(open) {
+    panel.classList.toggle('open', open);
+    panel.setAttribute('aria-hidden', String(!open));
+    filtersOverlay.classList.toggle('hidden', !open);
+    btnFiltros?.setAttribute('aria-expanded', String(open));
+    document.body.classList.toggle('no-scroll', open);
+    if (open) $('#closeFilters')?.focus();
+  }
+  btnFiltros?.addEventListener('click', () => setPanel(true));
+  $('#closeFilters')?.addEventListener('click', () => setPanel(false));
+  $('#applyFilters')?.addEventListener('click', () => setPanel(false));
+  filtersOverlay?.addEventListener('click', () => setPanel(false));
+  $('#resetFilters')?.addEventListener('click', limpiarFiltros);
+  $('#clearFilters')?.addEventListener('click', limpiarFiltros);
 
-  // Respuesta inmediata en desktop y recalculo de disponibilidad
-  rebindCheckboxChange();
+  renderOpcionesFiltro();
+  aplicarFiltros();
 
-  // Aplicar inicialmente sin filtros
-  aplicarFiltros(false);
+  // Filtrar por colección (desde #tienda/COLECCION o botones "Ver productos")
+  const coleccionesConProductos = new Set(PRODUCTOS.map((p) => p.coleccion));
+  filtrarColeccionDesdeHash = (col) => {
+    const real = Array.from(coleccionesConProductos).find((c) => slug(c) === slug(col));
+    if (!real) return;
+    Object.values(filtros).forEach((s) => s.clear());
+    filtros.coleccion.add(real);
+    renderOpcionesFiltro();
+    aplicarFiltros();
+  };
+  { const { id, col } = leerHash(); if (id === 'tienda' && col) filtrarColeccionDesdeHash(col); }
+
+  $$('.col-card[data-coleccion]').forEach((card) => {
+    const col = card.dataset.coleccion;
+    if (!coleccionesConProductos.has(col)) return;
+    const btn = document.createElement('a');
+    btn.href = '#tienda/' + encodeURIComponent(col);
+    btn.className = 'col-cta';
+    btn.textContent = 'Ver productos →';
+    card.appendChild(btn);
+  });
+
+  // =========================================================
+  // CHECKOUT → WHATSAPP
+  // =========================================================
+  const CIUDADES_CO = {
+    'Amazonas': ['Leticia', 'Puerto Nariño'],
+    'Antioquia': ['Medellín', 'Bello', 'Envigado', 'Itagüí', 'Sabaneta', 'Rionegro', 'La Ceja', 'Apartadó', 'Turbo', 'Caucasia'],
+    'Arauca': ['Arauca', 'Saravena', 'Tame'],
+    'Atlántico': ['Barranquilla', 'Soledad', 'Malambo', 'Galapa', 'Sabanalarga', 'Puerto Colombia'],
+    'Bogotá D.C.': ['Bogotá'],
+    'Bolívar': ['Cartagena', 'Magangué', 'Turbaco'],
+    'Boyacá': ['Tunja', 'Duitama', 'Sogamoso', 'Chiquinquirá'],
+    'Caldas': ['Manizales', 'Villamaría', 'Chinchiná'],
+    'Caquetá': ['Florencia', 'San Vicente del Caguán'],
+    'Casanare': ['Yopal', 'Aguazul', 'Villanueva', 'Tauramena', 'Monterrey', 'Paz de Ariporo', 'Maní'],
+    'Cauca': ['Popayán', 'Santander de Quilichao'],
+    'Cesar': ['Valledupar', 'Aguachica'],
+    'Chocó': ['Quibdó', 'Istmina'],
+    'Córdoba': ['Montería', 'Lorica', 'Cereté', 'Sahagún'],
+    'Cundinamarca': ['Soacha', 'Chía', 'Zipaquirá', 'Facatativá', 'Girardot', 'Fusagasugá', 'Cajicá', 'Mosquera', 'Madrid', 'Funza'],
+    'Guainía': ['Inírida'],
+    'Guaviare': ['San José del Guaviare'],
+    'Huila': ['Neiva', 'Pitalito', 'Garzón'],
+    'La Guajira': ['Riohacha', 'Maicao', 'Uribia'],
+    'Magdalena': ['Santa Marta', 'Ciénaga', 'Fundación'],
+    'Meta': ['Villavicencio', 'Acacías', 'Granada', 'Puerto López'],
+    'Nariño': ['Pasto', 'Ipiales', 'Tumaco'],
+    'Norte de Santander': ['Cúcuta', 'Ocaña', 'Villa del Rosario', 'Los Patios'],
+    'Putumayo': ['Mocoa', 'Puerto Asís', 'Orito'],
+    'Quindío': ['Armenia', 'Calarcá', 'La Tebaida', 'Montenegro'],
+    'Risaralda': ['Pereira', 'Dosquebradas', 'Santa Rosa de Cabal', 'La Virginia'],
+    'San Andrés y Providencia': ['San Andrés', 'Providencia'],
+    'Santander': ['Bucaramanga', 'Floridablanca', 'Girón', 'Piedecuesta', 'Barrancabermeja', 'San Gil'],
+    'Sucre': ['Sincelejo', 'Corozal'],
+    'Tolima': ['Ibagué', 'Espinal', 'Honda'],
+    'Valle del Cauca': ['Cali', 'Palmira', 'Jamundí', 'Yumbo', 'Buenaventura', 'Tuluá', 'Cartago', 'Buga'],
+    'Vaupés': ['Mitú'],
+    'Vichada': ['Puerto Carreño']
+  };
+  const OTRA = 'Otro municipio';
+
+  const checkoutModal = $('#checkoutModal');
+  const form = $('#checkoutForm');
+  const f = {
+    nombre: $('#nombreApellido'), cedula: $('#cedula'), celular: $('#celular'),
+    dep: $('#departamento'), ciudad: $('#ciudad'), ciudadOtra: $('#ciudadOtra'),
+    direccion: $('#direccion'), barrio: $('#barrio'), notas: $('#notas'), autorizo: $('#autorizo')
+  };
+
+  Object.keys(CIUDADES_CO).sort((a, b) => a.localeCompare(b, 'es')).forEach((d) => f.dep.add(new Option(d, d)));
+  f.dep.addEventListener('change', () => {
+    f.ciudad.innerHTML = '';
+    f.ciudad.add(new Option('Selecciona', '', true, true));
+    f.ciudad.options[0].disabled = true;
+    [...(CIUDADES_CO[f.dep.value] || []), OTRA].forEach((c) => f.ciudad.add(new Option(c, c)));
+    f.ciudad.disabled = false;
+    f.ciudadOtra.classList.add('hidden');
+  });
+  f.ciudad.addEventListener('change', () => {
+    const otra = f.ciudad.value === OTRA;
+    f.ciudadOtra.classList.toggle('hidden', !otra);
+    if (otra) f.ciudadOtra.focus();
+  });
+  // Solo dígitos en cédula y celular
+  [f.cedula, f.celular].forEach((el) => el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 12); }));
+
+  const reglas = {
+    nombre: () => f.nombre.value.trim().split(/\s+/).length >= 2 && f.nombre.value.trim().length >= 5,
+    cedula: () => /^\d{5,12}$/.test(f.cedula.value),
+    celular: () => /^3\d{9}$/.test(f.celular.value),
+    dep: () => !!f.dep.value,
+    ciudad: () => !!f.ciudad.value && (f.ciudad.value !== OTRA || f.ciudadOtra.value.trim().length >= 3),
+    direccion: () => f.direccion.value.trim().length >= 6,
+    barrio: () => f.barrio.value.trim().length >= 3,
+    autorizo: () => f.autorizo.checked
+  };
+  function validarCampo(k, mostrar) {
+    const ok = reglas[k]();
+    const row = f[k].closest('.form-row, .check-row');
+    if (mostrar) row?.classList.toggle('invalido', !ok);
+    f[k].setAttribute('aria-invalid', String(!ok));
+    return ok;
+  }
+  form.addEventListener('focusout', (e) => {
+    const k = Object.keys(f).find((key) => f[key] === e.target || (key === 'ciudad' && e.target === f.ciudadOtra));
+    if (k && reglas[k]) validarCampo(k, true);
+  });
+  form.addEventListener('input', (e) => {
+    const row = e.target.closest('.invalido');
+    if (row) { const k = Object.keys(reglas).find((key) => row.contains(f[key])); if (k) validarCampo(k, true); }
+  });
+  form.addEventListener('change', (e) => { if (e.target === f.autorizo) validarCampo('autorizo', true); });
+
+  function resumenHtml() {
+    return `<ul>${carrito.map((i) => `<li><span>${esc(i.nombre)} <small>${esc(detalleItem(i))} · x${i.cantidad}</small></span><strong>${dinero(i.precio * i.cantidad)}</strong></li>`).join('')}</ul>`;
+  }
+  function setCheckout(open) {
+    checkoutModal.classList.toggle('hidden', !open);
+    document.body.classList.toggle('no-scroll', open || carritoPanel.classList.contains('active'));
+    if (open) {
+      $('#checkoutResumen').innerHTML = resumenHtml();
+      $('#checkoutTotal').textContent = 'Total productos: ' + dinero(totalCarrito()) + ' (envío por confirmar)';
+      const guardado = storage.get('insanity-cliente');
+      if (guardado) Object.entries(guardado).forEach(([k, v]) => { if (f[k] && k !== 'autorizo' && !f[k].value) f[k].value = v; });
+      if (guardado?.dep) { f.dep.dispatchEvent(new Event('change')); f.ciudad.value = guardado.ciudad || ''; if (f.ciudad.value === OTRA) f.ciudadOtra.classList.remove('hidden'); }
+      f.nombre.focus();
+    }
+  }
+  btnPedido.addEventListener('click', () => { if (carrito.length) { setCarrito(false); setCheckout(true); } });
+  $('#cerrarCheckout').addEventListener('click', () => { setCheckout(false); setCarrito(true); });
+  $('#cerrarCheckoutModal').addEventListener('click', () => setCheckout(false));
+  checkoutModal.addEventListener('click', (e) => { if (e.target === checkoutModal) setCheckout(false); });
+
+  $('#enviarWhatsapp').addEventListener('click', () => {
+    if (!carrito.length) return;
+    const fallos = Object.keys(reglas).filter((k) => !validarCampo(k, true));
+    if (fallos.length) { (f[fallos[0]] || f.nombre).focus(); toast('Revisa los campos marcados.'); return; }
+
+    const ciudad = f.ciudad.value === OTRA ? f.ciudadOtra.value.trim() : f.ciudad.value;
+    storage.set('insanity-cliente', {
+      nombre: f.nombre.value.trim(), celular: f.celular.value, dep: f.dep.value, ciudad: f.ciudad.value,
+      ciudadOtra: f.ciudadOtra.value.trim(), direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim()
+    });
+
+    const lineas = carrito.map((i) => `• ${i.nombre}\n   ${detalleItem(i)} · Cant: ${i.cantidad} · ${dinero(i.precio * i.cantidad)}`);
+    const mensaje = [
+      '*NUEVO PEDIDO — INSANITY SOCIETY*', '',
+      ...lineas, '',
+      `*Total productos: ${dinero(totalCarrito())}*`, '',
+      '*Datos de envío*',
+      `Nombre: ${f.nombre.value.trim()}`,
+      `Cédula: ${f.cedula.value}`,
+      `Celular: ${f.celular.value}`,
+      `Ciudad: ${ciudad}, ${f.dep.value}`,
+      `Dirección: ${f.direccion.value.trim()}`,
+      `Barrio: ${f.barrio.value.trim()}`,
+      f.notas.value.trim() ? `Notas: ${f.notas.value.trim()}` : null
+    ].filter((l) => l !== null).join('\n');
+
+    const url = `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`;
+    const win = window.open(url, '_blank');
+    if (win) win.opener = null; else location.href = url; // si el navegador bloquea la ventana
+
+    carrito = [];
+    guardarYRender();
+    form.reset();
+    setCheckout(false);
+    toast('¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
+  });
+
+  // ---------- Tecla Escape cierra lo que esté abierto ----------
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
+    else if (panel.classList.contains('open')) setPanel(false);
+    else if (carritoPanel.classList.contains('active')) setCarrito(false);
+    else setMenu(false);
+  });
 })();

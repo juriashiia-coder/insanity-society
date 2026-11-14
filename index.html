@@ -2,757 +2,395 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <meta name="theme-color" content="#000000"/>
-  <title>Insanity Society</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Black+Ops+One&family=Oswald:wght@400;500;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#000000" />
+  <title>Insanity Society — Ropa de entrenamiento con carácter</title>
+  <meta name="description" content="Insanity Society: marca colombiana de ropa oversize y de entrenamiento. Colecciones con historia: KYO-KI, SHOKA, SHUGO, BLOOD AND STEEL, RAIJIN y más. Pedidos por WhatsApp a todo Colombia." />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Insanity Society — No es solo ropa. Es un manifiesto." />
+  <meta property="og:description" content="Ropa de entrenamiento con carácter. Fuerza, disciplina, dolor y gloria." />
+  <meta property="og:locale" content="es_CO" />
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="preload" href="fonts/Android%20Assassin.ttf" as="font" type="font/ttf" crossorigin />
+  <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    
-  <!-- NAVBAR -->
-  <nav class="navbar">
-    <h1 class="logo">INSANITY SOCIETY</h1>
-    <ul class="nav-links">
-      <li><button class="tab-link active" data-tab="home">Inicio</button></li>
-      <li><button class="tab-link" data-tab="colecciones">Colecciones</button></li>
-      <li><button class="tab-link" data-tab="sociedad">La Sociedad</button></li>
-      <li><button class="tab-link" data-tab="tienda">Tienda</button></li>
-      <li><button class="tab-link" data-tab="blog">Comunidad</button></li>
-      <li>
-        <button id="toggleCarrito" class="btn-carrito">
-          🛒 Carrito <span id="contadorCarrito" class="contador hidden">0</span>
-        </button>
-      </li>
-    </ul>
-    <div class="mobile-actions" aria-label="Acciones móviles">
-      <button id="mobileMenuToggle" class="icon-btn" aria-label="Abrir menú">⋮</button>
-      <button id="toggleCarritoMobile" class="icon-btn" aria-label="Abrir carrito">🛒</button>
-    </div>
-    <div id="mobileMenu" class="mobile-menu hidden" role="menu" aria-hidden="true">
-      <button class="mobile-menu-link" data-tab="home">Inicio</button>
-      <button class="mobile-menu-link" data-tab="colecciones">Colecciones</button>
-      <button class="mobile-menu-link" data-tab="sociedad">La Sociedad</button>
-      <button class="mobile-menu-link" data-tab="tienda">Tienda</button>
-      <button class="mobile-menu-link" data-tab="blog">Comunidad</button>
-      <hr/>
-      <button id="mobileOpenCarrito" class="mobile-menu-link">Abrir carrito</button>
-    </div>
-  </nav>
+  <a class="skip-link" href="#main">Saltar al contenido</a>
 
-  <!-- HOME -->
-  <section id="home" class="tab-content active">
-    <div class="hero hero-dark">
-      <video class="hero-video" autoplay muted loop playsinline poster="img/hero-poster.jpg">
-        <source src="https://videos.pexels.com/video-files/5661640/5661640-uhd_2560_1440_25fps.mp4" type="video/mp4">
-      </video>
-      <div class="hero-overlay"></div>
-      <div class="hero-content">
-        <h2>NO ES SOLO ROPA. ES UN MANIFIESTO.</h2>
-        <p>Fuerza. Disciplina. Dolor y gloria. Esto es para quienes desafían sus límites.</p>
-        <div class="hero-ctas">
-          <button class="btn-primario tab-link" data-tab="colecciones">Explorar Colecciones</button>
-          <button class="btn-secundario tab-link" data-tab="tienda">Entrar a la Tienda</button>
+  <!-- NAVBAR -->
+  <header class="navbar" id="navbar">
+    <a class="logo" href="#home" data-tab="home" aria-label="Insanity Society — inicio">INSANITY SOCIETY</a>
+
+    <nav class="nav-links" aria-label="Secciones">
+      <a class="tab-link" href="#home" data-tab="home">Inicio</a>
+      <a class="tab-link" href="#colecciones" data-tab="colecciones">Colecciones</a>
+      <a class="tab-link" href="#sociedad" data-tab="sociedad">La Sociedad</a>
+      <a class="tab-link" href="#tienda" data-tab="tienda">Tienda</a>
+      <a class="tab-link" href="#blog" data-tab="blog">Comunidad</a>
+    </nav>
+
+    <div class="nav-actions">
+      <button id="toggleCarrito" class="btn-carrito" type="button" aria-controls="carrito" aria-expanded="false">
+        <span aria-hidden="true">🛒</span><span class="btn-carrito-txt"> Carrito</span>
+        <span id="contadorCarrito" class="contador hidden" aria-live="polite">0</span>
+      </button>
+      <button id="mobileMenuToggle" class="icon-btn menu-toggle" type="button" aria-label="Abrir menú" aria-controls="mobileMenu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+
+    <nav id="mobileMenu" class="mobile-menu hidden" aria-label="Menú móvil">
+      <a class="tab-link" href="#home" data-tab="home">Inicio</a>
+      <a class="tab-link" href="#colecciones" data-tab="colecciones">Colecciones</a>
+      <a class="tab-link" href="#sociedad" data-tab="sociedad">La Sociedad</a>
+      <a class="tab-link" href="#tienda" data-tab="tienda">Tienda</a>
+      <a class="tab-link" href="#blog" data-tab="blog">Comunidad</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <!-- HOME -->
+    <section id="home" class="tab-content active" aria-labelledby="home-title">
+      <div class="hero">
+        <video class="hero-video" muted loop playsinline preload="none"
+               poster="img/Insanity%20Power%20Meet%202025/sentadilla.jpg"
+               data-src="https://videos.pexels.com/video-files/5661640/5661640-uhd_2560_1440_25fps.mp4"
+               aria-hidden="true"></video>
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+          <h1 id="home-title">No es solo ropa.<br />Es un manifiesto.</h1>
+          <p>Fuerza. Disciplina. Dolor y gloria. Esto es para quienes desafían sus límites.</p>
+          <div class="hero-ctas">
+            <a class="btn-primario" href="#tienda" data-tab="tienda">Entrar a la tienda</a>
+            <a class="btn-secundario" href="#colecciones" data-tab="colecciones">Explorar colecciones</a>
+          </div>
         </div>
       </div>
-    </div>
-  </section>
 
-  <!-- LA SOCIEDAD / SOBRE NOSOTROS -->
-  <section id="sociedad" class="tab-content">
-    <h2>La Sociedad</h2>
-    <div class="section-intro">
-      <p>
-        Insanity Society no es una marca de ropa común: es una comunidad, un manifiesto y un estilo de vida. 
-        La marca nace en el gimnasio, entre hierro, sudor y dolor, pero su significado trasciende: representa a quienes 
-        usan el entrenamiento como un camino de transformación mental y física.
-      </p>
-    </div>
-
-    <div class="sociedad-grid">
-      <article class="soc-card">
-        <h3>Lo que representa la marca</h3>
-        <ul>
-          <li><strong>Fuerza mental y física:</strong> Cada prenda recuerda que entrenar no es solo estética, es disciplina, sacrificio y carácter.</li>
-          <li><strong>Oscuridad + resiliencia:</strong> Estilo visual crudo, fuerte y oscuro. Transmite intensidad, fuerza, dolor y gloria.</li>
-          <li><strong>Rebeldía con propósito:</strong> No buscamos encajar en lo común; es para quienes desafían sus límites y viven bajo sus propias reglas.</li>
-          <li><strong>Identidad de guerreros:</strong> El cliente no compra ropa, compra un símbolo de lo que es y lo que quiere llegar a ser.</li>
-        </ul>
-      </article>
-      <article class="soc-card manifesto">
-        <h3>Manifiesto</h3>
-        <p>
-          Entrenamos en la oscuridad para conquistar la luz. El hierro no miente; nos forja. El dolor nos afila. 
-          Aquí no se venden prendas: se forjan símbolos. Si eliges la comodidad, no es tu lugar. Si eliges el combate, bienvenido a la Sociedad.
-        </p>
-      </article>
-    </div>
-  </section>
-
-  <!-- COLECCIONES: HISTORIA Y PILARES -->
-  <section id="colecciones" class="tab-content">
-    <h2>Colecciones</h2>
-    <div class="section-intro">
-      <p>
-        No son simples diseños. Cada colección cuenta una historia y rinde tributo a valores inquebrantables. 
-        Desde espíritus de tormenta hasta pilares que forjan la mente: esto es la esencia detrás de cada pieza.
-      </p>
-    </div>
-
-    <div class="colecciones-grid">
-      <article class="col-card">
-        <h3>KYO-KI 狂気</h3>
-        <p>Significado: "Locura". Energía desbordante y fuerza interior incontrolable que empuja al guerrero a superarse. "La locura no es debilidad, es el combustible de quienes no temen ir más allá."</p>
-      </article>
-      <article class="col-card">
-        <h3>SHOKA 昇華</h3>
-        <p>The Way of Becoming: del dolor al propósito. Como el Koi que desafía la cascada: resistencia, ascenso y transformación.</p>
-      </article>
-      <article class="col-card">
-        <h3>SHUGO — 守護</h3>
-        <p>El Guardián. Simboliza la fuerza que te sostiene cuando todo pesa; disciplina, fuego interno y presencia que no retrocede ante sus sombras.</p>
-      </article>
-      <article class="col-card">
-        <h3>BLOOD AND STEEL</h3>
-        <p>Declaración de guerra interna. La sangre como precio del crecimiento y el acero como voluntad inquebrantable; transformación y renacimiento.</p>
-      </article>
-      <article class="col-card">
-        <h3>RAIJIN</h3>
-        <p>El Guerrero Rojo. Disciplina, concentración y fuerza interior; un legado que renace tras cada caída.</p>
-        <div class="raijin-legend" style="margin-top: .5rem; border-top: 1px solid #232323; padding-top: .5rem;">
-          <h4 style="margin: .25rem 0; color: var(--accent); letter-spacing: .6px;">Leyenda</h4>
-          <p style="color: var(--muted);">
-            En un cielo teñido de rojo, Raijin enfrenta sombras ancestrales hasta caer y renacer en luz carmesí. Su espíritu despierta un legado que marca a doce elegidos con el trueno del guerrero rojo. La batalla trasciende al héroe: no se lucha por gloria, sino por voluntad y equilibrio. Raijin no muere; vive en todo aquel que combate y jamás se rinde.
-          </p>
-          <a class="btn-primario raijin-btn" href="raijin.html" style="margin-top:.5rem; display:inline-block;">Leer la leyenda completa ⚡</a>
-        </div>
-      </article>
-      <article class="col-card">
-        <h3>CLASSIC</h3>
-        <p>Línea esencial de la marca: básicos de alto gramaje, versátiles y funcionales.</p>
-      </article>
-      <article class="col-card">
-        <h3>INSANE</h3>
-        <p>Identidad cruda y directa; presencia dominante con estética sin disculpas.</p>
-      </article>
-      <article class="col-card">
-        <h3>BAKI-INSPIRED</h3>
-        <p>Homenaje al universo de Baki: piezas inspiradas en Baki, Jack y Yujiro. Fuerza, combate y carácter.</p>
-      </article>
-      <article class="col-card">
-        <h3>REMEMBER</h3>
-        <p>Memento Mori: recuerda que morirás. Dualidad de fragilidad y fuerza; caída y renacimiento.</p>
-      </article>
-      <article class="col-card">
-        <h3>versus</h3>
-        <p>Reto directo: “¿Tú contra mí?”. Actitud desafiante; la espalda responde sin rodeos.</p>
-      </article>
-      <article class="col-card">
-        <h3>RAW SOCIETY</h3>
-        <p>Crudeza de la calle + fuerza del gimnasio: una propuesta directa, sin filtros, para vivir y entrenar intensamente.</p>
-      </article>
-      <article class="col-card">
-        <h3>STREET STRENGTH</h3>
-        <p>Fuerza nacida en la calle y liberada en el gimnasio: rebeldía, disciplina y poder real.</p>
-      </article>
-      <article class="col-card">
-        <h3>IRON</h3>
-        <p>Actitud forjada en hierro. Estética sobria centrada en la terapia del acero.</p>
-      </article>
-      <article class="col-card">
-        <h3>Omen Society</h3>
-        <p>“Bajo la mirada del cielo, levántate y hazte más fuerte.” Presencia oscura y decidida.</p>
-      </article>
-      <article class="col-card">
-        <h3>REDEMPTION</h3>
-        <p>Renacer a través del dolor y la disciplina: cada herida y cada gota de sudor como precio de la redención.</p>
-      </article>
-      <article class="col-card">
-        <h3>SIXFOLD</h3>
-        <p>Seis manifestaciones del poder femenino: oscuridad, alma, protección, furia, transformación y paciencia.</p>
-      </article>
-      <article class="col-card">
-        <h3>REBELION</h3>
-        <p>Resistencia y rebeldía con propósito. Energía cruda que no se doblega.</p>
-      </article>
-      <article class="col-card">
-        <h3>BERSERK</h3>
-        <p>Furia icónica; estética inspirada en el impulso berserker.</p>
-      </article>
-      <article class="col-card">
-        <h3>Primera Edición</h3>
-        <p>Piezas de introducción con carácter, corte y caída pensadas para presencia y comodidad.</p>
-      </article>
-      <article class="col-card">
-        <h3>SPORT</h3>
-        <p>Prendas de enfoque atlético: secado rápido, frescas y ligeras para moverse y rendir.</p>
-      </article>
-      <article class="col-card">
-        <h3>RIFT</h3>
-        <p>Ligereza y movilidad: diseño con ranuras laterales para entrenamiento y calle.</p>
-      </article>
-      <article class="col-card">
-        <h3>Short LICRA</h3>
-        <p>Minimalismo funcional: ajuste firme, cómodo y pensado para el esfuerzo.</p>
-      </article>
-    </div>
-
+      <div class="home-strip">
+        <div><strong>Envíos</strong><span>a todo Colombia</span></div>
+        <div><strong>Pedido directo</strong><span>por WhatsApp</span></div>
+        <div><strong>Algodón premium</strong><span>200 g · corte oversize</span></div>
+      </div>
     </section>
 
-  <!-- TIENDA: PRODUCTOS -->
-  <section id="tienda" class="tab-content">
-    <h2>Tienda</h2>
-    <div class="section-intro">
-      <p>Minimalista, agresiva y funcional. Fotografías oscuras, detalles metálicos, actitud sin concesiones.</p>
-    </div>
-
-    <!-- Panel de filtros -->
-    <div class="filters-bar">
-      <button id="openFilters" class="btn-primario btn-filtros" aria-controls="filtersPanel" aria-expanded="false">⚙️ Filtros</button>
-      <button id="clearFilters" class="btn-secundario btn-limpiar" title="Limpiar filtros">Limpiar</button>
-    </div>
-    <aside id="filtersPanel" class="filters-panel hidden" aria-hidden="true">
-      <div class="filters-header">
-        <h3>Filtrar productos</h3>
-        <button id="closeFilters" class="filters-close" aria-label="Cerrar filtros">✖</button>
+    <!-- LA SOCIEDAD -->
+    <section id="sociedad" class="tab-content" aria-labelledby="sociedad-title" hidden>
+      <h2 id="sociedad-title">La Sociedad</h2>
+      <div class="section-intro">
+        <p>
+          Insanity Society no es una marca de ropa común: es una comunidad, un manifiesto y un estilo de vida.
+          Nació en el gimnasio, entre hierro, sudor y dolor, pero su significado va más allá: representa a quienes
+          usan el entrenamiento como un camino de transformación mental y física.
+        </p>
       </div>
-      <div class="filters-content">
-        <div class="filter-group" data-group="categoria">
-          <h4>Categoría</h4>
-          <div class="filter-options" id="filtroCategoria"></div>
+
+      <div class="sociedad-grid">
+        <article class="soc-card">
+          <h3>Lo que representamos</h3>
+          <ul>
+            <li><strong>Fuerza mental y física:</strong> cada prenda recuerda que entrenar no es solo estética; es disciplina, sacrificio y carácter.</li>
+            <li><strong>Oscuridad y resiliencia:</strong> un estilo crudo, fuerte y oscuro que transmite intensidad, dolor y gloria.</li>
+            <li><strong>Rebeldía con propósito:</strong> no buscamos encajar; es para quienes desafían sus límites y viven bajo sus propias reglas.</li>
+            <li><strong>Identidad de guerreros:</strong> no llevas solo ropa, llevas un símbolo de lo que eres y de lo que quieres llegar a ser.</li>
+          </ul>
+        </article>
+        <article class="soc-card manifesto">
+          <h3>Manifiesto</h3>
+          <p>
+            Entrenamos en la oscuridad para conquistar la luz. El hierro no miente; nos forja. El dolor nos afila.
+            Aquí no se venden prendas: se forjan símbolos. Si eliges la comodidad, no es tu lugar.
+            Si eliges el combate, bienvenido a la Sociedad.
+          </p>
+        </article>
+      </div>
+    </section>
+
+    <!-- COLECCIONES -->
+    <section id="colecciones" class="tab-content" aria-labelledby="colecciones-title" hidden>
+      <h2 id="colecciones-title">Colecciones</h2>
+      <div class="section-intro">
+        <p>
+          No son simples diseños. Cada colección cuenta una historia y rinde tributo a valores inquebrantables.
+          Desde espíritus de tormenta hasta pilares que forjan la mente: esta es la esencia detrás de cada pieza.
+        </p>
+      </div>
+
+      <div class="colecciones-grid">
+        <article class="col-card" data-coleccion="KYO-KI">
+          <h3>KYO-KI <span class="jp">狂気</span></h3>
+          <p>Significado: «locura». Energía desbordante y fuerza interior incontrolable que empuja al guerrero a superarse. «La locura no es debilidad, es el combustible de quienes no temen ir más allá».</p>
+        </article>
+        <article class="col-card" data-coleccion="SHOKA">
+          <h3>SHOKA <span class="jp">昇華</span></h3>
+          <p>The Way of Becoming: del dolor al propósito. Como el koi que desafía la cascada: resistencia, ascenso y transformación.</p>
+        </article>
+        <article class="col-card" data-coleccion="SHUGO">
+          <h3>SHUGO <span class="jp">守護</span></h3>
+          <p>El Guardián. La fuerza que te sostiene cuando todo pesa: disciplina, fuego interno y una presencia que no retrocede ante sus sombras.</p>
+        </article>
+        <article class="col-card" data-coleccion="BLOOD AND STEEL">
+          <h3>BLOOD AND STEEL</h3>
+          <p>Declaración de guerra interna. La sangre como precio del crecimiento y el acero como voluntad inquebrantable; transformación y renacimiento.</p>
+        </article>
+        <article class="col-card col-card--destacada" data-coleccion="RAIJIN">
+          <h3>RAIJIN</h3>
+          <p>El Guerrero Rojo. Disciplina, concentración y fuerza interior; un legado que renace tras cada caída.</p>
+          <div class="raijin-legend">
+            <h4>Leyenda</h4>
+            <p>
+              En un cielo teñido de rojo, Raijin enfrenta sombras ancestrales hasta caer y renacer en luz carmesí.
+              Su espíritu despierta un legado que marca a doce elegidos con el trueno del guerrero rojo.
+              Raijin no muere; vive en todo aquel que combate y jamás se rinde.
+            </p>
+            <a class="btn-primario" href="raijin.html">Leer la leyenda completa ⚡</a>
+          </div>
+        </article>
+        <article class="col-card" data-coleccion="CLASSIC">
+          <h3>CLASSIC</h3>
+          <p>La línea esencial de la marca: básicos de alto gramaje, versátiles y funcionales.</p>
+        </article>
+        <article class="col-card" data-coleccion="INSANE">
+          <h3>INSANE</h3>
+          <p>Identidad cruda y directa; presencia dominante con una estética sin disculpas.</p>
+        </article>
+        <article class="col-card" data-coleccion="BAKI-INSPIRED">
+          <h3>BAKI-INSPIRED</h3>
+          <p>Homenaje al universo de Baki: piezas inspiradas en Baki, Jack y Yujiro. Fuerza, combate y carácter.</p>
+        </article>
+        <article class="col-card" data-coleccion="REMEMBER">
+          <h3>REMEMBER</h3>
+          <p>Memento mori: recuerda que morirás. Dualidad de fragilidad y fuerza; caída y renacimiento.</p>
+        </article>
+        <article class="col-card" data-coleccion="VERSUS">
+          <h3>VERSUS</h3>
+          <p>Reto directo: «¿Tú contra mí?». Actitud desafiante; la espalda responde sin rodeos.</p>
+        </article>
+        <article class="col-card" data-coleccion="RAW SOCIETY">
+          <h3>RAW SOCIETY</h3>
+          <p>Crudeza de la calle y fuerza del gimnasio: una propuesta directa, sin filtros, para vivir y entrenar intensamente.</p>
+        </article>
+        <article class="col-card" data-coleccion="STREET STRENGTH">
+          <h3>STREET STRENGTH</h3>
+          <p>Fuerza nacida en la calle y liberada en el gimnasio: rebeldía, disciplina y poder real.</p>
+        </article>
+        <article class="col-card" data-coleccion="IRON">
+          <h3>IRON</h3>
+          <p>Actitud forjada en hierro. Estética sobria centrada en la terapia del acero.</p>
+        </article>
+        <article class="col-card" data-coleccion="OMEN SOCIETY">
+          <h3>OMEN SOCIETY</h3>
+          <p>«Bajo la mirada del cielo, levántate y hazte más fuerte». Presencia oscura y decidida.</p>
+        </article>
+        <article class="col-card" data-coleccion="REDEMPTION">
+          <h3>REDEMPTION</h3>
+          <p>Renacer a través del dolor y la disciplina: cada herida y cada gota de sudor como precio de la redención.</p>
+        </article>
+        <article class="col-card" data-coleccion="SIXFOLD">
+          <h3>SIXFOLD</h3>
+          <p>Seis manifestaciones del poder femenino: oscuridad, alma, protección, furia, transformación y paciencia.</p>
+        </article>
+        <article class="col-card" data-coleccion="REBELION">
+          <h3>REBELIÓN</h3>
+          <p>Resistencia y rebeldía con propósito. Energía cruda que no se doblega.</p>
+        </article>
+        <article class="col-card" data-coleccion="BERSERK">
+          <h3>BERSERK</h3>
+          <p>Furia icónica; una estética inspirada en el impulso berserker.</p>
+        </article>
+        <article class="col-card" data-coleccion="PRIMERA EDICIÓN">
+          <h3>PRIMERA EDICIÓN</h3>
+          <p>Piezas de introducción con carácter: corte y caída pensados para presencia y comodidad.</p>
+        </article>
+        <article class="col-card" data-coleccion="SPORT">
+          <h3>SPORT</h3>
+          <p>Prendas de enfoque atlético: secado rápido, frescas y ligeras para moverse y rendir.</p>
+        </article>
+        <article class="col-card" data-coleccion="RIFT">
+          <h3>RIFT</h3>
+          <p>Ligereza y movilidad: diseño con aberturas laterales para entrenamiento y calle.</p>
+        </article>
+        <article class="col-card" data-coleccion="SHORT LICRA">
+          <h3>SHORT LICRA</h3>
+          <p>Minimalismo funcional: ajuste firme, cómodo y pensado para el esfuerzo.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- TIENDA -->
+    <section id="tienda" class="tab-content" aria-labelledby="tienda-title" hidden>
+      <h2 id="tienda-title">Tienda</h2>
+      <div class="section-intro">
+        <p>Elige color, talla y agrega al carrito. Al confirmar, tu pedido llega directo a nuestro WhatsApp y te respondemos con el pago y el envío.</p>
+      </div>
+
+      <div class="filters-bar">
+        <button id="openFilters" class="btn-primario" type="button" aria-controls="filtersPanel" aria-expanded="false">Filtros <span id="filtrosActivos" class="badge hidden">0</span></button>
+        <button id="clearFilters" class="btn-secundario" type="button">Limpiar</button>
+        <p id="resultadosTxt" class="resultados-txt" aria-live="polite"></p>
+      </div>
+
+      <aside id="filtersPanel" class="filters-panel" aria-hidden="true" aria-label="Filtros de productos">
+        <div class="filters-header">
+          <h3>Filtrar productos</h3>
+          <button id="closeFilters" class="icon-btn" type="button" aria-label="Cerrar filtros">✕</button>
         </div>
-        <div class="filter-group" data-group="coleccion">
-          <h4>Colección</h4>
-          <div class="filter-options" id="filtroColeccion"></div>
+        <div class="filters-content">
+          <fieldset class="filter-group"><legend>Categoría</legend><div class="filter-options" id="filtroCategoria"></div></fieldset>
+          <fieldset class="filter-group"><legend>Colección</legend><div class="filter-options" id="filtroColeccion"></div></fieldset>
+          <fieldset class="filter-group"><legend>Talla</legend><div class="filter-options" id="filtroTalla"></div></fieldset>
+          <fieldset class="filter-group"><legend>Color</legend><div class="filter-options" id="filtroColor"></div></fieldset>
         </div>
-        <div class="filter-group" data-group="talla">
-          <h4>Talla</h4>
-          <div class="filter-options" id="filtroTalla"></div>
+        <div class="filters-footer">
+          <button id="resetFilters" class="btn-secundario" type="button">Reiniciar</button>
+          <button id="applyFilters" class="btn-primario" type="button">Ver resultados</button>
         </div>
-        <div class="filter-group" data-group="color">
-          <h4>Color</h4>
-          <div class="filter-options" id="filtroColor"></div>
-        </div>
-      </div>
-      <div class="filters-footer">
-        <button id="applyFilters" class="btn-primario">Aplicar</button>
-        <button id="resetFilters" class="btn-secundario">Reiniciar</button>
-      </div>
-    </aside>
-    <div id="filtersOverlay" class="filters-overlay hidden" aria-hidden="true"></div>
-    <p id="noResultados" class="no-resultados hidden">❌ No se encontraron productos con esos filtros.</p>
+      </aside>
+      <div id="filtersOverlay" class="overlay hidden"></div>
 
-    <!-- Catálogo: KYO-KI 狂気 -->
-    <h3 class="catalogo-titulo">Colección: KYO-KI 狂気</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="KYO-KI">
-        <div class="product-media">
-          <img class="product-img" src="img/KYO-KI/camiseta-oversize/negro-frente.png" alt="Camiseta Oversize KYO-KI"/>
-        </div>
-        <h3>Camiseta Oversize KYO-KI</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro/Blanco/Gris</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize KYO-KI" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="KYO-KI">Agregar al carrito</button>
+      <p id="noResultados" class="no-resultados hidden">No se encontraron productos con esos filtros.</p>
+      <div id="catalogo" class="catalogo">
+        <noscript><p class="no-resultados">Activa JavaScript para ver la tienda o escríbenos por WhatsApp al +57 324 145 7674.</p></noscript>
       </div>
+    </section>
+
+    <!-- COMUNIDAD -->
+    <section id="blog" class="tab-content" aria-labelledby="blog-title" hidden>
+      <h2 id="blog-title">Comunidad</h2>
+      <div class="blog-grid">
+        <article class="blog-card blog-card--evento">
+          <a href="power-meet-2025.html" class="blog-link">
+            <img class="blog-thumb" src="img/Insanity%20Power%20Meet%202025/medallas.jpg" alt="Medallas del Insanity Power Meet 2025" width="1080" height="1080" loading="lazy" decoding="async" />
+            <span class="tag">Evento</span>
+            <h3>INSANITY POWER MEET 2025</h3>
+            <p class="blog-fecha">21 de septiembre de 2025 · Aguazul, Casanare</p>
+            <p>No celebramos kilos levantados: celebramos la mente indomable forjada entre dolor, esfuerzo y disciplina. Gracias a cada atleta que dejó el alma en la tarima.</p>
+            <span class="blog-mas">Ver el evento →</span>
+          </a>
+        </article>
+        <article class="blog-card">
+          <span class="tag">Rutina</span>
+          <h3>Fuerza base</h3>
+          <p>Sentadilla, peso muerto y press. 5×5 con progresión lineal. Registra, come, duerme, repite.</p>
+        </article>
+        <article class="blog-card">
+          <span class="tag">Manifiesto</span>
+          <h3>Dolor y gloria</h3>
+          <p>El dolor es el peaje. La gloria es llegar. La Sociedad no busca aplausos: busca victorias silenciosas.</p>
+        </article>
+        <article class="blog-card">
+          <span class="tag tag--muted">Próximamente</span>
+          <h3>Historias de la Sociedad</h3>
+          <p>Testimonios reales de transformación a base de hierro y constancia. Dolor, caída, levantarse, repetir.</p>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+      <p class="footer-logo">INSANITY SOCIETY</p>
+      <p>Hecho en Colombia. Entrenamos en la oscuridad para conquistar la luz.</p>
+      <p><a href="https://wa.me/573241457674" target="_blank" rel="noopener">WhatsApp +57 324 145 7674</a></p>
+      <p class="footer-copy">© <span id="anio">2025</span> Insanity Society</p>
     </div>
+  </footer>
 
-    <!-- Catálogo: SHOKA 昇華 -->
-    <h3 class="catalogo-titulo">Colección: SHOKA 昇華</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="SHOKA">
-        <div class="product-media">
-          <img class="product-img" src="img/SHOKA/camiseta-oversize/negro-frente.png" alt="Camiseta Oversize SHOKA"/>
-        </div>
-        <h3>Camiseta Oversize SHOKA</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro/Blanco/Gris</p>
-        <p class="precio">$125.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize SHOKA" data-precio="125000" data-tallas="S,M,L,XL" data-coleccion="SHOKA">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: SHUGO — 守護 -->
-    <h3 class="catalogo-titulo">Colección: SHUGO — 守護</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="SHUGO">
-        <div class="product-media">
-          <img class="product-img" src="img/SHUGO/camiseta-oversize/negro-frente.png" alt="Camiseta Oversize SHUGO"/>
-        </div>
-        <h3>Camiseta Oversize SHUGO</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro/Blanco/Gris</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize SHUGO" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="SHUGO">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: BLOOD AND STEEL -->
-    <h3 class="catalogo-titulo">Colección: BLOOD AND STEEL</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="BLOOD AND STEEL">
-        <div class="product-media">
-          <img class="product-img" src="img/BLOOD AND STEEL/oversize/negro-frente.png" alt="BLOOD AND STEEL - 202"/>
-        </div>
-        <h3>Camiseta Oversize BLOOD AND STEEL - 202</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro</p>
-        <p class="precio">$140.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize BLOOD AND STEEL - 202" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="BLOOD AND STEEL">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: RAIJIN (Oversize) -->
-    <h3 class="catalogo-titulo">Colección: RAIJIN</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="RAIJIN">
-        <div class="product-media">
-          <img class="product-img" src="img/RAIJIN/oversize/negro-frente.png" alt="Camiseta Oversize Raijin"/>
-        </div>
-        <h3>Camiseta Oversize Raijin</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro</p>
-        <p class="precio">$0</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Raijin" data-precio="0" data-tallas="S,M,L,XL" data-coleccion="RAIJIN">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: CLASSIC (camiseta) -->
-    <h3 class="catalogo-titulo">Colección: CLASSIC</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="CLASSIC">
-        <div class="product-media">
-          <img class="product-img" src="img/CLASSIC/camiseta-oversize/negro-frente.png" alt="Camiseta Oversize Classic"/>
-        </div>
-        <h3>Camiseta Oversize Classic</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro/Blanco/Gris Oscuro/Verde militar/Azul Turquí</p>
-        <p class="precio">$95.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Classic" data-precio="95000" data-tallas="S,M,L,XL" data-coleccion="CLASSIC">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: INSANE (camiseta) -->
-    <h3 class="catalogo-titulo">Colección: INSANE</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="INSANE">
-        <div class="product-media">
-          <img class="product-img" src="img/INSANE/camiseta-oversize/negro-frente.png" alt="Camiseta Oversize INSANE"/>
-        </div>
-        <h3>Camiseta Oversize INSANE</h3>
-        <p>Material: Algodón Premium 200g • Tallas: S-XL • Colores: Negro/Gris Oscuro/Blanco/Verde militar</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize INSANE" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="INSANE">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: BAKI-INSPIRED (oversize variantes) -->
-    <h3 class="catalogo-titulo">Colección: BAKI-INSPIRED</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="BAKI-INSPIRED">
-        <div class="product-media">
-          <img class="product-img" src="img/BAKI-INSPIRED/baki-hanma/negro-frente.png" alt="Camiseta Oversize Baki Hanma"/>
-        </div>
-        <h3>Camiseta Oversize (Baki Hanma)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Baki Hanma" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="BAKI-INSPIRED">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="BAKI-INSPIRED">
-        <div class="product-media">
-          <img class="product-img" src="img/BAKI-INSPIRED/baki-hanma-2/negro-frente.png" alt="Camiseta Oversize Baki Hanma 2"/>
-        </div>
-        <h3>Camiseta Oversize (Baki Hanma 2)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Baki Hanma 2" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="BAKI-INSPIRED">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="BAKI-INSPIRED">
-        <div class="product-media">
-          <img class="product-img" src="img/BAKI-INSPIRED/jack-hanma/negro-frente.png" alt="Camiseta Oversize Jack Hanma"/>
-        </div>
-        <h3>Camiseta Oversize (Jack Hanma)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Jack Hanma" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="BAKI-INSPIRED">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="BAKI-INSPIRED">
-        <div class="product-media">
-          <img class="product-img" src="img/BAKI-INSPIRED/yujiro-hanma/negro-frente.png" alt="Camiseta Oversize Yujiro Hanma"/>
-        </div>
-        <h3>Camiseta Oversize (Yujiro Hanma)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$130.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize Yujiro Hanma" data-precio="130000" data-tallas="S,M,L,XL" data-coleccion="BAKI-INSPIRED">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: REMEMBER -->
-    <h3 class="catalogo-titulo">Colección: REMEMBER</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="REMEMBER">
-        <div class="product-media">
-          <img class="product-img" src="img/REMEMBER/oversize/negro-frente.png" alt="Camiseta Oversize Remember"/>
-        </div>
-        <h3>Camiseta Oversize REMEMBER</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$140.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize REMEMBER" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="REMEMBER">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: versus -->
-    <h3 class="catalogo-titulo">Colección: versus</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="versus">
-        <div class="product-media">
-          <img class="product-img" src="img/VERSUS/oversize/negro-frente.png" alt="Camiseta Oversize versus"/>
-        </div>
-        <h3>Camiseta Oversize versus</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$140.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize versus" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="versus">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: RAW SOCIETY -->
-    <h3 class="catalogo-titulo">Colección: RAW SOCIETY</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="RAW SOCIETY">
-        <div class="product-media">
-          <img class="product-img" src="img/RAW SOCIETY/oversize/negro-frente.png" alt="Camiseta Oversize RAW SOCIETY"/>
-        </div>
-        <h3>Camiseta Oversize RAW SOCIETY</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris</p>
-        <p class="precio">$140.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize RAW SOCIETY" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="RAW SOCIETY">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: STREET STRENGTH -->
-    <h3 class="catalogo-titulo">Colección: STREET STRENGTH</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="STREET STRENGTH">
-        <div class="product-media">
-          <img class="product-img" src="img/STREET STRENGTH/break-your-limits/negro-frente.png" alt="Camiseta Oversize BREAK YOUR LIMITS"/>
-        </div>
-        <h3>BREAK YOUR LIMITS</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$145.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize BREAK YOUR LIMITS" data-precio="145000" data-tallas="S,M,L,XL" data-coleccion="STREET STRENGTH">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="STREET STRENGTH">
-        <div class="product-media">
-          <img class="product-img" src="img/STREET STRENGTH/still-your-best/negro-frente.png" alt="Camiseta Oversize STILL YOUR BEST"/>
-        </div>
-        <h3>STILL YOUR BEST</h3>
-        <p>Algodón Premium 200g • S-XL • Negro</p>
-        <p class="precio">$145.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Oversize STILL YOUR BEST" data-precio="145000" data-tallas="S,M,L,XL" data-coleccion="STREET STRENGTH">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: IRON (sudadera) -->
-    <h3 class="catalogo-titulo">Colección: IRON</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="IRON">
-        <div class="product-media">
-          <img class="product-img" src="img/IRON/sudadera-oversize/negro-frente.png" alt="Sudadera oversize IRON"/>
-        </div>
-        <h3>Sudadera bota recta oversize IRON</h3>
-        <p>Burda • S-XL • Negro/Blanco/Gris Claro/Beige/Verde militar/Vinotinto</p>
-        <p class="precio">$110.000</p>
-        <button class="agregar-carrito" data-nombre="Sudadera oversize IRON" data-precio="110000" data-tallas="S,M,L,XL" data-coleccion="IRON">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: Omen Society (sudadera) -->
-    <h3 class="catalogo-titulo">Colección: Omen Society</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="Omen Society">
-        <div class="product-media">
-          <img class="product-img" src="img/Omen Society/sudadera-oversize/negro-frente.png" alt="Sudadera Omen Society"/>
-        </div>
-        <h3>Sudadera bota recta oversize Omen Society</h3>
-        <p>Burda / Algodón Perchado alto gramaje • S-XL • Negro</p>
-        <p class="precio">$140.000 / $190.000</p>
-        <button class="agregar-carrito" data-nombre="Sudadera Omen Society" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="Omen Society">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: REDEMPTION (sudadera) -->
-    <h3 class="catalogo-titulo">Colección: REDEMPTION</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="REDEMPTION">
-        <div class="product-media">
-          <img class="product-img" src="img/REDEMPTION/sudadera-oversize/negro-frente.png" alt="Sudadera REDEMPTION"/>
-        </div>
-        <h3>Sudadera bota recta oversize REDEMPTION</h3>
-        <p>Burda / Algodón Perchado alto gramaje • S-XL • Negro</p>
-        <p class="precio">$140.000 / $190.000</p>
-        <button class="agregar-carrito" data-nombre="Sudadera REDEMPTION" data-precio="140000" data-tallas="S,M,L,XL" data-coleccion="REDEMPTION">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: SIXFOLD (6 diseños) -->
-    <h3 class="catalogo-titulo">Colección: SIXFOLD</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/nin/negro-frente.png" alt="SIXFOLD NIN"/></div>
-        <h3>SIXFOLD – NIN (忍)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – NIN" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/ha/negro-frente.png" alt="SIXFOLD HA"/></div>
-        <h3>SIXFOLD – HA (破)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – HA" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/retsu/negro-frente.png" alt="SIXFOLD RETSU"/></div>
-        <h3>SIXFOLD – RETSU (烈)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – RETSU" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/mamoru/negro-frente.png" alt="SIXFOLD MAMORU"/></div>
-        <h3>SIXFOLD – MAMORU (守)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – MAMORU" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/yami/negro-frente.png" alt="SIXFOLD YAMI"/></div>
-        <h3>SIXFOLD – YAMI (闇)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – YAMI" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-      <div class="card producto" data-coleccion="SIXFOLD">
-        <div class="product-media"><img class="product-img" src="img/SIXFOLD/tamashii/negro-frente.png" alt="SIXFOLD TAMASHII"/></div>
-        <h3>SIXFOLD – TAMASHII (魂)</h3>
-        <p>Algodón Premium 200g • S-XL • Negro/Blanco/Gris/Beige</p>
-        <p class="precio">$120.000</p>
-        <button class="agregar-carrito" data-nombre="SIXFOLD – TAMASHII" data-precio="120000" data-tallas="S,M,L,XL" data-coleccion="SIXFOLD">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: REBELION (compresión) -->
-    <h3 class="catalogo-titulo">Colección: REBELION</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="REBELION">
-        <div class="product-media"><img class="product-img" src="img/REBELION/compresion/camiseta-negra.png" alt="Camiseta de Compresión REBELION"/></div>
-        <h3>Camiseta de Compresión REBELION</h3>
-        <p>Licrado • S-XL • Negro/Blanco/Gris Claro/Gris Oscuro/Vinotinto</p>
-        <p class="precio">$80.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Compresión REBELION" data-precio="80000" data-tallas="S,M,L,XL" data-coleccion="REBELION">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: BERSERK (compresión) -->
-    <h3 class="catalogo-titulo">Colección: BERSERK</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="BERSERK">
-        <div class="product-media"><img class="product-img" src="img/BERSERK/compresion/camiseta-blanca.png" alt="Camiseta de Compresión BERSERK"/></div>
-        <h3>Camiseta de Compresión BERSERK</h3>
-        <p>Licrado • S-XL • Negro/Blanco/Gris Claro/Gris Oscuro/Rojo</p>
-        <p class="precio">$70.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta Compresión BERSERK" data-precio="70000" data-tallas="S,M,L,XL" data-coleccion="BERSERK">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: Primera Edición (Crop Top) -->
-    <h3 class="catalogo-titulo">Colección: Primera Edición</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="Primera Edición">
-        <div class="product-media"><img class="product-img" src="img/PRIMERA EDICION/crop-top/negro-frente.png" alt="Crop Top Oversize Primera Edición"/></div>
-        <h3>Crop Top Oversize (Primera Edición)</h3>
-        <p>Algodón premium 190g • S-M-L • Negro/Blanco/Gris Claro</p>
-        <p class="precio">$75.000</p>
-        <button class="agregar-carrito" data-nombre="Crop Top Oversize (Primera Edición)" data-precio="75000" data-tallas="S,M,L" data-coleccion="Primera Edición">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: SPORT -->
-    <h3 class="catalogo-titulo">Colección: SPORT</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="SPORT">
-        <div class="product-media"><img class="product-img" src="img/SPORT/camiseta/negro-frente.png" alt="Camiseta SPORT"/></div>
-        <h3>Camiseta SPORT</h3>
-        <p>Licra • Talla única • Negro/Blanco/Gris Claro</p>
-        <p class="precio">$80.000</p>
-        <button class="agregar-carrito" data-nombre="Camiseta SPORT" data-precio="80000" data-tallas="Única" data-coleccion="SPORT">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: RIFT (pantaloneta) -->
-    <h3 class="catalogo-titulo">Colección: RIFT</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="RIFT">
-        <div class="product-media"><img class="product-img" src="img/RIFT/pantaloneta/negro-frente.png" alt="Pantaloneta RIFT"/></div>
-        <h3>Pantaloneta RIFT</h3>
-        <p>Burda • S-M-L • Negro/Blanco/Gris</p>
-        <p class="precio">$75.000</p>
-        <button class="agregar-carrito" data-nombre="Pantaloneta RIFT" data-precio="75000" data-tallas="S,M,L" data-coleccion="RIFT">Agregar al carrito</button>
-      </div>
-    </div>
-
-    <!-- Catálogo: Short LICRA -->
-    <h3 class="catalogo-titulo">Colección: Short LICRA</h3>
-    <div class="productos">
-      <div class="card producto" data-coleccion="Short LICRA">
-        <div class="product-media"><img class="product-img" src="img/SHORT LICRA/short/negro-frente.png" alt="Short LICRA clásico"/></div>
-        <h3>Short LICRA clásico</h3>
-        <p>Licra • S-M-L • Negro</p>
-        <p class="precio">$45.000</p>
-        <button class="agregar-carrito" data-nombre="Short LICRA clásico" data-precio="45000" data-tallas="S,M,L" data-coleccion="Short LICRA">Agregar al carrito</button>
-      </div>
-    </div>
-
-  </section>
-
-  <!-- BLOG / COMUNIDAD -->
-  <section id="blog" class="tab-content">
-    <h2>Comunidad</h2>
-    <div class="blog-grid">
-      <article class="blog-card evento">
-        <a href="power-meet-2025.html" style="text-decoration:none; color:inherit; display:block;">
-          <img class="blog-thumb" src="img/Insanity Power Meet 2025/medallas.jpg" alt="Insanity Power Meet 2025 - Medallas" style="width:100%; height:220px; object-fit:cover; border-radius:10px; border:1px solid #232323;"/>
-          <h3>INSANITY POWER MEET 2025</h3>
-          <p>El encuentro de fuerza y mentalidad indomable. 21 de septiembre de 2025.</p>
-          <p style="color:#b3b3b3; margin-top:.35rem;">No celebramos kilos levantados, celebramos la mente indomable forjada entre dolor, esfuerzo y disciplina. Gracias a cada atleta que dejó el alma en la tarima, y a nuestros patrocinadores que hicieron posible este encuentro de fuerza y hermandad. Este es el legado de Insanity Society: no se trata de vencer a otros, se trata de vencerte a ti mismo una y otra vez.</p>
-        </a>
-      </article>
-      <article class="blog-card">
-        <h3>Historias de la Sociedad</h3>
-        <p>Testimonios reales: transformación a base de hierro y constancia. Dolor, caída, levantarse, repetir.</p>
-      </article>
-      <article class="blog-card">
-        <h3>Rutina: Fuerza Base</h3>
-        <p>Sentadilla, peso muerto, press. 5x5. Progresión lineal. Registra, come, duerme, repite.</p>
-      </article>
-      <article class="blog-card">
-        <h3>Manifiesto corto: Dolor y Gloria</h3>
-        <p>El dolor es el peaje. La gloria es llegar. La Sociedad no busca aplausos: busca victorias silenciosas.</p>
-      </article>
-    </div>
-  </section>
-
-  <!-- PANEL LATERAL DEL CARRITO -->
-  <aside id="carrito" class="carrito">
+  <!-- CARRITO -->
+  <aside id="carrito" class="carrito" aria-hidden="true" aria-labelledby="carrito-title">
     <div class="carrito-header">
-      <h2>🛒 Tu Carrito</h2>
-      <button id="cerrarCarrito">✖</button>
+      <h2 id="carrito-title">Tu carrito</h2>
+      <button id="cerrarCarrito" class="icon-btn" type="button" aria-label="Cerrar carrito">✕</button>
     </div>
-    <ul id="lista-carrito"></ul>
-    <p>Total: <span id="total">$0</span></p>
-    <button id="realizarPedido" class="btn-pedido" disabled>Resumen de pedido</button>
+    <ul id="lista-carrito" class="lista-carrito"></ul>
+    <p id="carritoVacio" class="carrito-vacio">Tu carrito está vacío.</p>
+    <div class="carrito-footer">
+      <p class="carrito-total">Total <span id="total">$0</span></p>
+      <button id="realizarPedido" class="btn-primario btn-bloque" type="button" disabled>Continuar con el pedido</button>
+    </div>
   </aside>
+  <div id="carritoOverlay" class="overlay hidden"></div>
 
-  
-  <!-- Modal de Pedido -->
-  <div id="pedidoModal" class="modal-overlay hidden">
-    <div class="modal">
-      <div class="modal-header">
-        <h3>Resumen del Pedido</h3>
-        <button id="cerrarPedidoModal" aria-label="Cerrar">✖</button>
-      </div>
-      <div id="pedidoDetalle" class="modal-body"></div>
-      <div class="modal-footer">
-        <button id="confirmarPedido" class="btn-primario">Realizar pedido</button>
-        <button id="cerrarPedido" class="btn-secundario">Cerrar</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Modal de Checkout: Datos y Confirmación -->
-  <div id="checkoutModal" class="modal-overlay hidden" aria-hidden="true">
+  <!-- CHECKOUT -->
+  <div id="checkoutModal" class="modal-overlay hidden">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="checkoutTitulo">
       <div class="modal-header">
-        <h3 id="checkoutTitulo">Datos de envío y confirmación</h3>
-        <button id="cerrarCheckoutModal" aria-label="Cerrar">✖</button>
+        <h3 id="checkoutTitulo">Datos de envío</h3>
+        <button id="cerrarCheckoutModal" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
       </div>
       <div class="modal-body">
-        <div id="checkoutResumen" style="margin-bottom: 0.75rem;"></div>
-        <p id="checkoutTotal" style="font-weight: 700; margin-bottom: 0.75rem;">Total: $0</p>
+        <div id="checkoutResumen" class="checkout-resumen"></div>
+        <p id="checkoutTotal" class="checkout-total">Total: $0</p>
 
         <form id="checkoutForm" novalidate>
           <div class="form-row">
-            <label for="nombreApellido">Nombre y Apellido</label>
-            <input type="text" id="nombreApellido" name="nombreApellido" placeholder="Tu nombre y apellido" required />
+            <label for="nombreApellido">Nombre y apellido</label>
+            <input type="text" id="nombreApellido" name="nombreApellido" autocomplete="name" required />
+            <small class="form-error">Escribe tu nombre y apellido.</small>
           </div>
-
-          <div class="form-row">
-            <label for="cedula">Cédula de ciudadanía</label>
-            <input type="text" id="cedula" name="cedula" placeholder="Número de cédula" inputmode="numeric" required />
+          <div class="form-grid">
+            <div class="form-row">
+              <label for="cedula">Cédula</label>
+              <input type="text" id="cedula" name="cedula" inputmode="numeric" autocomplete="off" required />
+              <small class="form-error">Solo números (mínimo 5).</small>
+            </div>
+            <div class="form-row">
+              <label for="celular">Celular</label>
+              <input type="tel" id="celular" name="celular" inputmode="tel" autocomplete="tel" placeholder="3XX XXX XXXX" required />
+              <small class="form-error">Celular colombiano de 10 dígitos.</small>
+            </div>
           </div>
-
-          <div class="form-row">
-            <label for="departamento">Departamento</label>
-            <select id="departamento" name="departamento" required>
-              <option value="" selected disabled>Seleccione un departamento</option>
-              <!-- Colombia: departamentos -->
-              <option>Amazonas</option>
-              <option>Antioquia</option>
-              <option>Arauca</option>
-              <option>Atlántico</option>
-              <option>Bolívar</option>
-              <option>Boyacá</option>
-              <option>Caldas</option>
-              <option>Caquetá</option>
-              <option>Casanare</option>
-              <option>Cauca</option>
-              <option>Cesar</option>
-              <option>Chocó</option>
-              <option>C��rdoba</option>
-              <option>Cundinamarca</option>
-              <option>Guainía</option>
-              <option>Guaviare</option>
-              <option>Huila</option>
-              <option>La Guajira</option>
-              <option>Magdalena</option>
-              <option>Meta</option>
-              <option>Nariño</option>
-              <option>Norte de Santander</option>
-              <option>Putumayo</option>
-              <option>Quindío</option>
-              <option>Risaralda</option>
-              <option>San Andrés y Providencia</option>
-              <option>Santander</option>
-              <option>Sucre</option>
-              <option>Tolima</option>
-              <option>Valle del Cauca</option>
-              <option>Vaupés</option>
-              <option>Vichada</option>
-            </select>
+          <div class="form-grid">
+            <div class="form-row">
+              <label for="departamento">Departamento</label>
+              <select id="departamento" name="departamento" required>
+                <option value="" selected disabled>Selecciona</option>
+              </select>
+              <small class="form-error">Selecciona un departamento.</small>
+            </div>
+            <div class="form-row">
+              <label for="ciudad">Ciudad o municipio</label>
+              <select id="ciudad" name="ciudad" required disabled>
+                <option value="" selected disabled>Primero el departamento</option>
+              </select>
+              <input type="text" id="ciudadOtra" name="ciudadOtra" class="hidden" placeholder="Escribe tu municipio" />
+              <small class="form-error">Indica tu ciudad o municipio.</small>
+            </div>
           </div>
-
-          <div class="form-row">
-            <label for="ciudad">Ciudad</label>
-            <select id="ciudad" name="ciudad" required>
-              <option value="" selected disabled>Seleccione primero un departamento</option>
-            </select>
-            <input type="text" id="ciudadOtra" name="ciudadOtra" class="hidden" placeholder="Especifique la ciudad" />
-          </div>
-
           <div class="form-row">
             <label for="direccion">Dirección</label>
-            <input type="text" id="direccion" name="direccion" placeholder="Calle # Número - Barrio" required />
+            <input type="text" id="direccion" name="direccion" autocomplete="street-address" placeholder="Ej: Calle 10 # 5-23, apto 301" required />
+            <small class="form-error">Escribe una dirección válida.</small>
           </div>
-
           <div class="form-row">
             <label for="barrio">Barrio</label>
-            <input type="text" id="barrio" name="barrio" placeholder="Nombre del barrio" required />
+            <input type="text" id="barrio" name="barrio" required />
+            <small class="form-error">Escribe el barrio.</small>
           </div>
+          <div class="form-row">
+            <label for="notas">Notas (opcional)</label>
+            <input type="text" id="notas" name="notas" placeholder="Indicaciones para la entrega" maxlength="200" />
+          </div>
+          <label class="check-row">
+            <input type="checkbox" id="autorizo" name="autorizo" required />
+            <span>Autorizo a Insanity Society a usar estos datos únicamente para gestionar y enviar mi pedido, conforme a la Ley 1581 de 2012 de protección de datos personales.</span>
+          </label>
         </form>
       </div>
       <div class="modal-footer">
-        <button id="enviarWhatsapp" class="btn-primario" disabled>Confirmar pedido</button>
-        <button id="cerrarCheckout" class="btn-secundario">Cerrar</button>
+        <button id="cerrarCheckout" class="btn-secundario" type="button">Volver</button>
+        <button id="enviarWhatsapp" class="btn-primario" type="button">Enviar pedido por WhatsApp</button>
       </div>
     </div>
   </div>
 
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/productos.js"></script>
   <script src="js/scripts.js"></script>
 </body>
 </html>

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#000000" />
+  <title>Panel | Insanity Society</title>
+  <link rel="icon" href="img/favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;700&family=Montserrat:wght@400;600;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/admin.css" />
+</head>
+<body class="admin">
+  <header class="navbar navbar--simple">
+    <a class="logo" href="index.html">INSANITY SOCIETY</a>
+    <div class="admin-nav">
+      <span id="usuarioActual" class="admin-user hidden"></span>
+      <button id="btnSalir" class="btn-secundario hidden" type="button">Salir</button>
+    </div>
+  </header>
+
+  <main class="admin-main">
+    <!-- Estado: sin configurar -->
+    <section id="vistaConfig" class="admin-card admin-centro hidden">
+      <h1>Falta conectar Supabase</h1>
+      <p>Abre <code>js/config.js</code> y pega la URL y la clave pública de tu proyecto. Los pasos están en <code>GUIA-PANEL.md</code>.</p>
+    </section>
+
+    <!-- Estado: login -->
+    <section id="vistaLogin" class="admin-card admin-centro hidden">
+      <h1>Panel de administración</h1>
+      <p class="admin-sub">Solo para administradores de Insanity Society.</p>
+      <form id="formLogin" class="admin-form" novalidate>
+        <div class="form-row">
+          <label for="loginEmail">Correo</label>
+          <input id="loginEmail" type="email" autocomplete="username" required />
+        </div>
+        <div class="form-row">
+          <label for="loginPass">Contraseña</label>
+          <input id="loginPass" type="password" autocomplete="current-password" required />
+        </div>
+        <p id="loginError" class="admin-error hidden" role="alert"></p>
+        <button class="btn-primario btn-bloque" type="submit">Entrar</button>
+      </form>
+    </section>
+
+    <!-- Estado: sin permisos -->
+    <section id="vistaSinPermiso" class="admin-card admin-centro hidden">
+      <h1>Sin permisos</h1>
+      <p>Esta cuenta inició sesión, pero no está registrada como administradora. Ejecuta <code>supabase/hacerme-admin.sql</code> con este correo.</p>
+    </section>
+
+    <!-- Estado: panel -->
+    <section id="vistaPanel" class="hidden">
+      <div class="admin-toolbar">
+        <h1>Productos <span id="conteo" class="admin-conteo"></span></h1>
+        <div class="admin-toolbar-acciones">
+          <input id="buscar" type="search" placeholder="Buscar por nombre o colección" aria-label="Buscar productos" />
+          <select id="filtroEstado" aria-label="Filtrar por estado">
+            <option value="todos">Todos</option>
+            <option value="activos">Visibles</option>
+            <option value="ocultos">Ocultos</option>
+          </select>
+          <button id="btnNuevo" class="btn-primario" type="button">+ Nuevo producto</button>
+        </div>
+      </div>
+      <p id="panelError" class="admin-error hidden" role="alert"></p>
+      <div id="listaProductos" class="admin-lista" aria-live="polite"></div>
+    </section>
+  </main>
+
+  <!-- Editor de producto -->
+  <div id="editorModal" class="modal-overlay hidden">
+    <div class="modal admin-editor" role="dialog" aria-modal="true" aria-labelledby="editorTitulo">
+      <div class="modal-header">
+        <h3 id="editorTitulo">Nuevo producto</h3>
+        <button id="cerrarEditor" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <form id="formProducto" class="modal-body admin-form" novalidate>
+        <div class="form-row">
+          <label for="pNombre">Nombre</label>
+          <input id="pNombre" type="text" required placeholder="Ej: Camiseta Oversize INSANE" />
+          <small class="admin-hint">Identificador: <code id="pIdTxt">—</code></small>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="pColeccion">Colección</label>
+            <input id="pColeccion" type="text" list="listaColecciones" required placeholder="Ej: INSANE" />
+            <datalist id="listaColecciones"></datalist>
+          </div>
+          <div class="form-row">
+            <label for="pCategoria">Categoría</label>
+            <select id="pCategoria">
+              <option value="camiseta">Camiseta</option>
+              <option value="compresion">Compresión</option>
+              <option value="sudadera">Sudadera</option>
+              <option value="top">Top</option>
+              <option value="pantaloneta">Pantaloneta</option>
+              <option value="short">Short</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="pMaterial">Material</label>
+            <input id="pMaterial" type="text" placeholder="Ej: Algodón premium 200 g" />
+          </div>
+          <div class="form-row">
+            <label for="pPrecio">Precio (COP)</label>
+            <input id="pPrecio" type="text" inputmode="numeric" placeholder="Vacío = precio por confirmar" />
+          </div>
+        </div>
+
+        <fieldset class="admin-fieldset">
+          <legend>Tallas</legend>
+          <div id="pTallas" class="admin-checks"></div>
+        </fieldset>
+
+        <fieldset class="admin-fieldset">
+          <legend>Colores</legend>
+          <div id="pColores" class="admin-tags"></div>
+          <div class="admin-inline">
+            <input id="pColorNuevo" type="text" placeholder="Ej: Verde militar" aria-label="Nuevo color" />
+            <button id="btnAgregarColor" class="btn-secundario" type="button">Agregar</button>
+          </div>
+        </fieldset>
+
+        <fieldset class="admin-fieldset">
+          <legend>Variantes de material <small>(opcional: cada una con su precio)</small></legend>
+          <div id="pVariantes"></div>
+          <button id="btnAgregarVariante" class="btn-secundario" type="button">+ Agregar variante</button>
+        </fieldset>
+
+        <fieldset class="admin-fieldset">
+          <legend>Fotos por color</legend>
+          <p class="admin-hint">Se comprimen automáticamente antes de subir. Si un color no tiene foto, la tienda muestra la del primer color.</p>
+          <div id="pImagenes" class="admin-imagenes"></div>
+        </fieldset>
+
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="pOrden">Orden en la tienda</label>
+            <input id="pOrden" type="number" step="1" />
+          </div>
+          <label class="check-row admin-activo">
+            <input id="pActivo" type="checkbox" checked />
+            <span>Visible en la tienda</span>
+          </label>
+        </div>
+        <p id="editorError" class="admin-error hidden" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <button id="btnBorrar" class="btn-secundario admin-peligro hidden" type="button">Eliminar</button>
+        <span class="admin-espacio"></span>
+        <button id="btnCancelar" class="btn-secundario" type="button">Cancelar</button>
+        <button id="btnGuardar" class="btn-primario" type="submit" form="formProducto">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
+
+  <script src="js/config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
