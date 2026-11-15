@@ -330,9 +330,40 @@
       </article>`;
   }
 
+  // Resumen de tallas: "XS – 3XL", "S · M · L" o "Talla única"
+  function resumenTallas(t) {
+    if (!t?.length) return '';
+    if (t.length === 1) return t[0] === 'Única' ? 'Talla única' : `Talla ${t[0]}`;
+    return t.length > 3 ? `Tallas ${t[0]} – ${t[t.length - 1]}` : `Tallas ${t.join(' · ')}`;
+  }
+  function tarjetaMini(p) {
+    const pct = ofertaActiva(p);
+    const imgs = imagenesDe(p, p.colores[0]);
+    const max = 5;
+    const swatches = p.colores.slice(0, max).map((c) => `<i class="swatch" style="--sw:${colorCss(c)}" title="${esc(c)}"></i>`).join('')
+      + (p.colores.length > max ? `<span class="mini-mas">+${p.colores.length - max}</span>` : '');
+    const precio = p.precio == null ? 'Precio por confirmar'
+      : (p.variantes?.length > 1 && new Set(p.variantes.map((v) => v.precio)).size > 1 ? '<span class="mini-desde">Desde</span> ' : '') + precioHtml(p, p.variantes?.length ? p.variantes.reduce((a, b) => (b.precio < a.precio ? b : a)).nombre : undefined);
+    return `
+      <article class="card producto producto-mini" data-id="${esc(p.id)}">
+        <button type="button" class="product-media mini-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}" data-abrir aria-label="Ver detalles de ${esc(p.nombre)}">
+          ${imgs ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)}" width="900" height="900" loading="lazy" decoding="async" />` : ''}
+          ${imgs?.espalda ? `<img class="mini-img-alt" src="${esc(imgs.espalda)}" alt="" width="900" height="900" loading="lazy" decoding="async" aria-hidden="true" />` : ''}
+          ${pct ? `<span class="badge-oferta">-${pct}%</span>` : ''}
+        </button>
+        <div class="producto-info mini-info">
+          <p class="producto-col">${esc(p.coleccion)}</p>
+          <h4 class="producto-nombre">${esc(p.nombre)}</h4>
+          <p class="precio">${precio}</p>
+          <p class="mini-resumen"><span class="mini-colores" aria-label="${p.colores.length} color${p.colores.length === 1 ? '' : 'es'}">${swatches}</span><span class="mini-tallas">${esc(resumenTallas(p.tallas))}</span></p>
+          <button type="button" class="btn-primario btn-bloque mini-btn" data-abrir>Ver detalles</button>
+        </div>
+      </article>`;
+  }
+
   function renderCatalogo() {
     if (!catalogo) return;
-    catalogo.innerHTML = `<div class="productos">${PRODUCTOS.map((p) => tarjetaProducto(p, 't')).join('')}</div>`;
+    catalogo.innerHTML = `<div class="productos">${PRODUCTOS.map(tarjetaMini).join('')}</div>`;
   }
   renderCatalogo();
 
@@ -343,13 +374,41 @@
     if (!destacadosGrid || !sec) return;
     const lista = PRODUCTOS.filter((p) => p.destacado).slice(0, 8);
     sec.hidden = !lista.length;
-    destacadosGrid.innerHTML = lista.map((p) => tarjetaProducto(p, 'd')).join('');
+    destacadosGrid.innerHTML = lista.map(tarjetaMini).join('');
   }
   renderDestacados();
-  const contenedoresTarjetas = [catalogo, destacadosGrid].filter(Boolean);
+  const productoModal = $('#productoModal');
+  const productoBody = $('#productoModalBody');
+  let focoAntesProducto = null;
+  function abrirProducto(id) {
+    const p = productosPorId.get(id);
+    if (!p || !productoModal) return;
+    focoAntesProducto = document.activeElement;
+    productoBody.innerHTML = tarjetaProducto(p, 'm');
+    productoBody.firstElementChild.classList.add('producto--detalle');
+    productoModal.classList.remove('hidden');
+    document.body.classList.add('no-scroll');
+    productoBody.scrollTop = 0;
+    $('#cerrarProducto')?.focus();
+  }
+  function cerrarProducto() {
+    if (!productoModal || productoModal.classList.contains('hidden')) return;
+    productoModal.classList.add('hidden');
+    productoBody.innerHTML = '';
+    document.body.classList.remove('no-scroll');
+    focoAntesProducto?.focus?.();
+  }
+  [catalogo, destacadosGrid].filter(Boolean).forEach((cont) => cont.addEventListener('click', (e) => {
+    const card = e.target.closest('.producto-mini');
+    if (card && (e.target.closest('[data-abrir]') || !e.target.closest('button, a'))) abrirProducto(card.dataset.id);
+  }));
+  $('#cerrarProducto')?.addEventListener('click', cerrarProducto);
+  productoModal?.addEventListener('click', (e) => { if (e.target === productoModal) cerrarProducto(); });
+  const contenedoresTarjetas = [productoBody].filter(Boolean);
 
   // Imagen que no carga → recuadro con el nombre de la colección
-  contenedoresTarjetas.forEach((cont) => cont.addEventListener('error', (e) => {
+  [catalogo, destacadosGrid, productoBody].filter(Boolean).forEach((cont) => cont.addEventListener('error', (e) => {
+    if (e.target.matches?.('.mini-img-alt')) { e.target.remove(); return; }
     if (e.target.matches?.('.product-img')) {
       const media = e.target.closest('.product-media');
       e.target.remove();
@@ -435,6 +494,7 @@
     else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1 });
     guardarYRender();
     toast(`Agregado: ${p.nombre} · ${color} · ${talla}`);
+    if (card.closest('#productoModal')) cerrarProducto();
     btnCarrito?.classList.remove('pulse'); void btnCarrito?.offsetWidth; btnCarrito?.classList.add('pulse');
   }
 
@@ -869,7 +929,7 @@
   function setGuia(open) {
     if (!guiaModal) return;
     guiaModal.classList.toggle('hidden', !open);
-    document.body.classList.toggle('no-scroll', open);
+    document.body.classList.toggle('no-scroll', open || !productoModal?.classList.contains('hidden'));
     if (open) { $('#cerrarGuia')?.focus(); const a = $('#guiaWhatsapp'); if (a) a.href = `https://wa.me/${numeroWa}?text=${encodeURIComponent('Hola, necesito ayuda para elegir mi talla')}`; }
   }
   document.addEventListener('click', (e) => { if (e.target.closest('[data-guia]')) { e.preventDefault(); setGuia(true); } });
@@ -881,6 +941,7 @@
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     if (guiaModal && !guiaModal.classList.contains('hidden')) setGuia(false);
+    else if (productoModal && !productoModal.classList.contains('hidden')) cerrarProducto();
     else if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
     else if (panel.classList.contains('open')) setPanel(false);
     else if (carritoPanel.classList.contains('active')) setCarrito(false);
