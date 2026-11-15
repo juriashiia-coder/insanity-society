@@ -74,7 +74,7 @@
     $$('.btn-nav-icono').forEach((a) => a.classList.toggle('active', a.dataset.tab === id));
     setMenu(false);
     if (scroll) window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
-    const titulos = { home: 'Insanity Society — Ropa de entrenamiento con carácter', colecciones: 'Colecciones', sociedad: 'La Sociedad', tienda: 'Tienda', blog: 'Comunidad', favoritos: 'Favoritos', mispedidos: 'Mis pedidos' };
+    const titulos = { home: 'Insanity Society — Ropa de entrenamiento con carácter', colecciones: 'Colecciones', sociedad: 'La Sociedad', tienda: 'Tienda', blog: 'Comunidad', favoritos: 'Favoritos', mispedidos: 'Mis pedidos', preventa: 'Preventa' };
     document.title = id === 'home' ? titulos.home : `${titulos[id]} | Insanity Society`;
   }
   // Admite #tienda/RAIJIN para abrir la tienda filtrada por colección
@@ -259,6 +259,21 @@
     return pct > 0 && pct <= 90 && (!p.oferta_hasta || new Date(p.oferta_hasta) > new Date()) ? pct : 0;
   };
   const redondear = (n) => Math.round(n / 100) * 100;
+  // Preventa: se aparta antes del lanzamiento hasta la fecha de cierre
+  const enPreventa = (p) => !!p?.preventa && (!p.preventa_hasta || new Date(p.preventa_hasta) > new Date());
+  const preventaCerrada = (p) => !!p?.preventa && !!p.preventa_hasta && new Date(p.preventa_hasta) <= new Date();
+  function faltaPara(fecha) {
+    const ms = new Date(fecha) - Date.now();
+    if (ms <= 0) return null;
+    const min = Math.floor(ms / 60000), h = Math.floor(min / 60), d = Math.floor(h / 24);
+    return d >= 1 ? `${d} d ${h % 24} h` : h >= 1 ? `${h} h ${min % 60} min` : `${Math.max(1, min)} min`;
+  }
+  const textoCierre = (p) => {
+    if (!p.preventa_hasta) return 'Cupos limitados';
+    const f = faltaPara(p.preventa_hasta);
+    return f ? `Cierra en ${f}` : 'Preventa cerrada';
+  };
+  const spanCierre = (p) => `<span${p.preventa_hasta ? ` data-cierre="${esc(p.preventa_hasta)}"` : ''}>${esc(textoCierre(p))}</span>`;
   function precioBaseDe(p, varianteNombre) {
     const v = p.variantes?.find((x) => x.nombre === varianteNombre);
     return v ? v.precio : p.precio;
@@ -331,7 +346,19 @@
           <p class="producto-material">${esc(p.material)}</p>
           <p class="precio">${sinPrecio ? 'Precio por confirmar' : precioHtml(p, varIni)}</p>
           ${pct && p.oferta_hasta ? `<p class="oferta-hasta">Oferta hasta el ${esc(fechaCorta(p.oferta_hasta))}</p>` : ''}
-          ${sinUnidades ? `
+          ${p.preventa ? `
+            <div class="preventa-info${preventaCerrada(p) ? ' is-cerrada' : ''}">
+              <strong>⏳ Preventa</strong>
+              ${preventaCerrada(p) ? '<span>La preventa ya cerró.</span>' : `<span class="preventa-cierre">${spanCierre(p)}</span>`}
+              ${p.preventa_entrega ? `<span>Entrega estimada: <b>${esc(p.preventa_entrega)}</b></span>` : ''}
+              ${p.stock && !preventaCerrada(p) ? '<span>Unidades limitadas</span>' : ''}
+              ${preventaCerrada(p) ? '' : '<small>Apártala ahora: te confirmamos el pago y la entrega por WhatsApp.</small>'}
+            </div>` : ''}
+          ${preventaCerrada(p) ? `
+            <p class="stock-agotado">La preventa cerró. Muy pronto estará disponible.</p>
+            <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
+               href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, quiero saber cuándo sale: ${p.nombre}`)}">Avísame cuando salga</a>`
+          : sinUnidades ? `
             <p class="stock-agotado">Por ahora este producto está agotado.</p>
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
                href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, ¿cuándo vuelve a estar disponible: ${p.nombre}?`)}">Avísame cuando vuelva</a>`
@@ -344,7 +371,7 @@
             <fieldset class="opciones"><legend>Talla <button type="button" class="guia-link" data-guia>Guía de tallas</button></legend>${chips('talla-' + uid, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
             <p class="stock-msg" aria-live="polite"></p>
             <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
-            <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar<span class="add-extra"> al carrito</span></button>`}
+            <button type="button" class="agregar-carrito btn-primario btn-bloque">${enPreventa(p) ? 'Apartar<span class="add-extra"> en preventa</span>' : 'Agregar<span class="add-extra"> al carrito</span>'}</button>`}
         </div>
       </article>`;
   }
@@ -364,19 +391,21 @@
     const precio = p.precio == null ? 'Precio por confirmar'
       : (p.variantes?.length > 1 && new Set(p.variantes.map((v) => v.precio)).size > 1 ? '<span class="mini-desde">Desde</span> ' : '') + precioHtml(p, p.variantes?.length ? p.variantes.reduce((a, b) => (b.precio < a.precio ? b : a)).nombre : undefined);
     return `
-      <article class="card producto producto-mini${agotado(p) ? ' is-agotado' : ''}${pct ? ' con-oferta' : ''}" data-id="${esc(p.id)}">
+      <article class="card producto producto-mini${agotado(p) || preventaCerrada(p) ? ' is-agotado' : ''}${pct ? ' con-oferta' : ''}${p.preventa ? ' con-preventa' : ''}" data-id="${esc(p.id)}">
         ${botonFav(p)}
         <button type="button" class="product-media mini-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}" data-abrir aria-label="Ver detalles de ${esc(p.nombre)}">
           ${imgs ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)}" width="900" height="900" loading="lazy" decoding="async" />` : ''}
           ${imgs?.espalda ? `<img class="mini-img-alt" src="${esc(imgs.espalda)}" alt="" width="900" height="900" loading="lazy" decoding="async" aria-hidden="true" />` : ''}
           ${pct ? `<span class="badge-oferta">-${pct}%</span>` : ''}
-          ${agotado(p) ? '<span class="badge-agotado">Agotado</span>' : ''}
+          ${agotado(p) && !p.preventa ? '<span class="badge-agotado">Agotado</span>' : ''}
+          ${p.preventa ? `<span class="badge-preventa">${preventaCerrada(p) ? 'Preventa cerrada' : agotado(p) ? 'Preventa · agotada' : 'Preventa'}</span>` : ''}
         </button>
         <div class="producto-info mini-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
           <h4 class="producto-nombre">${esc(p.nombre)}</h4>
           <p class="precio">${precio}</p>
           <p class="mini-resumen"><span class="mini-colores" aria-label="${p.colores.length} color${p.colores.length === 1 ? '' : 'es'}">${swatches}</span><span class="mini-tallas">${esc(resumenTallas(p.tallas))}</span></p>
+          ${enPreventa(p) ? `<p class="mini-preventa">⏳ ${spanCierre(p)}${p.preventa_entrega ? ` · <span class="mini-entrega">Entrega: ${esc(p.preventa_entrega)}</span>` : ''}</p>` : ''}
           <button type="button" class="btn-primario btn-bloque mini-btn" data-abrir>Ver detalles</button>
         </div>
       </article>`;
@@ -547,6 +576,39 @@
   });
   renderFavoritos();
 
+  // ---------- Preventa: sección, aviso en Inicio y cuenta regresiva ----------
+  function renderPreventa() {
+    const lista = PRODUCTOS.filter(enPreventa);
+    $$('.nav-preventa').forEach((a) => { a.hidden = !lista.length; });
+    const banner = $('#preventaBanner');
+    if (banner) {
+      banner.hidden = !lista.length;
+      if (lista.length) {
+        const conCierre = lista.filter((p) => p.preventa_hasta).sort((a, b) => new Date(a.preventa_hasta) - new Date(b.preventa_hasta));
+        $('#preventaBannerTxt').innerHTML = `${lista.length === 1 ? esc(lista[0].nombre) : `${lista.length} prendas antes que nadie`}`
+          + (conCierre.length ? ` · ${spanCierre(conCierre[0])}` : '');
+      }
+    }
+    const grid = $('#preventaGrid'); if (!grid) return;
+    $('#preventaVacio')?.classList.toggle('hidden', lista.length > 0);
+    grid.innerHTML = lista.map(tarjetaMini).join('');
+  }
+  $('#preventaGrid')?.addEventListener('click', (e) => {
+    const card = e.target.closest('.producto-mini');
+    if (card && (e.target.closest('[data-abrir]') || !e.target.closest('button, a'))) abrirProducto(card.dataset.id);
+  });
+  renderPreventa();
+  // Actualiza los "Cierra en…" cada minuto; si alguna preventa cierra, se vuelve a pintar todo
+  setInterval(() => {
+    let cerro = false;
+    $$('[data-cierre]').forEach((el) => {
+      const f = faltaPara(el.dataset.cierre);
+      if (!f) cerro = true;
+      el.textContent = f ? `Cierra en ${f}` : 'Preventa cerrada';
+    });
+    if (cerro) { renderPreventa(); renderCatalogo(); aplicarFiltros(); renderDestacados(); renderFavoritos(); }
+  }, 60000);
+
   // ---------- Mis pedidos: seguimiento sin cuentas ----------
   // Los pedidos hechos en este dispositivo se guardan aquí (número + celular).
   // El estado se consulta en Supabase con ese par; sin él, no se ve nada.
@@ -589,7 +651,7 @@
         ${pasos}
         <p class="pedido-det">${esc(est.det)}</p>
         ${p.guia ? `<p class="pedido-guia">Guía de envío: <strong>${esc(p.guia)}</strong></p>` : ''}
-        <ul class="pedido-items">${(p.items || []).map((i) => `<li><span>${i.cantidad}× ${esc(i.nombre)} <small>${esc([i.variante, i.color, i.talla].filter(Boolean).join(' · '))}</small></span><span>${dinero(i.precio * i.cantidad)}</span></li>`).join('')}</ul>
+        <ul class="pedido-items">${(p.items || []).map((i) => `<li><span>${i.cantidad}× ${esc(i.nombre)} <small>${i.preventa ? `<b class="tag-preventa">Preventa${i.entrega ? ' · entrega ' + esc(i.entrega) : ''}</b> ` : ''}${esc([i.variante, i.color, i.talla].filter(Boolean).join(' · '))}</small></span><span>${dinero(i.precio * i.cantidad)}</span></li>`).join('')}</ul>
         <p class="pedido-total">${p.descuento ? `<small>Descuento ${p.cupon ? esc(p.cupon) : ''}: −${dinero(p.descuento)}</small>` : ''}<span>Total</span> <strong>${dinero(p.total)}</strong></p>
         <div class="pedido-acciones">
           <a class="btn-secundario" target="_blank" rel="noopener" href="https://wa.me/${numeroWa}?text=${encodeURIComponent(msg)}">Preguntar por WhatsApp</a>
@@ -643,6 +705,7 @@
     const { id } = leerHash();
     if (id === 'mispedidos') renderMisPedidos();
     if (id === 'favoritos') renderFavoritos();
+    if (id === 'preventa') renderPreventa();
   });
   if (leerHash().id === 'mispedidos') renderMisPedidos();
 
@@ -750,7 +813,9 @@
   // Cargar y validar contra el catálogo actual (precios siempre vigentes)
   let carrito = (storage.get(CLAVE_CARRITO) || []).filter((it) => {
     const p = productosPorId.get(it.id);
-    if (!p || p.precio == null) return false;
+    if (!p || p.precio == null || preventaCerrada(p)) return false;
+    it.preventa = enPreventa(p) || undefined;
+    it.entrega = enPreventa(p) ? p.preventa_entrega || undefined : undefined;
     it.precio = precioDe(p, it.variante);
     it.oferta = ofertaActiva(p) || 0;
     it.nombre = p.nombre;
@@ -780,9 +845,10 @@
       return;
     }
     if (existente) existente.cantidad = Math.min(20, existente.cantidad + 1);
-    else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1 });
+    else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1,
+      preventa: enPreventa(p) || undefined, entrega: enPreventa(p) ? p.preventa_entrega || undefined : undefined });
     guardarYRender();
-    toast(`Agregado: ${p.nombre} · ${color} · ${talla}`);
+    toast(`${enPreventa(p) ? 'Apartado en preventa' : 'Agregado'}: ${p.nombre} · ${color} · ${talla}`);
     if (card.closest('#productoModal')) cerrarProducto();
     btnCarrito?.classList.remove('pulse'); void btnCarrito?.offsetWidth; btnCarrito?.classList.add('pulse');
   }
@@ -807,7 +873,7 @@
     const data = await r.json();
     return Array.isArray(data) ? data[0] || null : data;
   }
-  const detalleItem = (i) => [i.variante, `Color: ${i.color}`, `Talla: ${i.talla}`, i.oferta ? `Oferta -${i.oferta}%` : ''].filter(Boolean).join(' · ');
+  const detalleItem = (i) => [i.preventa ? `PREVENTA${i.entrega ? ` (entrega: ${i.entrega})` : ''}` : '', i.variante, `Color: ${i.color}`, `Talla: ${i.talla}`, i.oferta ? `Oferta -${i.oferta}%` : ''].filter(Boolean).join(' · ');
 
   function guardarYRender() {
     storage.set(CLAVE_CARRITO, carrito);
@@ -937,7 +1003,7 @@
   const btnFiltros = $('#openFilters');
 
   const valoresDe = {
-    oferta: (p) => (ofertaActiva(p) ? ['En oferta'] : []),
+    oferta: (p) => [...(ofertaActiva(p) ? ['En oferta'] : []), ...(enPreventa(p) ? ['Preventa'] : [])],
     categoria: (p) => [p.categoria],
     coleccion: (p) => [p.coleccion],
     talla: (p) => p.tallas,
@@ -1133,14 +1199,18 @@
   function resumenHtml() {
     return `<ul>${carrito.map((i) => `<li><span>${esc(i.nombre)} <small>${esc(detalleItem(i))} · x${i.cantidad}</small></span><strong>${dinero(i.precio * i.cantidad)}</strong></li>`).join('')}</ul>`;
   }
+  function pintarTotalCheckout() {
+    const desc = descuentoCupon();
+    $('#checkoutTotal').innerHTML = (desc ? `<span class="checkout-desc">Subtotal ${dinero(subtotalCarrito())} · Código ${esc(cupon.codigo)}: −${dinero(desc)}</span>` : '')
+      + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(envío por confirmar)</small>';
+  }
   function setCheckout(open) {
     checkoutModal.classList.toggle('hidden', !open);
     document.body.classList.toggle('no-scroll', open || carritoPanel.classList.contains('active'));
     if (open) {
+      $('#checkoutAviso')?.classList.add('hidden');
       $('#checkoutResumen').innerHTML = resumenHtml();
-      const desc = descuentoCupon();
-      $('#checkoutTotal').innerHTML = (desc ? `<span class="checkout-desc">Subtotal ${dinero(subtotalCarrito())} · Código ${esc(cupon.codigo)}: −${dinero(desc)}</span>` : '')
-        + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(envío por confirmar)</small>';
+      pintarTotalCheckout();
       const guardado = storage.get('insanity-cliente');
       if (guardado) Object.entries(guardado).forEach(([k, v]) => { if (f[k] && k !== 'autorizo' && !f[k].value) f[k].value = v; });
       if (guardado?.dep) { f.dep.dispatchEvent(new Event('change')); f.ciudad.value = guardado.ciudad || ''; if (f.ciudad.value === OTRA) f.ciudadOtra.classList.remove('hidden'); }
@@ -1172,7 +1242,11 @@
         });
         clearTimeout(t);
         if (r.ok) return Number(await r.json()) || null;
-        console.warn('[Insanity] No se pudo registrar el pedido:', r.status, await r.text());
+        const txt = await r.text();
+        // El código de descuento no se puede usar (ya lo usó esta persona o se agotó)
+        if (/CUPON_YA_USADO/.test(txt)) return { cupon: 'usado' };
+        if (/CUPON_NO_VALIDO/.test(txt)) return { cupon: 'invalido' };
+        console.warn('[Insanity] No se pudo registrar el pedido:', r.status, txt);
         if (r.status < 500) return null; // error de datos: reintentar no ayuda
       } catch (err) {
         console.warn('[Insanity] No se pudo registrar el pedido (intento ' + intento + '):', err?.name || err);
@@ -1199,17 +1273,33 @@
     if (win) { win.opener = null; try { win.document.title = 'Abriendo WhatsApp…'; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:2rem;color:#555">Abriendo WhatsApp…</p>'; } catch { /* sin acceso */ } }
     const btnEnviar = $('#enviarWhatsapp');
     enviando = true; btnEnviar.disabled = true; btnEnviar.dataset.texto ??= btnEnviar.textContent; btnEnviar.textContent = 'Enviando…';
-    const numeroPedido = await registrarPedido({
+    const resultado = await registrarPedido({
       nombre: f.nombre.value.trim(), celular: f.celular.value, cedula: f.cedula.value,
       departamento: f.dep.value, ciudad, direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim(), notas: f.notas.value.trim()
     });
     enviando = false; btnEnviar.disabled = false; btnEnviar.textContent = btnEnviar.dataset.texto;
+    if (resultado && typeof resultado === 'object' && resultado.cupon) {
+      // No se envía nada: se quita el código y la persona decide si sigue sin él
+      try { win?.close(); } catch { /* */ }
+      const codigoQuitado = cupon?.codigo || '';
+      cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender();
+      pintarTotalCheckout();
+      const aviso = resultado.cupon === 'usado'
+        ? `El código ${codigoQuitado} ya fue usado con este celular o cédula (es de un solo uso por persona). Lo quitamos: revisa el nuevo total y vuelve a enviar.`
+        : `El código ${codigoQuitado} ya no está disponible. Lo quitamos: revisa el nuevo total y vuelve a enviar.`;
+      const av = $('#checkoutAviso');
+      if (av) { av.textContent = aviso; av.classList.remove('hidden'); av.scrollIntoView({ block: 'nearest' }); }
+      toast(resultado.cupon === 'usado' ? `El código ${codigoQuitado} ya fue usado. Revisa el nuevo total.` : `El código ${codigoQuitado} ya no está disponible.`);
+      return;
+    }
+    const numeroPedido = resultado;
     if (numeroPedido) recordarPedido(numeroPedido, f.celular.value);
 
     const lineas = carrito.map((i) => `• ${i.nombre}\n   ${detalleItem(i)} · Cant: ${i.cantidad} · ${dinero(i.precio * i.cantidad)}`);
     const mensaje = [
       `*NUEVO PEDIDO${numeroPedido ? ` #${numeroPedido}` : ''} — INSANITY SOCIETY*`, '',
       ...lineas, '',
+      ...(carrito.some((i) => i.preventa) ? ['⏳ Incluye prendas en PREVENTA: se entregan en la fecha estimada.', ''] : []),
       ...(descuentoCupon() ? [`Subtotal: ${dinero(subtotalCarrito())}`, `Código de descuento ${cupon.codigo} (${textoCupon(cupon)}): −${dinero(descuentoCupon())}`] : []),
       `*Total productos: ${dinero(totalCarrito())}*`, '',
       '*Datos de envío*',

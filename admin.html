@@ -184,6 +184,7 @@
             <option value="ocultos">Ocultos</option>
             <option value="destacados">Destacados</option>
             <option value="ofertas">En oferta</option>
+            <option value="preventa">En preventa</option>
             <option value="agotados">Agotados</option>
             <option value="bajo">Pocas unidades</option>
           </select>
@@ -301,6 +302,25 @@
           <small id="pOfertaVista" class="admin-hint">Sin oferta.</small>
         </fieldset>
 
+        <fieldset class="admin-fieldset">
+          <legend>Preventa</legend>
+          <label class="check-row admin-check">
+            <input id="pPreventa" type="checkbox" />
+            <span>⏳ En preventa <small class="admin-hint">(se aparta antes de que salga; aparece en la sección Preventa)</small></span>
+          </label>
+          <div id="pPreventaCampos" class="form-grid hidden">
+            <div class="form-row">
+              <label for="pPreventaHasta">La preventa cierra el</label>
+              <input id="pPreventaHasta" type="date" />
+            </div>
+            <div class="form-row">
+              <label for="pPreventaEntrega">Entrega estimada</label>
+              <input id="pPreventaEntrega" type="text" maxlength="80" placeholder="Ej: Desde el 15 de diciembre" />
+            </div>
+          </div>
+          <small id="pPreventaAyuda" class="admin-hint hidden">Consejos: para unidades limitadas activa «Controlar inventario»; para precio especial de preventa usa «Oferta». Después del cierre ya no se puede pedir: desmarca «En preventa» cuando salga a la venta normal.</small>
+        </fieldset>
+
         <div class="form-grid">
           <div class="form-row">
             <label for="pOrden">Orden en la tienda</label>
@@ -356,6 +376,23 @@
           <div class="form-row">
             <label for="cVence">Vence (opcional)</label>
             <input id="cVence" type="date" />
+          </div>
+        </div>
+        <div id="cUsosBloque" class="form-grid">
+          <div class="form-row">
+            <label for="cUsosCliente">Usos por cliente</label>
+            <select id="cUsosCliente">
+              <option value="1">1 vez por persona</option>
+              <option value="2">2 veces por persona</option>
+              <option value="3">3 veces por persona</option>
+              <option value="5">5 veces por persona</option>
+              <option value="0">Sin límite</option>
+            </select>
+            <small class="admin-hint">Se reconoce a la persona por su celular o su cédula.</small>
+          </div>
+          <div class="form-row">
+            <label for="cUsosMax">Usos en total (opcional)</label>
+            <input id="cUsosMax" type="text" inputmode="numeric" placeholder="Ej: 50 (vacío = sin límite)" />
           </div>
         </div>
         <div class="form-row">

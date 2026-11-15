@@ -40,7 +40,7 @@
     return `${d.getUTCDate()} ${MESES[d.getUTCMonth()]}${anio ? ' ' + y : ''} · ${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   };
 
-  const resumenItems = (p) => (p.items || []).map((i) => `${i.cantidad}× ${i.nombre} (${[i.variante, i.color, i.talla].filter(Boolean).join(' · ')})`).join(', ');
+  const resumenItems = (p) => (p.items || []).map((i) => `${i.cantidad}× ${i.nombre} (${[i.preventa ? 'PREVENTA' : '', i.variante, i.color, i.talla].filter(Boolean).join(' · ')})`).join(', ');
   const unidadesDe = (p) => (p.items || []).reduce((s, i) => s + (Number(i.cantidad) || 0), 0);
   const lugarDe = (p) => [p.ciudad, p.departamento].filter(Boolean).join(', ');
 
@@ -173,7 +173,7 @@
       </div>
       <table class="ped-tabla">
         <thead><tr><th>Producto</th><th>Cant.</th><th>Valor</th></tr></thead>
-        <tbody>${(p.items || []).map((i) => `<tr><td><strong>${e(i.nombre)}</strong><br><span class="admin-meta">${e([i.variante, i.color, i.talla].filter(Boolean).join(' · '))}${i.oferta ? ` · oferta -${i.oferta}%` : ''}</span></td><td>${i.cantidad}</td><td>${dinero(i.precio * i.cantidad)}</td></tr>`).join('')}</tbody>
+        <tbody>${(p.items || []).map((i) => `<tr><td><strong>${e(i.nombre)}</strong><br><span class="admin-meta">${i.preventa ? `<span class="admin-badge admin-badge--preventa">⏳ Preventa${i.entrega ? ' · ' + e(i.entrega) : ''}</span> ` : ''}${e([i.variante, i.color, i.talla].filter(Boolean).join(' · '))}${i.oferta ? ` · oferta -${i.oferta}%` : ''}</span></td><td>${i.cantidad}</td><td>${dinero(i.precio * i.cantidad)}</td></tr>`).join('')}</tbody>
         <tfoot>
           ${p.descuento ? `<tr><th colspan="2">Subtotal</th><td>${dinero(p.subtotal)}</td></tr><tr><th colspan="2">Descuento${p.cupon ? ' (' + e(p.cupon) + ')' : ''}</th><td>−${dinero(p.descuento)}</td></tr>` : ''}
           <tr class="ped-tabla-total"><th colspan="2">Total</th><td>${dinero(p.total)}</td></tr>

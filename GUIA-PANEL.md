@@ -46,6 +46,7 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 1. **SQL Editor** → **New query**.
 2. Pega `supabase/pedidos.sql` y pulsa **Run** (después de los pasos 2c y 2d).
 3. Luego pega `supabase/mis-pedidos.sql` y pulsa **Run** (seguimiento para clientes y guía de envío).
+4. Por último pega `supabase/cupones-preventa.sql` y pulsa **Run** (límite de uso de cupones y preventa).
 
 ## 3. Crear tu usuario de administrador
 
@@ -124,6 +125,17 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **Barra de promoción:** en *Inicio*, marca "Mostrar barra de promoción", escribe el texto y (opcional) un enlace como `#tienda` o `#tienda/DARK REBIRTH`.
 - **Códigos de descuento:** pestaña *Cupones* → *+ Nuevo código*. Puede ser por porcentaje o valor fijo, con compra mínima y fecha de vencimiento opcionales. Desmarca *Activo* para pausarlo. El cliente lo escribe en el carrito y el código llega en el pedido de WhatsApp.
 - Los clientes no pueden ver la lista de códigos: solo validar uno que ya conocen.
+- **Usos por cliente:** por defecto cada persona puede usar un código **una sola vez**. Se reconoce por su celular o su cédula, así que no sirve cambiar el nombre. Los pedidos cancelados no cuentan (si cancelas uno, el cliente recupera su cupón). Puedes poner 2, 3, 5 veces o sin límite.
+- **Usos en total:** opcional, para cosas como "solo los primeros 50". Al llegar al límite, el código se marca como *Agotado*.
+- Cada código muestra cuántas veces se ha usado.
+
+### Preventa
+
+- En el editor de un producto marca **⏳ En preventa**, elige la fecha de **cierre** y escribe la **entrega estimada** (ej. "Desde el 15 de diciembre").
+- La tienda muestra un aviso morado en Inicio, el menú *Preventa*, una insignia en la tarjeta y una cuenta regresiva ("Cierra en 2 d 5 h"). El botón dice *Apartar en preventa*.
+- **Unidades limitadas:** activa *Controlar inventario* en ese producto. **Precio especial:** usa *Oferta*.
+- Al pasar la fecha de cierre ya no se puede pedir (la tarjeta dice *Preventa cerrada*). Cuando la prenda salga a la venta normal, desmarca *En preventa*.
+- En *Pedidos* los artículos de preventa aparecen marcados con su fecha de entrega.
 
 ### Inventario
 
@@ -169,6 +181,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
+- **"Falta activar preventa y límites de cupones":** ejecuta `supabase/cupones-preventa.sql` (paso 2e, punto 4).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.
 - **"Correo o contraseña incorrectos":** revisa el usuario en *Authentication → Users*.

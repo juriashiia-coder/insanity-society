@@ -33,6 +33,7 @@
     if (/row-level security|permission denied/i.test(m)) return 'Tu cuenta no tiene permiso para esta acción.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Sin conexión con Supabase. Revisa tu internet y js/config.js.';
     if (/'stock'|stock column|column.*stock/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar el inventario: ejecuta supabase/inventario.sql en Supabase (SQL Editor).';
+    if (/preventa|usos_por_cliente|usos_maximos/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar preventa y límites de cupones: ejecuta supabase/cupones-preventa.sql en Supabase (SQL Editor).';
     if (/destacado|oferta_pct|oferta_hasta|cupones|validar_cupon/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar las promociones: ejecuta supabase/promos.sql en Supabase (SQL Editor).';
     if (/pedidos|crear_pedido/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar los pedidos: ejecuta supabase/pedidos.sql en Supabase (SQL Editor).';
     return m;
@@ -118,7 +119,7 @@
     const lista = productos.filter((p) =>
       (!q || slug(p.nombre + ' ' + p.coleccion).includes(q)) &&
       (estado === 'todos' || (estado === 'activos' && p.activo) || (estado === 'ocultos' && !p.activo) ||
-       (estado === 'destacados' && p.destacado) || (estado === 'ofertas' && ofertaVigente(p)) ||
+       (estado === 'destacados' && p.destacado) || (estado === 'ofertas' && ofertaVigente(p)) || (estado === 'preventa' && p.preventa) ||
        (estado === 'agotados' && estadoStock(p) === 'agotado') || (estado === 'bajo' && estadoStock(p) === 'bajo')));
     $('#conteo').textContent = `${lista.length} de ${productos.length}`;
     $('#listaProductos').innerHTML = lista.length ? lista.map((p) => {
@@ -130,7 +131,7 @@
         <div class="admin-item-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
           <h3>${esc(p.nombre)}</h3>
-          ${p.destacado || p.oferta_pct || p.stock ? `<p class="admin-badges">${badgeStock(p)}${p.destacado ? '<span class="admin-badge">★ Destacado</span>' : ''}${p.oferta_pct ? `<span class="admin-badge admin-badge--oferta${ofertaVigente(p) ? '' : ' is-vencida'}">-${p.oferta_pct}%${p.oferta_hasta ? ' hasta ' + esc(fechaCorta(p.oferta_hasta)) : ''}${ofertaVigente(p) ? '' : ' (vencida)'}</span>` : ''}</p>` : ''}
+          ${p.destacado || p.oferta_pct || p.stock || p.preventa ? `<p class="admin-badges">${p.preventa ? `<span class="admin-badge admin-badge--preventa${p.preventa_hasta && new Date(p.preventa_hasta) < new Date() ? ' is-vencida' : ''}">⏳ Preventa${p.preventa_hasta ? ' hasta ' + esc(fechaCorta(p.preventa_hasta)) : ''}</span>` : ''}${badgeStock(p)}${p.destacado ? '<span class="admin-badge">★ Destacado</span>' : ''}${p.oferta_pct ? `<span class="admin-badge admin-badge--oferta${ofertaVigente(p) ? '' : ' is-vencida'}">-${p.oferta_pct}%${p.oferta_hasta ? ' hasta ' + esc(fechaCorta(p.oferta_hasta)) : ''}${ofertaVigente(p) ? '' : ' (vencida)'}</span>` : ''}</p>` : ''}
           <p class="admin-meta">${esc(precio)} · ${esc(p.colores.join(', '))} · ${esc(p.tallas.join(' '))}</p>
         </div>
         <div class="admin-item-acciones">
@@ -186,6 +187,10 @@
     $('#pDestacado').checked = !!p?.destacado;
     $('#pOfertaPct').value = p?.oferta_pct || '';
     $('#pOfertaHasta').value = aFechaInput(p?.oferta_hasta);
+    $('#pPreventa').checked = !!p?.preventa;
+    $('#pPreventaHasta').value = aFechaInput(p?.preventa_hasta);
+    $('#pPreventaEntrega').value = p?.preventa_entrega || '';
+    mostrarCamposPreventa();
     actualizarVistaOferta();
     $('#btnBorrar').classList.toggle('hidden', !p);
     errorEn('#editorError', '');
@@ -204,6 +209,12 @@
     if (pct > 90) { el.textContent = 'Máximo 90%.'; return; }
     el.textContent = base && isFinite(base) ? `Precio con oferta: ${dinero(Math.round(base * (1 - pct / 100) / 100) * 100)}${estado.variantes.length ? ' (variante más barata)' : ''} en lugar de ${dinero(base)}.` : `${pct}% de descuento.`;
   }
+  function mostrarCamposPreventa() {
+    const on = $('#pPreventa').checked;
+    $('#pPreventaCampos').classList.toggle('hidden', !on);
+    $('#pPreventaAyuda').classList.toggle('hidden', !on);
+  }
+  $('#pPreventa').addEventListener('change', mostrarCamposPreventa);
   ['#pOfertaPct', '#pPrecio'].forEach((s) => $(s).addEventListener('input', actualizarVistaOferta));
   $('#pOfertaPct').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); });
 
@@ -416,11 +427,20 @@
       destacado: $('#pDestacado').checked,
       oferta_pct: Math.min(90, parseInt($('#pOfertaPct').value, 10) || 0) || null,
       oferta_hasta: (parseInt($('#pOfertaPct').value, 10) || 0) ? aFinDeDia($('#pOfertaHasta').value) : null,
+      // Las columnas de preventa solo se envían si ya existen (supabase/cupones-preventa.sql)
+      ...(productos.some((x) => 'preventa' in x) || $('#pPreventa').checked ? {
+        preventa: $('#pPreventa').checked,
+        preventa_hasta: $('#pPreventa').checked ? aFinDeDia($('#pPreventaHasta').value) : null,
+        preventa_entrega: $('#pPreventa').checked ? ($('#pPreventaEntrega').value.trim() || null) : null
+      } : {}),
       stock: $('#pControlStock').checked
         ? Object.fromEntries(estado.colores.flatMap((c) => estado.tallas.map((t) => [claveStock(c, t), Math.max(0, parseInt(estado.stock?.[claveStock(c, t)], 10) || 0)])))
         : null
     };
 
+    if (fila.preventa && fila.preventa_hasta && new Date(fila.preventa_hasta) < new Date()) {
+      errorEn('#editorError', 'La fecha de cierre de la preventa ya pasó. Elige una fecha futura o desmarca «En preventa».'); return;
+    }
     const btn = $('#btnGuardar');
     btn.disabled = true; btn.textContent = 'Guardando…';
     const { error } = editando

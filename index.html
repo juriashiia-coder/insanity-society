@@ -29,6 +29,7 @@
       <a class="tab-link" href="#colecciones" data-tab="colecciones">Colecciones</a>
       <a class="tab-link" href="#sociedad" data-tab="sociedad">La Sociedad</a>
       <a class="tab-link" href="#tienda" data-tab="tienda">Tienda</a>
+      <a class="tab-link nav-preventa" href="#preventa" data-tab="preventa" hidden>Preventa</a>
       <a class="tab-link" href="#blog" data-tab="blog">Comunidad</a>
     </nav>
 
@@ -54,6 +55,7 @@
       <a class="tab-link" href="#colecciones" data-tab="colecciones">Colecciones</a>
       <a class="tab-link" href="#sociedad" data-tab="sociedad">La Sociedad</a>
       <a class="tab-link" href="#tienda" data-tab="tienda">Tienda</a>
+      <a class="tab-link nav-preventa" href="#preventa" data-tab="preventa" hidden>⏳ Preventa</a>
       <a class="tab-link" href="#blog" data-tab="blog">Comunidad</a>
       <a class="tab-link" href="#favoritos" data-tab="favoritos">♥ Favoritos</a>
       <a class="tab-link" href="#mispedidos" data-tab="mispedidos">Mis pedidos</a>
@@ -89,6 +91,12 @@
         <div><strong>Pedido directo</strong><span>por WhatsApp</span></div>
         <div><strong>Qatar Premium</strong><span>240 g · corte oversize</span></div>
       </div>
+
+      <a id="preventaBanner" class="preventa-banner" href="#preventa" data-tab="preventa" hidden>
+        <span class="preventa-banner-tag">⏳ Preventa abierta</span>
+        <span id="preventaBannerTxt" class="preventa-banner-txt"></span>
+        <span class="preventa-banner-cta">Apartar ahora →</span>
+      </a>
 
       <div id="destacados" class="destacados" hidden>
         <div class="destacados-head">
@@ -270,7 +278,7 @@
           <button id="closeFilters" class="icon-btn" type="button" aria-label="Cerrar filtros">✕</button>
         </div>
         <div class="filters-content">
-          <fieldset class="filter-group" hidden><legend>Ofertas</legend><div class="filter-options" id="filtroOferta"></div></fieldset>
+          <fieldset class="filter-group" hidden><legend>Ofertas y preventa</legend><div class="filter-options" id="filtroOferta"></div></fieldset>
           <fieldset class="filter-group"><legend>Categoría</legend><div class="filter-options" id="filtroCategoria"></div></fieldset>
           <fieldset class="filter-group"><legend>Colección</legend><div class="filter-options" id="filtroColeccion"></div></fieldset>
           <fieldset class="filter-group"><legend>Talla</legend><div class="filter-options" id="filtroTalla"></div></fieldset>
@@ -320,6 +328,17 @@
         </article>
       </div>
     </section>
+    <!-- PREVENTA -->
+    <section id="preventa" class="tab-content" aria-labelledby="preventa-title" hidden>
+      <h2 id="preventa-title">Preventa</h2>
+      <p class="seccion-intro">Aparta las prendas antes de su lanzamiento. Son por tiempo y unidades limitadas: cuando cierra la preventa, ya no se pueden pedir. Te confirmamos el pago y la fecha de entrega por WhatsApp.</p>
+      <div id="preventaVacio" class="estado-vacio hidden">
+        <p>No hay preventas abiertas en este momento.</p>
+        <a class="btn-primario" href="#tienda" data-tab="tienda">Ir a la tienda</a>
+      </div>
+      <div class="productos" id="preventaGrid"></div>
+    </section>
+
     <!-- FAVORITOS -->
     <section id="favoritos" class="tab-content" aria-labelledby="favoritos-title" hidden>
       <h2 id="favoritos-title">Favoritos</h2>
@@ -405,6 +424,7 @@
       <div class="modal-body">
         <div id="checkoutResumen" class="checkout-resumen"></div>
         <p id="checkoutTotal" class="checkout-total">Total: $0</p>
+        <p id="checkoutAviso" class="checkout-aviso hidden" role="alert"></p>
 
         <form id="checkoutForm" novalidate>
           <div class="form-row">

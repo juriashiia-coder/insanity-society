@@ -789,3 +789,51 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
   .btn-nav-icono { width: 34px; height: 34px; }
   .btn-nav-icono svg { width: 17px; height: 17px; }
 }
+.checkout-aviso { background: rgba(255,184,77,.1); border: 1px solid #6b4a00; color: #ffcf85; border-radius: 10px; padding: .6rem .8rem; font-size: .88rem; margin: .4rem 0 .8rem; }
+.checkout-aviso.hidden { display: none; }
+
+/* ---------- Preventa ---------- */
+.nav-preventa[hidden] { display: none !important; }
+.badge-preventa {
+  position: absolute; left: .55rem; bottom: .55rem; z-index: 2; pointer-events: none;
+  background: #6d3fd1; color: #fff; font-weight: 800; font-size: .72rem; letter-spacing: 1px; text-transform: uppercase;
+  padding: .22rem .6rem; border-radius: 999px; box-shadow: 0 4px 12px rgba(109,63,209,.45);
+}
+.producto-mini.is-agotado .badge-preventa { background: #3a3a3a; box-shadow: none; }
+.mini-preventa { font-size: .78rem; color: #c9a7ff; margin: -.1rem 0 .55rem; line-height: 1.35; }
+.mini-entrega { color: #aaa; }
+.preventa-info {
+  display: flex; flex-direction: column; gap: .2rem; margin: .2rem 0 .9rem; padding: .7rem .85rem;
+  border: 1px solid #4b2f80; background: rgba(109,63,209,.12); border-radius: 12px; font-size: .9rem;
+}
+.preventa-info strong { color: #c9a7ff; letter-spacing: .5px; text-transform: uppercase; font-size: .82rem; }
+.preventa-info small { color: #aaa; }
+.preventa-cierre { color: #fff; font-weight: 700; }
+.preventa-info.is-cerrada { border-color: #333; background: #151515; }
+.preventa-info.is-cerrada strong { color: #999; }
+.tag-preventa { color: #c9a7ff; font-weight: 700; }
+.preventa-banner {
+  display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .4rem 1rem;
+  max-width: 1280px; margin: 1.5rem auto 0; width: calc(100% - 2 * clamp(1rem, 4vw, 2.5rem));
+  padding: .9rem 1.2rem; border-radius: 14px; text-decoration: none; color: #fff;
+  background: linear-gradient(100deg, #2a1650, #45207f 55%, #6d3fd1); border: 1px solid #5b37a8;
+  box-shadow: 0 10px 30px rgba(109,63,209,.25); transition: transform .2s ease, box-shadow .2s ease;
+}
+.preventa-banner[hidden] { display: none; }
+.preventa-banner:hover { transform: translateY(-2px); box-shadow: 0 14px 34px rgba(109,63,209,.35); }
+.preventa-banner-tag { font-weight: 800; text-transform: uppercase; letter-spacing: 1px; font-size: .82rem; background: rgba(0,0,0,.3); padding: .25rem .65rem; border-radius: 999px; }
+.preventa-banner-txt { font-weight: 700; text-align: center; }
+.preventa-banner-cta { font-weight: 800; color: #e7dbff; white-space: nowrap; }
+@media (max-width: 700px) {
+  .preventa-banner { margin-top: 1rem; width: calc(100% - 2rem); padding: .8rem; flex-direction: column; text-align: center; }
+  .badge-preventa { font-size: .64rem; left: .4rem; bottom: .4rem; padding: .18rem .45rem; }
+}
+
+/* Con Preventa, Favoritos y Mis pedidos el menú completo ya no cabe en pantallas medianas:
+   por debajo de 1180 px se usa el botón ☰ */
+.tab-link { white-space: nowrap; }
+@media (max-width: 1180px) {
+  .nav-links { display: none; }
+  .menu-toggle { display: inline-block; }
+  .btn-carrito-txt { display: none; }
+}

@@ -8,6 +8,8 @@
   let cupones = [];
   let cargados = false;
   let editando = null;
+  let usos = {};
+  let conLimites = false; // ¿ya existen las columnas de límites? (supabase/cupones-preventa.sql)
 
   const dinero = (n) => '$' + Number(n || 0).toLocaleString('es-CO');
   const soloNumero = (v) => { const d = String(v || '').replace(/\D/g, ''); return d ? parseInt(d, 10) : null; };
@@ -27,6 +29,11 @@
     const { data, error } = await core.sb.from('cupones').select('*').order('creado_en', { ascending: false });
     if (error) { core.errorEn('#cuponesError', core.traducir(error)); $('#listaCupones').innerHTML = ''; return; }
     cupones = data || []; cargados = true;
+    conLimites = cupones.some((c) => 'usos_por_cliente' in c);
+    // Usos de cada código (pedidos no cancelados). Si la tabla de pedidos aún no existe, se omite.
+    usos = {};
+    const r = await core.sb.from('pedidos').select('cupon').not('cupon', 'is', null).neq('estado', 'cancelado');
+    if (!r.error) (r.data || []).forEach((p) => { usos[p.cupon] = (usos[p.cupon] || 0) + 1; });
     render();
   }
 
@@ -36,13 +43,15 @@
     const e = core.esc;
     $('#listaCupones').innerHTML = cupones.length ? cupones.map((c) => {
       const vencido = c.vence && new Date(c.vence) <= new Date();
-      const estado = vencido ? 'Vencido' : c.activo ? 'Activo' : 'Pausado';
+      const agotado = c.usos_maximos && (usos[c.codigo] || 0) >= c.usos_maximos;
+      const estado = vencido ? 'Vencido' : agotado ? 'Agotado' : c.activo ? 'Activo' : 'Pausado';
       return `
       <article class="admin-item admin-cupon ${vigente(c) ? '' : 'is-oculto'}" data-codigo="${e(c.codigo)}">
         <div class="admin-cupon-codigo">${e(c.codigo)}</div>
         <div class="admin-item-info">
           <h3>${e(descripcion(c))}</h3>
           <p class="admin-meta">${c.vence ? `${vencido ? 'Venció' : 'Vence'} el ${e(fecha(c.vence))}` : 'Sin fecha de vencimiento'}${c.nota ? ' · ' + e(c.nota) : ''}</p>
+          <p class="admin-meta">Usado ${usos[c.codigo] || 0} ${(usos[c.codigo] || 0) === 1 ? 'vez' : 'veces'}${c.usos_maximos ? ` de ${c.usos_maximos}` : ''}${'usos_por_cliente' in c ? ` · ${Number(c.usos_por_cliente) === 0 ? 'sin límite por persona' : Number(c.usos_por_cliente) === 1 ? '1 vez por persona' : c.usos_por_cliente + ' veces por persona'}` : ''}</p>
         </div>
         <div class="admin-item-acciones">
           <label class="admin-switch" title="Activo">
@@ -87,6 +96,10 @@
     $('#cMinimo').value = c?.minimo_compra ? Number(c.minimo_compra).toLocaleString('es-CO') : '';
     $('#cVence').value = aFechaInput(c?.vence);
     $('#cNota').value = c?.nota || '';
+    $('#cUsosCliente').value = String(c && 'usos_por_cliente' in c ? c.usos_por_cliente : 1);
+    if (!$('#cUsosCliente').value) $('#cUsosCliente').add(new Option(`${c.usos_por_cliente} veces por persona`, String(c.usos_por_cliente), true, true));
+    $('#cUsosMax').value = c?.usos_maximos ? Number(c.usos_maximos).toLocaleString('es-CO') : '';
+    $('#cUsosBloque').classList.toggle('hidden', !conLimites && cupones.length > 0);
     $('#cActivo').checked = c ? c.activo : true;
     $('#btnBorrarCupon').classList.toggle('hidden', !c);
     core.errorEn('#cuponError', '');
@@ -103,7 +116,7 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) cerrar(); });
 
   $('#cCodigo').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); vista(); });
-  ['#cValor', '#cMinimo'].forEach((s) => $(s).addEventListener('input', (e) => {
+  ['#cValor', '#cMinimo', '#cUsosMax'].forEach((s) => $(s).addEventListener('input', (e) => {
     const n = soloNumero(e.target.value); e.target.value = n == null ? '' : n.toLocaleString('es-CO'); vista();
   }));
   $('#cTipo').addEventListener('change', vista);
@@ -132,7 +145,11 @@
       minimo_compra: soloNumero($('#cMinimo').value) || 0,
       vence: aFinDeDia($('#cVence').value),
       nota: $('#cNota').value.trim() || null,
-      activo: $('#cActivo').checked
+      activo: $('#cActivo').checked,
+      ...(conLimites || !cupones.length ? {
+        usos_por_cliente: parseInt($('#cUsosCliente').value, 10) || 0,
+        usos_maximos: soloNumero($('#cUsosMax').value) || null
+      } : {})
     };
     const btn = $('#btnGuardarCupon');
     btn.disabled = true; btn.textContent = 'Guardando…';
