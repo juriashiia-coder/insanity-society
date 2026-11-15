@@ -190,6 +190,11 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **Ocultar** (desmarcar *Visible*): saca el producto de la tienda sin borrarlo. Ideal para agotados.
 - **Orden:** número menor = aparece primero.
 
+## Si cambias a un dominio propio (.com)
+
+- En `index.html` y `mascaras.html` cambia `https://insanity-society.netlify.app` por tu dominio en las etiquetas `og:url` y `og:image` (es la imagen que sale al compartir el enlace por WhatsApp o redes: `img/compartir.jpg`).
+- En Supabase → Authentication → URL Configuration cambia la *Site URL* por el dominio nuevo.
+
 ## Si algo falla
 
 - **La tienda sigue funcionando:** si Supabase no responde, la web muestra los textos originales del HTML y la lista de respaldo de `js/productos.js` (pueden estar desactualizados respecto al panel).
@@ -197,6 +202,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
+- **Volver a correr archivos SQL:** se puede hacer sin miedo; ninguno reemplaza las reglas nuevas de cupones, pedidos o Lista VIP. La única excepción es `catalogo-agosto-2026.sql`: córrelo **una sola vez**, porque devuelve los productos del catálogo a como estaban en el PDF.
 - **"Falta activar la Lista VIP":** ejecuta `supabase/cupones-preventa.sql` y luego `supabase/lista-vip.sql`.
 - **"Falta activar preventa y límites de cupones":** ejecuta `supabase/cupones-preventa.sql` (paso 2e, punto 4).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.

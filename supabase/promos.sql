@@ -57,7 +57,13 @@ revoke all on public.cupones from anon;
 grant select, insert, update, delete on public.cupones to authenticated;
 
 -- 3) Validar un código desde la tienda (devuelve el cupón solo si está activo y vigente)
-create or replace function public.validar_cupon(p_codigo text)
+-- Solo se crea si todavía no existe: así, volver a correr este archivo
+-- NUNCA reemplaza la versión más nueva (supabase/cupones-preventa.sql).
+do $instalar$
+begin
+  if to_regprocedure('public.validar_cupon(text)') is null then
+    execute $fn$
+create function public.validar_cupon(p_codigo text)
 returns table (codigo text, tipo text, valor integer, minimo_compra integer)
 language sql stable security definer
 set search_path = public
@@ -68,7 +74,11 @@ as $$
     and c.activo
     and (c.vence is null or c.vence > now())
   limit 1;
-$$;
+$$
+$fn$;
+  end if;
+end
+$instalar$;
 revoke all on function public.validar_cupon(text) from public;
 grant execute on function public.validar_cupon(text) to anon, authenticated;
 

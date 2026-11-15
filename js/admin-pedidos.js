@@ -480,6 +480,12 @@
   $('#estSerie').addEventListener('pointerleave', ocultarTip);
   $('#estSerie').addEventListener('focusin', (ev) => { const b = ev.target.closest('.est-col'); if (b) { const r = b.getBoundingClientRect(); mostrarTip(b, r.left + r.width / 2, r.top + r.height * .4); } });
   $('#estSerie').addEventListener('focusout', ocultarTip);
+  // En celular: tocar una barra muestra su valor
+  $('#estSerie').addEventListener('click', (ev) => {
+    const b = ev.target.closest('.est-col'); if (!b) return;
+    const r = b.getBoundingClientRect();
+    setTimeout(() => mostrarTip(b, r.left + r.width / 2, Math.max(60, r.top + r.height * .4)), 0);
+  });
   window.addEventListener('scroll', ocultarTip, { passive: true });
   let anchoEst = 0, finResize;
   window.addEventListener('resize', () => {

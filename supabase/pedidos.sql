@@ -126,7 +126,13 @@ grant select, insert, update, delete on public.pedidos to authenticated;
 -- ---------- Registrar un pedido desde la tienda ----------
 -- Los clientes NO escriben en la tabla directamente: llaman a esta función,
 -- que recalcula precios, ofertas y cupón con los datos reales de la base.
-create or replace function public.crear_pedido(p_items jsonb, p_cliente jsonb, p_cupon text default null)
+-- Solo se crea si todavía no existe: así, volver a correr este archivo
+-- NUNCA reemplaza la versión más nueva (supabase/cupones-preventa.sql).
+do $instalar$
+begin
+  if to_regprocedure('public.crear_pedido(jsonb,jsonb,text)') is null then
+    execute $fn$
+create function public.crear_pedido(p_items jsonb, p_cliente jsonb, p_cupon text default null)
 returns bigint
 language plpgsql security definer
 set search_path = public
@@ -208,6 +214,10 @@ begin
 
   return nuevo_id;
 end;
-$$;
+$$
+$fn$;
+  end if;
+end
+$instalar$;
 revoke all on function public.crear_pedido(jsonb, jsonb, text) from public;
 grant execute on function public.crear_pedido(jsonb, jsonb, text) to anon, authenticated;

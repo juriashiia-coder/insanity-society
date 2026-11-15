@@ -11,6 +11,7 @@
   const dinero = (n) => '$' + (Number(n) || 0).toLocaleString('es-CO', { maximumFractionDigits: 0 });
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const slug = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+  const soloCelular = (v) => { const d = String(v || '').replace(/\D/g, ''); return (/^57\d{10}$/.test(d) ? d.slice(2) : d).slice(0, 10); };
   const storage = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }
@@ -616,7 +617,7 @@
   const misPedidos = () => (storage.get(CLAVE_MIS_PEDIDOS) || []).filter((x) => x && x.id && x.celular);
   function recordarPedido(id, celular) {
     const lista = misPedidos().filter((x) => String(x.id) !== String(id));
-    lista.unshift({ id: Number(id), celular: String(celular).replace(/\D/g, '') });
+    lista.unshift({ id: Number(id), celular: soloCelular(celular) });
     storage.set(CLAVE_MIS_PEDIDOS, lista.slice(0, 20));
   }
   const ESTADO_CLIENTE = {
@@ -685,7 +686,7 @@
   $('#buscarPedidoForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const id = $('#bpNumero').value.replace(/\D/g, '');
-    const cel = $('#bpCelular').value.replace(/\D/g, '');
+    const cel = soloCelular($('#bpCelular').value);
     const msg = $('#bpMsg');
     const decir = (t, cls) => { msg.textContent = t; msg.className = `cupon-msg ${cls}`; };
     if (!id || cel.length < 10) { decir('Escribe el número de pedido y el celular (10 dígitos) con el que lo hiciste.', 'cupon-msg--error'); return; }
@@ -939,9 +940,11 @@
     if (msg && cupon && sub > 0 && sub < (cupon.minimo_compra || 0)) {
       msg.textContent = `El código ${cupon.codigo} aplica en compras desde ${dinero(cupon.minimo_compra)}.`;
       msg.className = 'cupon-msg cupon-msg--aviso';
-    } else if (msg && (!cupon || msg.classList.contains('cupon-msg--aviso'))) {
-      msg.className = 'cupon-msg hidden'; // sin cupón (o ya cumple el mínimo): nada que avisar
-      if (!cupon) msg.textContent = '';
+    } else if (msg && (msg.classList.contains('cupon-msg--aviso') || (!cupon && msg.classList.contains('cupon-msg--ok')))) {
+      // Ya cumple el mínimo, o el cupón se quitó/usó: se borra el "¡Listo!".
+      // Los mensajes de error ("ese código no existe") se dejan para que la persona los lea.
+      msg.className = 'cupon-msg hidden';
+      msg.textContent = '';
     }
   }
   $('#cuponForm')?.addEventListener('submit', async (e) => {
@@ -1287,7 +1290,9 @@
     if (otra) f.ciudadOtra.focus();
   });
   // Solo dígitos en cédula y celular
-  [f.cedula, f.celular].forEach((el) => el.addEventListener('input', () => { el.value = el.value.replace(/\D/g, '').slice(0, 12); }));
+  f.cedula.addEventListener('input', () => { f.cedula.value = f.cedula.value.replace(/\D/g, '').slice(0, 12); });
+  // Celular: solo números; si el navegador autocompleta "+57 300…", se quita el 57
+  f.celular.addEventListener('input', () => { f.celular.value = soloCelular(f.celular.value); });
 
   const reglas = {
     nombre: () => f.nombre.value.trim().split(/\s+/).length >= 2 && f.nombre.value.trim().length >= 5,

@@ -15,7 +15,13 @@ alter table public.pedidos drop constraint if exists pedidos_guia_check;
 alter table public.pedidos add constraint pedidos_guia_check check (guia is null or length(guia) <= 120);
 
 -- Consulta de estado: recibe hasta 20 pares {id, celular}
-create or replace function public.consultar_pedidos(p_consultas jsonb)
+-- Solo se crea si todavía no existe: así, volver a correr este archivo
+-- NUNCA reemplaza la versión más nueva (supabase/cupones-preventa.sql).
+do $instalar$
+begin
+  if to_regprocedure('public.consultar_pedidos(jsonb)') is null then
+    execute $fn$
+create function public.consultar_pedidos(p_consultas jsonb)
 returns table (
   id bigint, fecha timestamptz, estado text, items jsonb,
   subtotal integer, descuento integer, total integer, cupon text, guia text, ciudad text
@@ -38,6 +44,10 @@ as $$
            where n <= 20 and (c->>'id') ~ '^\d{1,12}$') q
       on q.id = p.id and q.cel <> '' and length(q.cel) >= 7 and p.celular = q.cel
    order by p.fecha desc;
-$$;
+$$
+$fn$;
+  end if;
+end
+$instalar$;
 revoke all on function public.consultar_pedidos(jsonb) from public;
 grant execute on function public.consultar_pedidos(jsonb) to anon, authenticated;

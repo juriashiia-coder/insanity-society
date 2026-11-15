@@ -1,5 +1,7 @@
 -- =========================================================
 -- INSANITY SOCIETY — Catálogo agosto 2026
+-- ⚠ CORRER SOLO UNA VEZ: si lo vuelves a correr, los productos del catálogo
+--   vuelven a quedar como en el PDF (se pierden los cambios hechos en el panel).
 -- Supabase > SQL Editor > New query > pegar TODO > Run.
 --
 -- Qué hace:
