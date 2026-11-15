@@ -127,14 +127,12 @@
   function abrirSeccion(id) {
     seccion = id;
     $$('.admin-tab').forEach((t) => t.classList.toggle('active', t.dataset.seccion === id));
-    const esProductos = id === 'productos';
-    const esCupones = id === 'cupones';
-    $('#subProductos').classList.toggle('hidden', !esProductos);
-    $('#subCupones').classList.toggle('hidden', !esCupones);
-    $('#subContenido').classList.toggle('hidden', esProductos || esCupones);
+    const vistasPropias = { productos: '#subProductos', cupones: '#subCupones', inventario: '#subInventario' };
+    Object.entries(vistasPropias).forEach(([k, sel]) => $(sel).classList.toggle('hidden', k !== id));
+    $('#subContenido').classList.toggle('hidden', id in vistasPropias);
     datos = null; original = '';
     document.dispatchEvent(new CustomEvent('admin:seccion', { detail: id }));
-    if (esProductos || esCupones) return;
+    if (id in vistasPropias) return;
     const esq = ESQUEMAS[id];
     $('#contenidoTitulo').textContent = esq.titulo;
     $('#contenidoAyuda').textContent = esq.ayuda || '';

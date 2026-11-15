@@ -36,6 +36,11 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 1. **SQL Editor** → **New query**.
 2. Pega todo el contenido de `supabase/promos.sql` y pulsa **Run**.
 
+### 2d. Activar el inventario
+
+1. **SQL Editor** → **New query**.
+2. Pega `supabase/inventario.sql` y pulsa **Run**.
+
 ## 3. Crear tu usuario de administrador
 
 1. Ve a **Authentication** → **Users** → **Add user** → **Create new user**.
@@ -108,11 +113,19 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 
 ### Destacados, ofertas y códigos de descuento
 
-- **Destacados en Inicio:** en *Productos*, edita un producto y marca **★ Destacado en Inicio** (se muestran hasta 8). El título de la sección se cambia en *Inicio*.
+- **Destacados en Inicio:** en *Productos*, edita un producto y marca **★ Destacado en Inicio** (se muestran hasta 12, en un carrusel que se desliza de lado). El título de la sección se cambia en *Inicio*.
 - **Ofertas:** en el mismo editor, escribe el **% de descuento** y, si quieres, la fecha de fin. La tienda muestra el precio tachado, la etiqueta -X% y el filtro "En oferta". Al pasar la fecha, la oferta se apaga sola. Para quitarla, borra el porcentaje.
 - **Barra de promoción:** en *Inicio*, marca "Mostrar barra de promoción", escribe el texto y (opcional) un enlace como `#tienda` o `#tienda/DARK REBIRTH`.
 - **Códigos de descuento:** pestaña *Cupones* → *+ Nuevo código*. Puede ser por porcentaje o valor fijo, con compra mínima y fecha de vencimiento opcionales. Desmarca *Activo* para pausarlo. El cliente lo escribe en el carrito y el código llega en el pedido de WhatsApp.
 - Los clientes no pueden ver la lista de códigos: solo validar uno que ya conocen.
+
+### Inventario
+
+- En el editor de un producto marca **Controlar inventario** y llena la tabla de **colores × tallas** con las unidades. "Poner en todas" llena todo de una vez.
+- Si no lo marcas, el producto se vende sin límite (ideal para prendas bajo pedido).
+- En la tienda: las tallas en 0 salen tachadas, con 3 o menos aparece "¡Últimas unidades!" y si todo está en 0 el producto muestra "Agotado" con un botón para avisar por WhatsApp. El carrito no deja pedir más de lo que hay.
+- La pestaña **Inventario** muestra el total de unidades, los productos agotados y los que hay que revisar.
+- **Importante:** como los pedidos llegan por WhatsApp, las unidades no se descuentan solas. Descuéntalas cuando confirmes cada venta.
 
 ### Productos
 
@@ -128,6 +141,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **La tienda sigue funcionando:** si Supabase no responde, la web muestra los textos originales del HTML y la lista de respaldo de `js/productos.js` (pueden estar desactualizados respecto al panel).
 - **"Falta crear la tabla de contenido" en el panel:** ejecuta `supabase/contenido.sql` (paso 2b).
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
+- **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.
 - **"Correo o contraseña incorrectos":** revisa el usuario en *Authentication → Users*.

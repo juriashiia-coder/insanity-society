@@ -272,6 +272,11 @@
     if (!pct) return dinero(precioBaseDe(p, varianteNombre));
     return `<span class="precio-antes">${dinero(precioBaseDe(p, varianteNombre))}</span> <span class="precio-oferta">${dinero(precioDe(p, varianteNombre))}</span>`;
   }
+  // Inventario por color y talla: p.stock = { "Negro|M": 4, ... }. Sin stock = sin control (ilimitado)
+  const conInventario = (p) => !!p.stock && typeof p.stock === 'object' && !Array.isArray(p.stock);
+  const stockDe = (p, color, talla) => (conInventario(p) ? Math.max(0, parseInt(p.stock[`${color}|${talla}`], 10) || 0) : Infinity);
+  const colorDisponible = (p, c) => !conInventario(p) || p.tallas.some((t) => stockDe(p, c, t) > 0);
+  const agotado = (p) => conInventario(p) && !p.colores.some((c) => colorDisponible(p, c));
   const fechaCorta = (f) => new Date(f).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 
   function chips(nombre, valores, tipo, seleccionado) {
@@ -289,10 +294,11 @@
   function tarjetaProducto(p, pref = 't') {
     const uid = `${pref}-${p.id}`;
     const pct = ofertaActiva(p);
-    const colorIni = p.colores[0];
+    const colorIni = p.colores.find((c) => colorDisponible(p, c)) || p.colores[0];
     const varIni = p.variantes?.[0]?.nombre;
     const imgs = imagenesDe(p, colorIni);
     const sinPrecio = p.precio == null;
+    const sinUnidades = agotado(p);
 
     const media = imgs
       ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)} — frente" width="900" height="900" loading="lazy" decoding="async" />`
@@ -308,6 +314,7 @@
         <div class="product-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}">
           ${media}
           ${pct ? `<span class="badge-oferta">-${pct}%</span>` : ''}
+          ${sinUnidades ? '<span class="badge-agotado">Agotado</span>' : ''}
           <span class="foto-ref ${imgs?.referencia ? '' : 'hidden'}">Foto de referencia</span>
           ${vista}
         </div>
@@ -317,13 +324,18 @@
           <p class="producto-material">${esc(p.material)}</p>
           <p class="precio">${sinPrecio ? 'Precio por confirmar' : precioHtml(p, varIni)}</p>
           ${pct && p.oferta_hasta ? `<p class="oferta-hasta">Oferta hasta el ${esc(fechaCorta(p.oferta_hasta))}</p>` : ''}
-          ${sinPrecio ? `
+          ${sinUnidades ? `
+            <p class="stock-agotado">Por ahora este producto está agotado.</p>
+            <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
+               href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, ¿cuándo vuelve a estar disponible: ${p.nombre}?`)}">Avísame cuando vuelva</a>`
+          : sinPrecio ? `
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
                href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
           : `
             ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + uid, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
             <fieldset class="opciones"><legend>Color: <span class="color-sel">${esc(colorIni)}</span></legend>${p.colores.length > 1 ? chips('color-' + uid, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(uid)}" value="${esc(colorIni)}">`}</fieldset>
             <fieldset class="opciones"><legend>Talla <button type="button" class="guia-link" data-guia>Guía de tallas</button></legend>${chips('talla-' + uid, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
+            <p class="stock-msg" aria-live="polite"></p>
             <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
             <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar<span class="add-extra"> al carrito</span></button>`}
         </div>
@@ -345,11 +357,12 @@
     const precio = p.precio == null ? 'Precio por confirmar'
       : (p.variantes?.length > 1 && new Set(p.variantes.map((v) => v.precio)).size > 1 ? '<span class="mini-desde">Desde</span> ' : '') + precioHtml(p, p.variantes?.length ? p.variantes.reduce((a, b) => (b.precio < a.precio ? b : a)).nombre : undefined);
     return `
-      <article class="card producto producto-mini" data-id="${esc(p.id)}">
+      <article class="card producto producto-mini${agotado(p) ? ' is-agotado' : ''}" data-id="${esc(p.id)}">
         <button type="button" class="product-media mini-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}" data-abrir aria-label="Ver detalles de ${esc(p.nombre)}">
           ${imgs ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)}" width="900" height="900" loading="lazy" decoding="async" />` : ''}
           ${imgs?.espalda ? `<img class="mini-img-alt" src="${esc(imgs.espalda)}" alt="" width="900" height="900" loading="lazy" decoding="async" aria-hidden="true" />` : ''}
           ${pct ? `<span class="badge-oferta">-${pct}%</span>` : ''}
+          ${agotado(p) ? '<span class="badge-agotado">Agotado</span>' : ''}
         </button>
         <div class="producto-info mini-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
@@ -372,10 +385,32 @@
   function renderDestacados() {
     const sec = $('#destacados');
     if (!destacadosGrid || !sec) return;
-    const lista = PRODUCTOS.filter((p) => p.destacado).slice(0, 8);
+    const lista = PRODUCTOS.filter((p) => p.destacado).slice(0, 12);
     sec.hidden = !lista.length;
     destacadosGrid.innerHTML = lista.map(tarjetaMini).join('');
+    requestAnimationFrame(actualizarFlechas);
   }
+  // Carrusel: flechas en computador; en celular se desliza con el dedo
+  const flechas = $('#destacadosFlechas');
+  function actualizarFlechas() {
+    if (!destacadosGrid || !flechas) return;
+    const max = destacadosGrid.scrollWidth - destacadosGrid.clientWidth;
+    flechas.hidden = max <= 4;
+    $('#destacadosPrev').disabled = destacadosGrid.scrollLeft <= 4;
+    $('#destacadosNext').disabled = destacadosGrid.scrollLeft >= max - 4;
+    destacadosGrid.classList.toggle('al-final', destacadosGrid.scrollLeft >= max - 4);
+  }
+  const pasoCarrusel = (dir) => {
+    const card = destacadosGrid.querySelector('.producto');
+    const paso = card ? card.getBoundingClientRect().width + parseFloat(getComputedStyle(destacadosGrid).columnGap || 16) : destacadosGrid.clientWidth;
+    const visibles = Math.max(1, Math.floor((destacadosGrid.clientWidth + 8) / paso));
+    destacadosGrid.scrollBy({ left: dir * paso * visibles, behavior: reduceMotion ? 'auto' : 'smooth' });
+  };
+  $('#destacadosPrev')?.addEventListener('click', () => pasoCarrusel(-1));
+  $('#destacadosNext')?.addEventListener('click', () => pasoCarrusel(1));
+  destacadosGrid?.addEventListener('scroll', actualizarFlechas, { passive: true });
+  window.addEventListener('resize', actualizarFlechas);
+  window.addEventListener('hashchange', () => setTimeout(actualizarFlechas, 50));
   renderDestacados();
   const productoModal = $('#productoModal');
   const productoBody = $('#productoModalBody');
@@ -386,6 +421,7 @@
     focoAntesProducto = document.activeElement;
     productoBody.innerHTML = tarjetaProducto(p, 'm');
     productoBody.firstElementChild.classList.add('producto--detalle');
+    actualizarDisponibilidad(productoBody.firstElementChild, p);
     productoModal.classList.remove('hidden');
     document.body.classList.add('no-scroll');
     productoBody.scrollTop = 0;
@@ -435,10 +471,50 @@
     const card = e.target.closest('.producto');
     if (!card) return;
     const p = productosPorId.get(card.dataset.id);
-    if (e.target.name.startsWith('color-')) { actualizarImagen(card, p); const cs = $('.color-sel', card); if (cs) cs.textContent = e.target.value; }
+    if (e.target.name.startsWith('color-')) { actualizarImagen(card, p); const cs = $('.color-sel', card); if (cs) cs.textContent = e.target.value; actualizarDisponibilidad(card, p); }
     if (e.target.name.startsWith('var-')) $('.precio', card).innerHTML = precioHtml(p, e.target.value);
-    if (e.target.name.startsWith('talla-')) $('.opciones-error', card)?.classList.add('hidden');
+    if (e.target.name.startsWith('talla-')) { $('.opciones-error', card)?.classList.add('hidden'); mensajeStock(card, p); }
   }));
+
+  function actualizarDisponibilidad(card, p) {
+    if (!conInventario(p) || agotado(p)) return;
+    const uid = card.dataset.uid;
+    const color = valorSel(card, 'color-' + uid) || p.colores[0];
+    card.querySelectorAll(`input[type=radio][name="${CSS.escape('color-' + uid)}"]`).forEach((i) => {
+      const ok = colorDisponible(p, i.value);
+      i.disabled = !ok;
+      i.closest('label').classList.toggle('is-agotada', !ok);
+      i.closest('label').title = ok ? i.value : `${i.value}: agotado`;
+    });
+    card.querySelectorAll(`input[name="${CSS.escape('talla-' + uid)}"]`).forEach((i) => {
+      const n = stockDe(p, color, i.value);
+      i.disabled = n <= 0;
+      i.closest('label').classList.toggle('is-agotada', n <= 0);
+      i.closest('label').title = n <= 0 ? `${i.value}: agotada en ${color}` : i.value;
+      if (i.checked && n <= 0) i.checked = false;
+    });
+    mensajeStock(card, p);
+  }
+  function mensajeStock(card, p) {
+    const el = $('.stock-msg', card);
+    if (!el) return;
+    if (!conInventario(p)) { el.textContent = ''; return; }
+    const uid = card.dataset.uid;
+    const color = valorSel(card, 'color-' + uid) || p.colores[0];
+    const talla = valorSel(card, 'talla-' + uid);
+    const n = talla ? stockDe(p, color, talla) : null;
+    el.className = 'stock-msg';
+    if (n == null) {
+      const agotadas = p.tallas.filter((t) => stockDe(p, color, t) <= 0).length;
+      el.textContent = agotadas ? `Tallas tachadas: agotadas en ${color}.` : '';
+    } else if (n <= 3) {
+      el.textContent = `¡Últimas ${n} unidad${n === 1 ? '' : 'es'} en ${color} · ${talla}!`;
+      el.classList.add('stock-msg--pocas');
+    } else {
+      el.textContent = 'Disponible';
+      el.classList.add('stock-msg--ok');
+    }
+  }
 
   const valorSel = (card, name) => (card.querySelector(`input[name="${CSS.escape(name)}"]:checked`) || card.querySelector(`input[type=hidden][name="${CSS.escape(name)}"]`))?.value || null;
 
@@ -475,6 +551,9 @@
     it.oferta = ofertaActiva(p) || 0;
     it.nombre = p.nombre;
     it.cantidad = Math.max(1, Math.min(20, parseInt(it.cantidad, 10) || 1));
+    const disp = stockDe(p, it.color, it.talla);
+    if (disp <= 0) return false;
+    it.cantidad = Math.min(it.cantidad, disp);
     return true;
   });
 
@@ -490,6 +569,12 @@
     const variante = p.variantes ? valorSel(card, 'var-' + uid) : null;
     const key = [p.id, color, talla, variante || ''].join('|');
     const existente = carrito.find((i) => i.key === key);
+    const disp = stockDe(p, color, talla);
+    const yaEnCarrito = carrito.filter((i) => i.id === p.id && i.color === color && i.talla === talla).reduce((s, i) => s + i.cantidad, 0);
+    if (yaEnCarrito + 1 > disp) {
+      toast(disp <= 0 ? `La talla ${talla} en ${color} está agotada.` : `Solo hay ${disp} unidad${disp === 1 ? '' : 'es'} en ${color} · ${talla} y ya están en tu carrito.`);
+      return;
+    }
     if (existente) existente.cantidad = Math.min(20, existente.cantidad + 1);
     else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1 });
     guardarYRender();
@@ -554,7 +639,13 @@
     const key = btn.closest('.item-carrito').dataset.key;
     const item = carrito.find((i) => i.key === key);
     if (!item) return;
-    if (btn.dataset.accion === 'mas') item.cantidad = Math.min(20, item.cantidad + 1);
+    if (btn.dataset.accion === 'mas') {
+      const p = productosPorId.get(item.id);
+      const disp = p ? stockDe(p, item.color, item.talla) : Infinity;
+      const total = carrito.filter((i) => i.id === item.id && i.color === item.color && i.talla === item.talla).reduce((s, i) => s + i.cantidad, 0);
+      if (total + 1 > disp) { toast(`Solo hay ${disp} unidad${disp === 1 ? '' : 'es'} disponibles de esa talla y color.`); return; }
+      item.cantidad = Math.min(20, item.cantidad + 1);
+    }
     if (btn.dataset.accion === 'menos') item.cantidad -= 1;
     if (btn.dataset.accion === 'quitar' || item.cantidad < 1) carrito = carrito.filter((i) => i.key !== key);
     guardarYRender();

@@ -157,3 +157,40 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
   .admin-cupon-codigo { justify-self: start; }
   .admin-item-acciones { flex-wrap: wrap; }
 }
+
+/* ---------- Inventario ---------- */
+.stock-herramientas { margin: .2rem 0 .6rem; flex-wrap: wrap; }
+.stock-herramientas input { width: 110px; background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .55rem .7rem; border-radius: 10px; }
+.stock-tabla-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin-bottom: .5rem; }
+.stock-tabla { border-collapse: collapse; width: 100%; font-size: .88rem; }
+.stock-tabla th, .stock-tabla td { padding: .35rem .4rem; text-align: center; border-top: 1px solid #222; white-space: nowrap; }
+.stock-tabla thead th { background: #101010; color: #aaa; font-size: .75rem; text-transform: uppercase; letter-spacing: .5px; border-top: 0; }
+.stock-tabla tbody th, .stock-tabla tfoot th { text-align: left; color: #ddd; font-weight: 700; }
+.stock-tabla tfoot td, .stock-tabla tfoot th, .stock-total-fila { color: #aaa; font-weight: 700; background: #121212; }
+.stock-gran-total { color: #fff !important; }
+.stock-tabla input { width: 58px; background: #0b0b0b; border: 1px solid #333; color: #fff; border-radius: 8px; padding: .35rem .3rem; text-align: center; }
+.stock-tabla input:focus { outline: none; border-color: #fff; }
+.stock-tabla input.is-cero { border-color: #5a0000; color: #ff8a8a; }
+.stock-tabla input.is-bajo { border-color: #6b4a00; color: #ffb84d; }
+.admin-badge--stock { background: rgba(46,160,67,.12); color: #56d364; border-color: #1f5a2a; }
+.admin-badge--bajo { background: rgba(255,184,77,.12); color: #ffb84d; border-color: #6b4a00; }
+.admin-badge--agotado { background: #2a2a2a; color: #ddd; border-color: #555; }
+.inv-resumen { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; margin-bottom: 1rem; }
+.inv-card { background: #151515; border: 1px solid var(--line); border-radius: 12px; padding: .8rem .9rem; display: flex; flex-direction: column; gap: .15rem; }
+.inv-card strong { font-size: 1.6rem; font-family: var(--font-title); }
+.inv-card span { color: var(--muted); font-size: .82rem; }
+.inv-card--bajo strong { color: #ffb84d; }
+.inv-card--agotado strong { color: #ff6b70; }
+.inv-card--sin strong { color: #888; }
+.inv-estado { font-size: .78rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; background: #222; }
+.inv-agotado .inv-estado { background: rgba(229,9,20,.18); color: #ff8a8a; }
+.inv-bajo .inv-estado { background: rgba(255,184,77,.14); color: #ffb84d; }
+.inv-ok .inv-estado { background: rgba(46,160,67,.14); color: #56d364; }
+.inv-sin-control .inv-estado { color: #888; }
+@media (max-width: 700px) {
+  .inv-resumen { grid-template-columns: 1fr 1fr; }
+  .stock-tabla input { width: 50px; }
+}
+.admin-form .stock-herramientas input[type=number] { width: 110px; flex: 0 0 110px; }
+.admin-form .stock-tabla input[type=number] { width: 58px; padding: .35rem .2rem; }
+@media (max-width: 700px) { .admin-form .stock-tabla input[type=number] { width: 50px; } }

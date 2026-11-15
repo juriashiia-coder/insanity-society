@@ -32,6 +32,7 @@
     if (/duplicate key|already exists/i.test(m)) return 'Ya existe un producto con ese nombre. Cambia el nombre.';
     if (/row-level security|permission denied/i.test(m)) return 'Tu cuenta no tiene permiso para esta acción.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Sin conexión con Supabase. Revisa tu internet y js/config.js.';
+    if (/'stock'|stock column|column.*stock/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar el inventario: ejecuta supabase/inventario.sql en Supabase (SQL Editor).';
     if (/destacado|oferta_pct|oferta_hasta|cupones|validar_cupon/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar las promociones: ejecuta supabase/promos.sql en Supabase (SQL Editor).';
     return m;
   };
@@ -83,10 +84,26 @@
     const { data, error } = await sb.from('productos').select('*').order('orden').order('nombre');
     if (error) { errorEn('#panelError', traducir(error)); $('#listaProductos').innerHTML = ''; return; }
     productos = data || [];
+    if (!$('#subInventario')?.classList.contains('hidden')) setTimeout(renderInventario);
     $('#listaColecciones').innerHTML = [...new Set(productos.map((p) => p.coleccion))].map((c) => `<option value="${esc(c)}">`).join('');
     renderLista();
   }
 
+  // Estado del inventario de un producto
+  function estadoStock(p) {
+    if (!p.stock || typeof p.stock !== 'object') return 'sin-control';
+    const vals = p.colores.flatMap((c) => p.tallas.map((t) => parseInt(p.stock[`${c}|${t}`], 10) || 0));
+    const total = vals.reduce((s, n) => s + n, 0);
+    if (!total) return 'agotado';
+    return vals.some((n) => n > 0 && n <= 3) || vals.some((n) => n === 0) ? 'bajo' : 'ok';
+  }
+  const unidades = (p) => (p.stock ? p.colores.reduce((s, c) => s + p.tallas.reduce((x, t) => x + (parseInt(p.stock[`${c}|${t}`], 10) || 0), 0), 0) : null);
+  function badgeStock(p) {
+    const e = estadoStock(p);
+    if (e === 'sin-control') return '';
+    if (e === 'agotado') return '<span class="admin-badge admin-badge--agotado">Agotado</span>';
+    return `<span class="admin-badge ${e === 'bajo' ? 'admin-badge--bajo' : 'admin-badge--stock'}">${unidades(p)} und.${e === 'bajo' ? ' · revisar' : ''}</span>`;
+  }
   const ofertaVigente = (p) => Number(p.oferta_pct) > 0 && (!p.oferta_hasta || new Date(p.oferta_hasta) > new Date());
   const fechaCorta = (f) => new Date(f).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
   // Fecha (YYYY-MM-DD) <-> fin de ese día en hora de Colombia
@@ -100,7 +117,8 @@
     const lista = productos.filter((p) =>
       (!q || slug(p.nombre + ' ' + p.coleccion).includes(q)) &&
       (estado === 'todos' || (estado === 'activos' && p.activo) || (estado === 'ocultos' && !p.activo) ||
-       (estado === 'destacados' && p.destacado) || (estado === 'ofertas' && ofertaVigente(p))));
+       (estado === 'destacados' && p.destacado) || (estado === 'ofertas' && ofertaVigente(p)) ||
+       (estado === 'agotados' && estadoStock(p) === 'agotado') || (estado === 'bajo' && estadoStock(p) === 'bajo')));
     $('#conteo').textContent = `${lista.length} de ${productos.length}`;
     $('#listaProductos').innerHTML = lista.length ? lista.map((p) => {
       const foto = primeraFoto(p);
@@ -111,7 +129,7 @@
         <div class="admin-item-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
           <h3>${esc(p.nombre)}</h3>
-          ${p.destacado || p.oferta_pct ? `<p class="admin-badges">${p.destacado ? '<span class="admin-badge">★ Destacado</span>' : ''}${p.oferta_pct ? `<span class="admin-badge admin-badge--oferta${ofertaVigente(p) ? '' : ' is-vencida'}">-${p.oferta_pct}%${p.oferta_hasta ? ' hasta ' + esc(fechaCorta(p.oferta_hasta)) : ''}${ofertaVigente(p) ? '' : ' (vencida)'}</span>` : ''}</p>` : ''}
+          ${p.destacado || p.oferta_pct || p.stock ? `<p class="admin-badges">${badgeStock(p)}${p.destacado ? '<span class="admin-badge">★ Destacado</span>' : ''}${p.oferta_pct ? `<span class="admin-badge admin-badge--oferta${ofertaVigente(p) ? '' : ' is-vencida'}">-${p.oferta_pct}%${p.oferta_hasta ? ' hasta ' + esc(fechaCorta(p.oferta_hasta)) : ''}${ofertaVigente(p) ? '' : ' (vencida)'}</span>` : ''}</p>` : ''}
           <p class="admin-meta">${esc(precio)} · ${esc(p.colores.join(', '))} · ${esc(p.tallas.join(' '))}</p>
         </div>
         <div class="admin-item-acciones">
@@ -153,7 +171,8 @@
       colores: [...(p?.colores || ['Negro'])],
       tallas: [...(p?.tallas || ['S', 'M', 'L', 'XL'])],
       variantes: (p?.variantes || []).map((v) => ({ ...v })),
-      imagenes: JSON.parse(JSON.stringify(p?.imagenes || {}))
+      imagenes: JSON.parse(JSON.stringify(p?.imagenes || {})),
+      stock: p?.stock && typeof p.stock === 'object' ? { ...p.stock } : null
     };
     $('#editorTitulo').textContent = p ? 'Editar producto' : 'Nuevo producto';
     $('#pNombre').value = p?.nombre || '';
@@ -170,7 +189,8 @@
     $('#btnBorrar').classList.toggle('hidden', !p);
     errorEn('#editorError', '');
     actualizarId();
-    renderTallas(); renderColores(); renderVariantes(); renderImagenes();
+    $('#pControlStock').checked = !!estado.stock;
+    renderTallas(); renderColores(); renderVariantes(); renderImagenes(); renderStock();
     modal.classList.remove('hidden');
     document.body.classList.add('no-scroll');
     $('#pNombre').focus();
@@ -207,6 +227,49 @@
     const marcadas = $$('#pTallas input:checked').map((i) => i.value);
     const orden = [...new Set([...TALLAS, ...estado.tallas])];
     estado.tallas = orden.filter((t) => marcadas.includes(t));
+    renderStock();
+  });
+
+  // Inventario: tabla colores × tallas
+  const claveStock = (c, t) => `${c}|${t}`;
+  function totalStock(stock) { return Object.values(stock || {}).reduce((s, n) => s + (parseInt(n, 10) || 0), 0); }
+  function renderStock() {
+    const cont = $('#pStock');
+    const activo = $('#pControlStock').checked;
+    $('#pStockHerramientas').classList.toggle('hidden', !activo);
+    if (!activo) { cont.innerHTML = '<p class="admin-hint">Sin control de inventario: el producto se vende sin límite (ideal para prendas bajo pedido).</p>'; return; }
+    estado.stock = estado.stock || {};
+    const { colores, tallas } = estado;
+    if (!colores.length || !tallas.length) { cont.innerHTML = '<p class="admin-hint">Agrega colores y tallas para cargar unidades.</p>'; return; }
+    const v = (c, t) => parseInt(estado.stock[claveStock(c, t)], 10) || 0;
+    cont.innerHTML = `
+      <div class="stock-tabla-wrap">
+        <table class="stock-tabla">
+          <thead><tr><th>Color \ Talla</th>${tallas.map((t) => `<th>${esc(t)}</th>`).join('')}<th>Total</th></tr></thead>
+          <tbody>${colores.map((c) => `
+            <tr><th>${esc(c)}</th>${tallas.map((t) => `<td><input type="number" min="0" max="9999" inputmode="numeric" data-c="${esc(c)}" data-t="${esc(t)}" value="${v(c, t)}" class="${v(c, t) === 0 ? 'is-cero' : v(c, t) <= 3 ? 'is-bajo' : ''}" aria-label="${esc(c)} talla ${esc(t)}" /></td>`).join('')}
+              <td class="stock-total-fila">${tallas.reduce((s, t) => s + v(c, t), 0)}</td></tr>`).join('')}
+          </tbody>
+          <tfoot><tr><th>Total</th>${tallas.map((t) => `<td>${colores.reduce((s, c) => s + v(c, t), 0)}</td>`).join('')}<td class="stock-gran-total">${colores.reduce((s, c) => s + tallas.reduce((x, t) => x + v(c, t), 0), 0)}</td></tr></tfoot>
+        </table>
+      </div>`;
+  }
+  $('#pControlStock').addEventListener('change', () => { if (!$('#pControlStock').checked) estado.stock = null; renderStock(); });
+  $('#pStock').addEventListener('input', (e) => {
+    const i = e.target; if (!i.dataset.c) return;
+    const n = Math.max(0, Math.min(9999, parseInt(i.value, 10) || 0));
+    estado.stock[claveStock(i.dataset.c, i.dataset.t)] = n;
+  });
+  $('#pStock').addEventListener('change', (e) => { if (e.target.dataset.c) { const pos = [e.target.dataset.c, e.target.dataset.t]; renderStock(); $(`#pStock input[data-c="${CSS.escape(pos[0])}"][data-t="${CSS.escape(pos[1])}"]`)?.focus(); } });
+  $('#btnStockLlenar').addEventListener('click', () => {
+    const n = Math.max(0, parseInt($('#pStockValor').value, 10) || 0);
+    estado.colores.forEach((c) => estado.tallas.forEach((t) => { estado.stock[claveStock(c, t)] = n; }));
+    renderStock();
+  });
+  $('#btnStockVaciar').addEventListener('click', () => {
+    if (!window.confirm('¿Poner todas las unidades en 0? (marca el producto como agotado)')) return;
+    estado.colores.forEach((c) => estado.tallas.forEach((t) => { estado.stock[claveStock(c, t)] = 0; }));
+    renderStock();
   });
 
   // Colores
@@ -221,7 +284,7 @@
     const nombre = v.charAt(0).toUpperCase() + v.slice(1);
     if (!estado.colores.some((c) => slug(c) === slug(nombre))) estado.colores.push(nombre);
     $('#pColorNuevo').value = '';
-    renderColores(); renderImagenes();
+    renderColores(); renderImagenes(); renderStock();
   }
   $('#btnAgregarColor').addEventListener('click', agregarColor);
   $('#pColorNuevo').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); agregarColor(); } });
@@ -230,7 +293,7 @@
     if (!b) return;
     const [quitado] = estado.colores.splice(+b.dataset.i, 1);
     delete estado.imagenes[quitado];
-    renderColores(); renderImagenes();
+    renderColores(); renderImagenes(); renderStock();
   });
 
   // Variantes
@@ -351,7 +414,10 @@
       activo: $('#pActivo').checked,
       destacado: $('#pDestacado').checked,
       oferta_pct: Math.min(90, parseInt($('#pOfertaPct').value, 10) || 0) || null,
-      oferta_hasta: (parseInt($('#pOfertaPct').value, 10) || 0) ? aFinDeDia($('#pOfertaHasta').value) : null
+      oferta_hasta: (parseInt($('#pOfertaPct').value, 10) || 0) ? aFinDeDia($('#pOfertaHasta').value) : null,
+      stock: $('#pControlStock').checked
+        ? Object.fromEntries(estado.colores.flatMap((c) => estado.tallas.map((t) => [claveStock(c, t), Math.max(0, parseInt(estado.stock?.[claveStock(c, t)], 10) || 0)])))
+        : null
     };
 
     const btn = $('#btnGuardar');
@@ -376,6 +442,51 @@
     cerrarEditor();
     cargarProductos();
   });
+
+  // ---------- Pestaña Inventario ----------
+  function renderInventario() {
+    const cont = $('#inventarioLista'); if (!cont) return;
+    const conCtrl = productos.filter((p) => estadoStock(p) !== 'sin-control');
+    const agot = conCtrl.filter((p) => estadoStock(p) === 'agotado');
+    const bajos = conCtrl.filter((p) => estadoStock(p) === 'bajo');
+    const total = conCtrl.reduce((s, p) => s + unidades(p), 0);
+    $('#invResumen').innerHTML = `
+      <div class="inv-card"><strong>${total.toLocaleString('es-CO')}</strong><span>unidades en inventario</span></div>
+      <div class="inv-card inv-card--bajo"><strong>${bajos.length}</strong><span>con tallas agotadas o pocas unidades</span></div>
+      <div class="inv-card inv-card--agotado"><strong>${agot.length}</strong><span>producto${agot.length === 1 ? '' : 's'} agotado${agot.length === 1 ? '' : 's'}</span></div>
+      <div class="inv-card inv-card--sin"><strong>${productos.length - conCtrl.length}</strong><span>sin control (bajo pedido)</span></div>`;
+    const filtro = $('#invFiltro').value;
+    const orden = { agotado: 0, bajo: 1, ok: 2, 'sin-control': 3 };
+    const lista = productos.filter((p) => filtro === 'todos' || estadoStock(p) === filtro || (filtro === 'controlados' && estadoStock(p) !== 'sin-control'))
+      .sort((a, b) => orden[estadoStock(a)] - orden[estadoStock(b)] || a.orden - b.orden);
+    cont.innerHTML = lista.length ? lista.map((p) => {
+      const e = estadoStock(p);
+      const faltan = e === 'sin-control' ? [] : p.colores.flatMap((c) => p.tallas.filter((t) => (parseInt(p.stock[`${c}|${t}`], 10) || 0) <= 3).map((t) => `${c} ${t}: ${parseInt(p.stock[`${c}|${t}`], 10) || 0}`));
+      const foto = primeraFoto(p);
+      return `
+      <article class="admin-item inv-item inv-${e}${p.activo ? '' : ' is-oculto'}" data-id="${esc(p.id)}">
+        <div class="admin-thumb">${foto ? `<img src="${esc(foto)}" alt="" loading="lazy" />` : `<span>${esc(p.coleccion)}</span>`}</div>
+        <div class="admin-item-info">
+          <h3>${esc(p.nombre)}</h3>
+          <p class="admin-meta">${e === 'sin-control' ? 'Sin control de inventario (se vende sin límite)'
+            : e === 'agotado' ? 'Agotado en todas las tallas y colores'
+            : `${unidades(p)} unidades${faltan.length ? ` · Revisar: ${esc(faltan.slice(0, 6).join(' · '))}${faltan.length > 6 ? ` y ${faltan.length - 6} más` : ''}` : ''}`}</p>
+        </div>
+        <div class="admin-item-acciones">
+          <span class="inv-estado">${{ agotado: 'Agotado', bajo: 'Revisar', ok: 'OK', 'sin-control': 'Sin control' }[e]}</span>
+          <button type="button" class="btn-secundario" data-inv-editar>Editar unidades</button>
+        </div>
+      </article>`;
+    }).join('') : '<p class="admin-cargando">No hay productos con ese filtro.</p>';
+  }
+  $('#invFiltro')?.addEventListener('change', renderInventario);
+  $('#inventarioLista')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-inv-editar]'); if (!b) return;
+    abrirEditor(productos.find((p) => p.id === b.closest('[data-id]').dataset.id));
+    if (!$('#pControlStock').checked) { $('#pControlStock').checked = true; renderStock(); }
+    setTimeout(() => $('#pStockFieldset')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 60);
+  });
+  document.addEventListener('admin:seccion', (e) => { if (e.detail === 'inventario') renderInventario(); });
 
   // Utilidades compartidas con js/admin-contenido.js
   async function subirImagen(file, carpeta) {

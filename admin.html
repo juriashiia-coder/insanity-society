@@ -57,6 +57,7 @@
     <section id="vistaPanel" class="hidden">
       <nav class="admin-tabs" id="adminTabs" aria-label="Secciones del panel">
         <button type="button" class="admin-tab active" data-seccion="productos">Productos</button>
+        <button type="button" class="admin-tab" data-seccion="inventario">Inventario</button>
         <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
         <button type="button" class="admin-tab" data-seccion="colecciones">Colecciones</button>
         <button type="button" class="admin-tab" data-seccion="sociedad">La Sociedad</button>
@@ -83,6 +84,24 @@
         </div>
       </div>
 
+      <div id="subInventario" class="hidden">
+        <div class="admin-toolbar">
+          <h1>Inventario</h1>
+          <div class="admin-toolbar-acciones">
+            <select id="invFiltro" aria-label="Filtrar inventario">
+              <option value="todos">Todos los productos</option>
+              <option value="controlados">Con inventario</option>
+              <option value="agotado">Agotados</option>
+              <option value="bajo">Por revisar (pocas unidades)</option>
+              <option value="sin-control">Sin control (bajo pedido)</option>
+            </select>
+          </div>
+        </div>
+        <p class="admin-hint admin-ayuda">Las unidades se cargan por color y talla en cada producto. Como los pedidos llegan por WhatsApp, descuéntalas aquí cuando confirmes la venta.</p>
+        <div id="invResumen" class="inv-resumen"></div>
+        <div id="inventarioLista" class="admin-lista" aria-live="polite"></div>
+      </div>
+
       <div id="subCupones" class="hidden">
         <div class="admin-toolbar">
           <h1>Códigos de descuento <span id="cuponesConteo" class="admin-conteo"></span></h1>
@@ -106,6 +125,8 @@
             <option value="ocultos">Ocultos</option>
             <option value="destacados">Destacados</option>
             <option value="ofertas">En oferta</option>
+            <option value="agotados">Agotados</option>
+            <option value="bajo">Pocas unidades</option>
           </select>
           <button id="btnNuevo" class="btn-primario" type="button">+ Nuevo producto</button>
         </div>
@@ -175,6 +196,21 @@
           </div>
         </fieldset>
 
+        <fieldset class="admin-fieldset" id="pStockFieldset">
+          <legend>Inventario (unidades por color y talla)</legend>
+          <label class="check-row admin-check">
+            <input id="pControlStock" type="checkbox" />
+            <span>Controlar inventario de este producto</span>
+          </label>
+          <div id="pStockHerramientas" class="admin-inline stock-herramientas hidden">
+            <input id="pStockValor" type="number" min="0" placeholder="Ej: 5" aria-label="Unidades para todas las combinaciones" />
+            <button id="btnStockLlenar" class="btn-secundario" type="button">Poner en todas</button>
+            <button id="btnStockVaciar" class="btn-secundario" type="button">Todo en 0</button>
+          </div>
+          <div id="pStock"></div>
+          <small class="admin-hint">Los pedidos llegan por WhatsApp, así que las unidades no se descuentan solas: actualízalas cuando confirmes cada venta. Las celdas en 0 se ven tachadas en la tienda; con 3 o menos aparece "¡Últimas unidades!".</small>
+        </fieldset>
+
         <fieldset class="admin-fieldset">
           <legend>Variantes de material <small>(opcional: cada una con su precio)</small></legend>
           <div id="pVariantes"></div>
@@ -191,7 +227,7 @@
           <legend>Promoción</legend>
           <label class="check-row admin-check">
             <input id="pDestacado" type="checkbox" />
-            <span>★ Destacado en Inicio <small class="admin-hint">(se muestran hasta 8)</small></span>
+            <span>★ Destacado en Inicio <small class="admin-hint">(hasta 12, en carrusel)</small></span>
           </label>
           <div class="form-grid">
             <div class="form-row">
