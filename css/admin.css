@@ -303,3 +303,28 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
 .ped-guia-fila input { flex: 1; min-width: 0; background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .6rem .75rem; border-radius: 10px; }
 .ped-guia-fila input:focus { outline: none; border-color: #fff; }
 .admin-badge--preventa { background: rgba(160,110,255,.14); color: #c9a7ff; border-color: #4b2f80; }
+
+/* ---------- Lista VIP ---------- */
+.vip-config { margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .9rem; }
+.vip-config h2 { font-size: 1.15rem; text-transform: uppercase; letter-spacing: .5px; }
+.vip-interruptor { align-items: flex-start; }
+.vip-interruptor span { display: flex; flex-direction: column; gap: .15rem; }
+.vip-interruptor--peligro strong { color: #ffb84d; }
+.vip-config-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.vip-aviso-alerta { color: #ffb84d !important; font-weight: 700; }
+.vip-config-acciones { display: flex; justify-content: flex-end; align-items: center; gap: .8rem; flex-wrap: wrap; }
+.vip-lista-head h2 { font-size: 1.2rem; text-transform: uppercase; }
+.vip-item { grid-template-columns: 48px 1fr auto; }
+.vip-avatar { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: #2a0d0d; color: #ff8a8a; font-weight: 800; font-size: 1.1rem; }
+.vip-item a { color: #ddd; }
+.vip-cod { margin-top: .2rem; display: flex; flex-wrap: wrap; align-items: center; gap: .4rem; }
+.vip-cod code { font-size: .85rem; letter-spacing: 1px; }
+.vip-est { font-size: .72rem; font-weight: 800; padding: .1rem .5rem; border-radius: 999px; background: #222; color: #aaa; border: 1px solid #444; }
+.vip-est--libre { background: rgba(46,160,67,.12); color: #56d364; border-color: #1f5a2a; }
+.vip-est--usado { background: rgba(88,166,255,.12); color: #79b8ff; border-color: #1f4a7a; }
+.vip-est--off { background: #2a2a2a; color: #999; }
+@media (max-width: 700px) {
+  .vip-config-3 { grid-template-columns: 1fr; }
+  .vip-item { grid-template-columns: 40px 1fr; }
+  .vip-item .admin-item-acciones { grid-column: 1 / -1; }
+}

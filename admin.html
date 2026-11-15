@@ -66,6 +66,7 @@
         <button type="button" class="admin-tab" data-seccion="tienda">Tienda</button>
         <button type="button" class="admin-tab" data-seccion="comunidad">Comunidad</button>
         <button type="button" class="admin-tab" data-seccion="cupones">Cupones</button>
+        <button type="button" class="admin-tab" data-seccion="vip">Lista VIP</button>
         <button type="button" class="admin-tab" data-seccion="general">General</button>
       </nav>
 
@@ -161,6 +162,61 @@
         <p class="admin-hint">Solo cuentan los pedidos confirmados, enviados o entregados. Fechas en hora de Colombia.</p>
       </div>
 
+      <div id="subVip" class="hidden">
+        <div class="admin-toolbar">
+          <h1>Lista VIP <span id="vipConteo" class="admin-conteo"></span></h1>
+          <div class="admin-toolbar-acciones">
+            <button id="vipExportar" class="btn-secundario" type="button">Descargar lista (Excel/CSV)</button>
+          </div>
+        </div>
+        <p id="vipError" class="admin-error hidden" role="alert"></p>
+        <div id="vipResumen" class="inv-resumen"></div>
+
+        <form id="vipConfig" class="admin-card vip-config admin-form" novalidate>
+          <h2>Configuración</h2>
+          <label class="check-row admin-check vip-interruptor">
+            <input id="vCfgActivo" type="checkbox" />
+            <span><strong>Mostrar invitación a la Lista VIP en la web</strong><small class="admin-hint">Apagado: la ventanita y el bloque del pie de página desaparecen.</small></span>
+          </label>
+          <div class="form-grid">
+            <div class="form-row"><label for="vCfgTitulo">Título</label><input id="vCfgTitulo" type="text" maxlength="60" placeholder="Únete a la Sociedad" /></div>
+            <div class="form-row"><label for="vCfgTexto">Texto</label><input id="vCfgTexto" type="text" maxlength="160" placeholder="Entérate primero de lanzamientos, preventas y ofertas exclusivas." /></div>
+          </div>
+
+          <fieldset class="admin-fieldset">
+            <legend>Regalo de bienvenida (código personal)</legend>
+            <label class="check-row admin-check vip-interruptor">
+              <input id="vCfgRegalo" type="checkbox" />
+              <span><strong>Dar código de descuento a los nuevos suscriptores</strong><small class="admin-hint">Apagado: la gente se sigue inscribiendo, pero sin cupón. No afecta los códigos ya entregados.</small></span>
+            </label>
+            <div class="form-grid vip-config-3">
+              <div class="form-row"><label for="vCfgPct">Descuento (%)</label><input id="vCfgPct" type="text" inputmode="numeric" maxlength="2" placeholder="Pendiente" /></div>
+              <div class="form-row"><label for="vCfgMinimo">Compra mínima (opcional)</label><input id="vCfgMinimo" type="text" inputmode="numeric" placeholder="Ej: 100.000" /></div>
+              <div class="form-row"><label for="vCfgDias">Válido por (días, opcional)</label><input id="vCfgDias" type="text" inputmode="numeric" maxlength="3" placeholder="Sin vencimiento" /></div>
+            </div>
+            <p id="vCfgAviso" class="admin-hint"></p>
+          </fieldset>
+
+          <label class="check-row admin-check vip-interruptor vip-interruptor--peligro">
+            <input id="vCfgPausar" type="checkbox" />
+            <span><strong>Pausar todos los códigos VIP ya entregados</strong><small class="admin-hint">Mientras esté marcado, ningún código VIP funciona en el carrito. Desmárcalo para reactivarlos.</small></span>
+          </label>
+          <div class="vip-config-acciones">
+            <span id="vCfgEstado" class="admin-hint"></span>
+            <button id="vCfgGuardar" class="btn-primario" type="submit">Guardar configuración</button>
+          </div>
+        </form>
+
+        <div class="admin-toolbar vip-lista-head">
+          <h2>Suscriptores</h2>
+          <div class="admin-toolbar-acciones">
+            <input id="vipBuscar" type="search" placeholder="Buscar: nombre, celular, correo o código" aria-label="Buscar suscriptores" />
+          </div>
+        </div>
+        <div id="vipLista" class="admin-lista" aria-live="polite"></div>
+        <button id="vipMas" class="btn-secundario btn-bloque hidden" type="button">Ver más</button>
+      </div>
+
       <div id="subCupones" class="hidden">
         <div class="admin-toolbar">
           <h1>Códigos de descuento <span id="cuponesConteo" class="admin-conteo"></span></h1>
@@ -168,7 +224,7 @@
             <button id="btnNuevoCupon" class="btn-primario" type="button">+ Nuevo código</button>
           </div>
         </div>
-        <p class="admin-hint admin-ayuda">El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
+        <p class="admin-hint admin-ayuda">Los códigos personales de la Lista VIP (VIP-…) no aparecen aquí: se ven en la pestaña Lista VIP. El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
         <p id="cuponesError" class="admin-error hidden" role="alert"></p>
         <div id="listaCupones" class="admin-lista" aria-live="polite"></div>
       </div>
@@ -509,5 +565,6 @@
   <script src="js/admin-contenido.js"></script>
   <script src="js/admin-cupones.js"></script>
   <script src="js/admin-pedidos.js"></script>
+  <script src="js/admin-vip.js"></script>
 </body>
 </html>

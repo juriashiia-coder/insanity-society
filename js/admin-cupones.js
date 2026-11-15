@@ -28,7 +28,7 @@
     $('#listaCupones').innerHTML = '<p class="admin-cargando">Cargando…</p>';
     const { data, error } = await core.sb.from('cupones').select('*').order('creado_en', { ascending: false });
     if (error) { core.errorEn('#cuponesError', core.traducir(error)); $('#listaCupones').innerHTML = ''; return; }
-    cupones = data || []; cargados = true;
+    cupones = (data || []).filter((c) => !c.celular_vip); cargados = true; // los VIP van en su propia pestaña
     conLimites = cupones.some((c) => 'usos_por_cliente' in c);
     // Usos de cada código (pedidos no cancelados). Si la tabla de pedidos aún no existe, se omite.
     usos = {};

@@ -540,7 +540,10 @@
     barras('#estCanales', agrupar(vend, (p) => [{ clave: p.canal, etiqueta: CANALES[p.canal] || p.canal, n: 1, v: Number(p.total) || 0 }], 'n'), {
       medida: 'n', valor: (f) => `${numero(f.n)} pedido${f.n === 1 ? '' : 's'} · ${dinero(f.v)}`
     });
-    barras('#estCupones', agrupar(vend.filter((p) => p.cupon), (p) => [{ clave: p.cupon, etiqueta: p.cupon, n: 1, v: Number(p.descuento) || 0 }], 'n'), {
+    barras('#estCupones', agrupar(vend.filter((p) => p.cupon), (p) => {
+      const vip = /^VIP-/.test(p.cupon);
+      return [{ clave: vip ? '__vip' : p.cupon, etiqueta: vip ? 'Lista VIP (códigos personales)' : p.cupon, n: 1, v: Number(p.descuento) || 0 }];
+    }, 'n'), {
       medida: 'n', vacio: 'No se usaron códigos de descuento en este periodo.',
       valor: (f) => `${numero(f.n)} uso${f.n === 1 ? '' : 's'} · ${dinero(f.v)} descontados`
     });

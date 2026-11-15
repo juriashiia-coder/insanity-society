@@ -368,6 +368,28 @@
     </section>
   </main>
 
+  <section id="vipPie" class="vip-pie" aria-labelledby="vipPieTitulo" hidden>
+    <div class="vip-caja vip-caja--pie">
+      <div class="vip-pre">
+        <p class="vip-eyebrow">Lista VIP</p>
+        <h2 id="vipPieTitulo" class="vip-titulo">Únete a la Sociedad</h2>
+        <p class="vip-texto"></p>
+        <p class="vip-regalo" hidden></p>
+      </div>
+      <form class="vip-form" data-origen="pie" novalidate>
+            <div class="vip-campos">
+              <label><span>Nombre (opcional)</span><input name="nombre" type="text" maxlength="80" autocomplete="given-name" /></label>
+              <label><span>WhatsApp</span><input name="celular" type="tel" inputmode="tel" autocomplete="tel" placeholder="3XX XXX XXXX" required /></label>
+              <label class="vip-correo"><span>Correo (opcional)</span><input name="correo" type="email" autocomplete="email" maxlength="120" /></label>
+            </div>
+            <label class="check-row vip-autorizo"><input type="checkbox" name="autorizo" /><span>Autorizo a Insanity Society a usar mis datos para enviarme novedades y promociones por WhatsApp o correo (Ley 1581 de 2012). Puedo darme de baja cuando quiera escribiendo «BAJA» por WhatsApp.</span></label>
+            <button class="btn-primario btn-bloque" type="submit">Unirme</button>
+            <p class="vip-msg cupon-msg hidden" role="alert"></p>
+          </form>
+      <div class="vip-resultado" hidden aria-live="polite"></div>
+    </div>
+  </section>
+
   <footer class="footer">
     <div class="footer-inner">
       <p class="footer-logo">INSANITY SOCIETY</p>
@@ -411,6 +433,32 @@
     <div class="modal producto-modal" role="dialog" aria-modal="true" aria-label="Detalle del producto">
       <button id="cerrarProducto" class="icon-btn producto-cerrar" type="button" aria-label="Cerrar">✕</button>
       <div id="productoModalBody" class="producto-modal-body"></div>
+    </div>
+  </div>
+
+  <!-- LISTA VIP -->
+  <div id="vipModal" class="modal-overlay hidden">
+    <div class="modal vip-modal" role="dialog" aria-modal="true" aria-labelledby="vipModalTitulo">
+      <button id="cerrarVip" class="icon-btn vip-cerrar" type="button" aria-label="Cerrar">✕</button>
+      <div class="vip-caja modal-body">
+        <div class="vip-pre">
+          <p class="vip-eyebrow">Lista VIP</p>
+          <h3 id="vipModalTitulo" class="vip-titulo">Únete a la Sociedad</h3>
+          <p class="vip-texto"></p>
+          <p class="vip-regalo" hidden></p>
+        </div>
+        <form class="vip-form" data-origen="popup" novalidate>
+            <div class="vip-campos">
+              <label><span>Nombre (opcional)</span><input name="nombre" type="text" maxlength="80" autocomplete="given-name" /></label>
+              <label><span>WhatsApp</span><input name="celular" type="tel" inputmode="tel" autocomplete="tel" placeholder="3XX XXX XXXX" required /></label>
+              <label class="vip-correo"><span>Correo (opcional)</span><input name="correo" type="email" autocomplete="email" maxlength="120" /></label>
+            </div>
+            <label class="check-row vip-autorizo"><input type="checkbox" name="autorizo" /><span>Autorizo a Insanity Society a usar mis datos para enviarme novedades y promociones por WhatsApp o correo (Ley 1581 de 2012). Puedo darme de baja cuando quiera escribiendo «BAJA» por WhatsApp.</span></label>
+            <button class="btn-primario btn-bloque" type="submit">Unirme</button>
+            <p class="vip-msg cupon-msg hidden" role="alert"></p>
+          </form>
+        <div class="vip-resultado" hidden aria-live="polite"></div>
+      </div>
     </div>
   </div>
 

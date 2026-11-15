@@ -46,7 +46,8 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 1. **SQL Editor** → **New query**.
 2. Pega `supabase/pedidos.sql` y pulsa **Run** (después de los pasos 2c y 2d).
 3. Luego pega `supabase/mis-pedidos.sql` y pulsa **Run** (seguimiento para clientes y guía de envío).
-4. Por último pega `supabase/cupones-preventa.sql` y pulsa **Run** (límite de uso de cupones y preventa).
+4. Luego pega `supabase/cupones-preventa.sql` y pulsa **Run** (límite de uso de cupones y preventa).
+5. Por último pega `supabase/lista-vip.sql` y pulsa **Run** (Lista VIP con código personal de bienvenida).
 
 ## 3. Crear tu usuario de administrador
 
@@ -129,6 +130,21 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **Usos en total:** opcional, para cosas como "solo los primeros 50". Al llegar al límite, el código se marca como *Agotado*.
 - Cada código muestra cuántas veces se ha usado.
 
+### Lista VIP
+
+- Pestaña **Lista VIP**. Todo empieza **apagado** y sin porcentaje.
+- **Mostrar invitación a la Lista VIP:** al encenderla aparece en la web una ventanita (una sola vez por visitante, a los 15 segundos o al bajar media página; si la cierran no vuelve en 30 días) y un bloque fijo antes del pie de página.
+- **Regalo de bienvenida:** cuando el dueño autorice, escribe el **%**, y si quieres una **compra mínima** y una **validez en días**. Cada nuevo suscriptor recibe un código único (ej. `VIP-7K3QM`) que:
+  - se aplica solo en su carrito,
+  - funciona **una sola vez** y **solo con el celular con el que se inscribió** (si lo comparte, a otro no le sirve),
+  - si la persona se vuelve a inscribir, recibe el mismo código, no uno nuevo.
+- **Sin porcentaje** o con el regalo apagado, la gente se puede inscribir pero no recibe código.
+- **Cambiar el %** solo afecta a los nuevos suscriptores; los códigos ya entregados conservan su valor.
+- **Pausar todos los códigos VIP ya entregados:** ninguno funciona mientras esté marcado; desmárcalo para reactivarlos.
+- Lista de suscriptores con su código y estado (sin usar, usado, vencido, pausado), buscador, botón de WhatsApp y **Descargar lista** (abre en Excel) para avisar lanzamientos por tu lista de difusión.
+- Si alguien pide la baja, bórralo con **Eliminar** (su código queda desactivado).
+- En **Estadísticas → Códigos de descuento usados** los VIP aparecen agrupados como "Lista VIP".
+
 ### Preventa
 
 - En el editor de un producto marca **⏳ En preventa**, elige la fecha de **cierre** y escribe la **entrega estimada** (ej. "Desde el 15 de diciembre").
@@ -181,6 +197,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
+- **"Falta activar la Lista VIP":** ejecuta `supabase/cupones-preventa.sql` y luego `supabase/lista-vip.sql`.
 - **"Falta activar preventa y límites de cupones":** ejecuta `supabase/cupones-preventa.sql` (paso 2e, punto 4).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.

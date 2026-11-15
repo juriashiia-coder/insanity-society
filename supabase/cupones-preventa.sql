@@ -18,6 +18,10 @@ alter table public.cupones add constraint cupones_usos_check
 
 create index if not exists pedidos_cupon_idx on public.pedidos (cupon) where cupon is not null;
 
+-- Códigos personales (Lista VIP): solo funcionan con el celular de quien se suscribió
+alter table public.cupones add column if not exists celular_vip text;
+create index if not exists cupones_celular_vip_idx on public.cupones (celular_vip) where celular_vip is not null;
+
 -- Validar un código desde el carrito: además de activo y vigente, que no se haya agotado
 create or replace function public.validar_cupon(p_codigo text)
 returns table (codigo text, tipo text, valor integer, minimo_compra integer)
@@ -31,6 +35,9 @@ as $$
     and (c.vence is null or c.vence > now())
     and (c.usos_maximos is null
          or (select count(*) from public.pedidos p where p.cupon = c.codigo and p.estado <> 'cancelado') < c.usos_maximos)
+    -- Códigos de la Lista VIP: se pueden pausar todos de una vez desde el panel
+    and (c.celular_vip is null
+         or not coalesce((select (k.valor->>'codigos_pausados')::boolean from public.contenido k where k.clave = 'vip'), false))
   limit 1;
 $$;
 revoke all on function public.validar_cupon(text) from public;
@@ -65,6 +72,7 @@ declare
   desc_total integer := 0;
   cup record;
   limite integer;
+  v_dueno text;
   v_cupon_final text;
   usados integer;
   cel text := left(regexp_replace(coalesce(p_cliente->>'celular', ''), '\D', '', 'g'), 20);
@@ -72,6 +80,7 @@ declare
   v_codigo text := nullif(upper(trim(coalesce(p_cupon, ''))), '');
   nuevo_id bigint;
 begin
+  if cel ~ '^57\d{10}$' then cel := substr(cel, 3); end if; -- +57 300... -> 300...
   if p_items is null or jsonb_typeof(p_items) <> 'array'
      or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 30 then
     raise exception 'Pedido inválido';
@@ -122,7 +131,11 @@ begin
       raise exception 'CUPON_NO_VALIDO' using hint = 'El código ya no está disponible.';
     end if;
     -- ¿Esta persona ya lo usó? (mismo celular o misma cédula; los cancelados no cuentan)
-    select c.usos_por_cliente into limite from public.cupones c where c.codigo = cup.codigo;
+    select c.usos_por_cliente, c.celular_vip into limite, v_dueno from public.cupones c where c.codigo = cup.codigo;
+    -- Código personal de la Lista VIP: solo con el celular de quien se suscribió
+    if v_dueno is not null and v_dueno <> cel then
+      raise exception 'CUPON_PERSONAL' using hint = 'Este código solo funciona con el celular con el que se suscribió.';
+    end if;
     if coalesce(limite, 1) > 0 and (cel <> '' or ced <> '') then
       select count(*) into usados from public.pedidos p
        where p.cupon = cup.codigo and p.estado <> 'cancelado'

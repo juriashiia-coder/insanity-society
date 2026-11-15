@@ -837,3 +837,43 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
   .menu-toggle { display: inline-block; }
   .btn-carrito-txt { display: none; }
 }
+
+/* ---------- Lista VIP ---------- */
+.vip-modal { width: min(480px, 100%); position: relative; overflow: hidden; border-color: #3a1212; }
+.vip-modal::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--accent-dark), var(--accent)); }
+.vip-cerrar { position: absolute; top: .6rem; right: .6rem; z-index: 2; }
+.vip-caja { display: flex; flex-direction: column; gap: .8rem; padding: 1.6rem 1.4rem 1.4rem; }
+.vip-eyebrow { color: var(--accent); font-weight: 800; letter-spacing: 2px; text-transform: uppercase; font-size: .75rem; }
+.vip-titulo { font-family: var(--font-title); font-size: clamp(1.5rem, 4vw, 2rem); text-transform: uppercase; letter-spacing: 1px; color: #fff; line-height: 1.05; margin: .15rem 0 .35rem; }
+.vip-texto { color: #cfcfcf; }
+.vip-regalo { margin-top: .5rem; background: rgba(229,9,20,.12); border: 1px dashed rgba(229,9,20,.6); color: #fff; font-weight: 700; padding: .55rem .75rem; border-radius: 10px; }
+.vip-regalo[hidden] { display: none; }
+.vip-campos { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
+.vip-campos label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; color: #bbb; min-width: 0; }
+.vip-campos .vip-correo { grid-column: 1 / -1; }
+.vip-campos input { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .65rem .75rem; border-radius: 10px; width: 100%; }
+.vip-campos input:focus { outline: none; border-color: #fff; }
+.vip-autorizo { font-size: .76rem; color: #9a9a9a; margin: .7rem 0 .8rem; align-items: flex-start; }
+.vip-resultado[hidden], .vip-pre[hidden], .vip-form[hidden] { display: none; }
+.vip-resultado { text-align: center; display: flex; flex-direction: column; gap: .6rem; }
+.vip-ok-titulo { font-family: var(--font-title); font-size: 1.5rem; color: #fff; text-transform: uppercase; }
+.vip-codigo { display: flex; align-items: center; justify-content: center; gap: .6rem; flex-wrap: wrap; }
+.vip-codigo strong { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 1.5rem; letter-spacing: 2px; color: #fff; background: #0f0f0f; border: 1px dashed var(--accent); padding: .45rem .9rem; border-radius: 10px; }
+.vip-condiciones { color: #aaa; font-size: .85rem; }
+.vip-pie { padding: 2.5rem clamp(1rem, 4vw, 2.5rem); background: radial-gradient(ellipse at top, rgba(229,9,20,.12), transparent 60%), #0b0b0b; border-top: 1px solid var(--line); }
+.vip-pie[hidden] { display: none; }
+.vip-caja--pie { max-width: 760px; margin: 0 auto; padding: 0; display: grid; grid-template-columns: 1fr 1.2fr; gap: 1.5rem 2rem; align-items: center; }
+.vip-caja--pie .vip-resultado { grid-column: 1 / -1; }
+@media (max-width: 760px) {
+  .vip-caja--pie { grid-template-columns: 1fr; text-align: center; }
+  .vip-caja--pie .vip-autorizo { text-align: left; }
+}
+@media (max-width: 420px) {
+  .vip-campos { grid-template-columns: 1fr; }
+  .vip-caja { padding: 1.4rem 1rem 1rem; }
+}
+@media (max-width: 700px) {
+  #vipModal { align-items: flex-end; }
+  #vipModal .vip-modal { height: auto; max-height: 92dvh; border-radius: 18px 18px 0 0; border-top: 1px solid #3a1212; }
+  #vipModal .vip-caja { padding-bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
+}

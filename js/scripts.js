@@ -978,6 +978,126 @@
     }).catch(() => {});
   } else if (cupon && !conSupabase) { cupon = null; storage.set(CLAVE_CUPON, null); }
 
+  // ---------- Lista VIP: suscripción con código personal de bienvenida ----------
+  // La configuración viene del panel (contenido -> 'vip'). Cada suscriptor recibe un
+  // código único que solo funciona con su celular; se aplica solo en el carrito.
+  const vipCfg = CONTENIDO?.vip || null;
+  const CLAVE_VIP = 'insanity-vip';
+  const vipActiva = conSupabase && !!vipCfg?.activo;
+  const vipPct = Number(vipCfg?.porcentaje) || 0;
+  const vipConRegalo = vipActiva && !!vipCfg?.regalo_activo && vipPct >= 1 && vipPct <= 90;
+  const vipModal = $('#vipModal');
+
+  function textoRegaloVip() {
+    if (!vipConRegalo) return '';
+    const min = Number(vipCfg.minimo_compra) || 0;
+    return `Recibe ${vipPct}% de descuento en tu primera compra${min ? ` desde ${dinero(min)}` : ''}.`;
+  }
+  function pintarInvitacionVip() {
+    $$('.vip-titulo').forEach((el) => { el.textContent = vipCfg?.titulo?.trim() || 'Únete a la Sociedad'; });
+    $$('.vip-texto').forEach((el) => { el.textContent = vipCfg?.texto?.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'; });
+    $$('.vip-regalo').forEach((el) => { el.textContent = textoRegaloVip(); el.hidden = !vipConRegalo; });
+    const pie = $('#vipPie'); if (pie) pie.hidden = !vipActiva || storage.get(CLAVE_VIP)?.estado === 'suscrito';
+  }
+  pintarInvitacionVip();
+
+  function abrirVip() {
+    if (!vipModal) return;
+    vipModal.classList.remove('hidden');
+    document.body.classList.add('no-scroll');
+    $('.vip-form input[name="celular"]', vipModal)?.focus();
+  }
+  function cerrarVip(recordar = true) {
+    if (!vipModal || vipModal.classList.contains('hidden')) return;
+    vipModal.classList.add('hidden');
+    if (![checkoutModal, $('#productoModal')].some((m) => m && !m.classList.contains('hidden')) && !carritoPanel.classList.contains('active')) document.body.classList.remove('no-scroll');
+    if (recordar && storage.get(CLAVE_VIP)?.estado !== 'suscrito') storage.set(CLAVE_VIP, { estado: 'cerrado', t: Date.now() });
+  }
+  $('#cerrarVip')?.addEventListener('click', () => cerrarVip());
+  vipModal?.addEventListener('click', (e) => { if (e.target === vipModal) cerrarVip(); });
+
+  // La invitación aparece una sola vez: a los 15 s o al bajar más de la mitad de la página.
+  // Si la cierran, no vuelve a salir en 30 días.
+  if (vipActiva && vipModal) {
+    const guardado = storage.get(CLAVE_VIP);
+    const yaVista = guardado?.estado === 'suscrito' || (guardado?.estado === 'cerrado' && Date.now() - (guardado.t || 0) < 30 * 864e5);
+    if (!yaVista) {
+      let mostrada = false;
+      const hayOtraVentana = () => [checkoutModal, $('#productoModal'), $('#guiaModal')].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
+      const intentar = () => {
+        if (mostrada) return;
+        if (hayOtraVentana()) { setTimeout(intentar, 8000); return; }
+        mostrada = true; window.removeEventListener('scroll', alBajar); abrirVip();
+      };
+      const alBajar = () => { if (window.scrollY + innerHeight > document.documentElement.scrollHeight * 0.6) intentar(); };
+      setTimeout(intentar, 15000);
+      window.addEventListener('scroll', alBajar, { passive: true });
+    }
+  }
+
+  async function suscribirVip(datos) {
+    const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/suscribir_vip`, {
+      method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+    const txt = await r.text();
+    if (!r.ok) { const m = txt.match(/VIP_INACTIVO|CELULAR_INVALIDO|CORREO_INVALIDO|INTENTA_LUEGO/); throw new Error(m ? m[0] : 'ERROR'); }
+    return JSON.parse(txt);
+  }
+  const fechaVence = (t) => new Date(t).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', timeZone: 'America/Bogota' });
+
+  $$('.vip-form').forEach((form) => form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const caja = form.closest('.vip-caja');
+    const msg = $('.vip-msg', form);
+    const decir = (t) => { msg.textContent = t; msg.className = 'vip-msg cupon-msg cupon-msg--error'; };
+    const cel = form.celular.value.replace(/\D/g, '').replace(/^57(?=\d{10}$)/, '');
+    const correo = form.correo.value.trim();
+    if (!/^3\d{9}$/.test(cel)) { decir('Escribe tu WhatsApp: celular colombiano de 10 dígitos.'); form.celular.focus(); return; }
+    if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { decir('Revisa tu correo (o déjalo vacío).'); form.correo.focus(); return; }
+    if (!form.autorizo.checked) { decir('Debes autorizar el uso de tus datos para unirte.'); return; }
+    const btn = $('button[type=submit]', form); btn.disabled = true;
+    try {
+      const r = await suscribirVip({ p_nombre: form.nombre.value.trim(), p_celular: cel, p_correo: correo || null, p_origen: form.dataset.origen || 'web' });
+      storage.set(CLAVE_VIP, { estado: 'suscrito', t: Date.now(), celular: cel, codigo: r.codigo || null });
+      // Dejar el celular listo para el formulario de compra
+      const cli = storage.get('insanity-cliente') || {};
+      if (!cli.celular) storage.set('insanity-cliente', { ...cli, celular: cel, nombre: cli.nombre || form.nombre.value.trim() });
+      let html;
+      if (r.codigo && r.disponible) {
+        let aplicado = false;
+        try {
+          const c = await validarCupon(r.codigo);
+          if (c) { cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 }; storage.set(CLAVE_CUPON, cupon); guardarYRender(); aplicado = true; }
+        } catch { /* se muestra igual */ }
+        html = `<p class="vip-ok-titulo">${r.nuevo ? '¡Bienvenido a la Sociedad!' : '¡Ya estabas en la Sociedad!'}</p>
+          <p>Tu código personal de ${r.porcentaje}%:</p>
+          <div class="vip-codigo"><strong>${esc(r.codigo)}</strong><button type="button" class="btn-secundario" data-copiar="${esc(r.codigo)}">Copiar</button></div>
+          <p class="vip-condiciones">${[aplicado ? 'Ya quedó aplicado en tu carrito.' : 'Escríbelo en el carrito al comprar.',
+            r.minimo_compra ? `Para compras desde ${dinero(r.minimo_compra)}.` : '',
+            r.vence ? `Válido hasta el ${esc(fechaVence(r.vence))}.` : '',
+            'Es de un solo uso y solo funciona con este celular.'].filter(Boolean).join(' ')}</p>`;
+      } else if (r.codigo && r.usado) {
+        html = `<p class="vip-ok-titulo">¡Ya eres parte de la Sociedad!</p><p>Ya usaste tu regalo de bienvenida. Igual serás de los primeros en enterarte de lanzamientos y preventas.</p>`;
+      } else if (r.codigo) {
+        html = `<p class="vip-ok-titulo">¡Ya eres parte de la Sociedad!</p><p>Tu código ${esc(r.codigo)} no está disponible en este momento. Te avisaremos por WhatsApp de lo nuevo.</p>`;
+      } else {
+        html = `<p class="vip-ok-titulo">${r.nuevo ? '¡Listo, ya eres parte de la Sociedad!' : '¡Ya estabas en la lista!'}</p><p>Te avisaremos por WhatsApp de lanzamientos, preventas y ofertas exclusivas.</p>`;
+      }
+      $('.vip-resultado', caja).innerHTML = html;
+      $('.vip-resultado', caja).hidden = false;
+      form.hidden = true;
+      $$('.vip-pre', caja).forEach((el) => { el.hidden = true; });
+    } catch (err) {
+      decir({ CELULAR_INVALIDO: 'Ese celular no es válido.', CORREO_INVALIDO: 'Ese correo no es válido.', VIP_INACTIVO: 'Las inscripciones están cerradas por ahora.', INTENTA_LUEGO: 'Hay muchas inscripciones en este momento. Intenta en un minuto.' }[err.message]
+        || 'No pudimos inscribirte. Revisa tu conexión e intenta de nuevo.');
+    } finally { btn.disabled = false; }
+  }));
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest('[data-copiar]'); if (!b) return;
+    try { await navigator.clipboard.writeText(b.dataset.copiar); b.textContent = '¡Copiado!'; } catch { b.textContent = b.dataset.copiar; }
+  });
+
   let ultimoFoco = null;
   function setCarrito(open) {
     if (open) ultimoFoco = document.activeElement;
@@ -1246,6 +1366,7 @@
         // El código de descuento no se puede usar (ya lo usó esta persona o se agotó)
         if (/CUPON_YA_USADO/.test(txt)) return { cupon: 'usado' };
         if (/CUPON_NO_VALIDO/.test(txt)) return { cupon: 'invalido' };
+        if (/CUPON_PERSONAL/.test(txt)) return { cupon: 'personal' };
         console.warn('[Insanity] No se pudo registrar el pedido:', r.status, txt);
         if (r.status < 500) return null; // error de datos: reintentar no ayuda
       } catch (err) {
@@ -1286,10 +1407,12 @@
       pintarTotalCheckout();
       const aviso = resultado.cupon === 'usado'
         ? `El código ${codigoQuitado} ya fue usado con este celular o cédula (es de un solo uso por persona). Lo quitamos: revisa el nuevo total y vuelve a enviar.`
-        : `El código ${codigoQuitado} ya no está disponible. Lo quitamos: revisa el nuevo total y vuelve a enviar.`;
+        : resultado.cupon === 'personal'
+          ? `El código ${codigoQuitado} es personal de la Lista VIP: solo funciona con el celular con el que se suscribió. Lo quitamos: revisa el nuevo total y vuelve a enviar.`
+          : `El código ${codigoQuitado} ya no está disponible. Lo quitamos: revisa el nuevo total y vuelve a enviar.`;
       const av = $('#checkoutAviso');
       if (av) { av.textContent = aviso; av.classList.remove('hidden'); av.scrollIntoView({ block: 'nearest' }); }
-      toast(resultado.cupon === 'usado' ? `El código ${codigoQuitado} ya fue usado. Revisa el nuevo total.` : `El código ${codigoQuitado} ya no está disponible.`);
+      toast(resultado.cupon === 'usado' ? `El código ${codigoQuitado} ya fue usado. Revisa el nuevo total.` : resultado.cupon === 'personal' ? `El código ${codigoQuitado} es personal de otro celular.` : `El código ${codigoQuitado} ya no está disponible.`);
       return;
     }
     const numeroPedido = resultado;
@@ -1369,7 +1492,8 @@
   // ---------- Tecla Escape cierra lo que esté abierto ----------
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (guiaModal && !guiaModal.classList.contains('hidden')) setGuia(false);
+    if (vipModal && !vipModal.classList.contains('hidden')) cerrarVip();
+    else if (guiaModal && !guiaModal.classList.contains('hidden')) setGuia(false);
     else if (productoModal && !productoModal.classList.contains('hidden')) cerrarProducto();
     else if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
     else if (panel.classList.contains('open')) setPanel(false);

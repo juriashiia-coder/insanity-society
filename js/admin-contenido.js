@@ -127,7 +127,7 @@
   function abrirSeccion(id) {
     seccion = id;
     $$('.admin-tab').forEach((t) => t.classList.toggle('active', t.dataset.seccion === id));
-    const vistasPropias = { productos: '#subProductos', pedidos: '#subPedidos', estadisticas: '#subEstadisticas', cupones: '#subCupones', inventario: '#subInventario' };
+    const vistasPropias = { productos: '#subProductos', pedidos: '#subPedidos', estadisticas: '#subEstadisticas', cupones: '#subCupones', vip: '#subVip', inventario: '#subInventario' };
     Object.entries(vistasPropias).forEach(([k, sel]) => $(sel).classList.toggle('hidden', k !== id));
     $('#subContenido').classList.toggle('hidden', id in vistasPropias);
     datos = null; original = '';
