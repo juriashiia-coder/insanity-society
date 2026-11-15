@@ -380,37 +380,100 @@
   }
   renderCatalogo();
 
-  // Destacados en Inicio (los elige el administrador; máximo 8)
+  // Destacados en Inicio (los elige el administrador; máximo 12)
+  // Carrusel infinito: si hay más productos de los que caben, la lista se repite
+  // 5 veces y, al detenerse, el scroll se recoloca en la copia central sin que se note.
   const destacadosGrid = $('#destacadosGrid');
+  const carruselWrap = $('#destacadosWrap');
+  const COPIAS = 5, CENTRAL = 2;
+  let listaDest = [], bucle = false, anchoSet = 0, pasoCard = 0, objetivo = null;
+
+  function medirCarrusel() {
+    const items = destacadosGrid.children;
+    const n = listaDest.length;
+    pasoCard = items.length > 1 ? items[1].offsetLeft - items[0].offsetLeft : (items[0]?.offsetWidth || 0);
+    anchoSet = bucle && items.length >= n * COPIAS ? items[n].offsetLeft - items[0].offsetLeft : 0;
+  }
+  function cabenTodos() {
+    const card = destacadosGrid.firstElementChild;
+    if (!card) return true;
+    const gap = parseFloat(getComputedStyle(destacadosGrid).columnGap) || 0;
+    const visibles = Math.floor((destacadosGrid.clientWidth + gap + 2) / (card.offsetWidth + gap));
+    return listaDest.length <= visibles;
+  }
+  function montarCarrusel(indice = 0) {
+    const html = listaDest.map(tarjetaMini).join('');
+    destacadosGrid.innerHTML = html;
+    bucle = false; objetivo = null;
+    destacadosGrid.classList.remove('en-bucle');
+    carruselWrap?.classList.remove('con-flechas');
+    if (!destacadosGrid.clientWidth || cabenTodos()) { medirCarrusel(); return; }
+    const clon = html.replace(/<article /g, '<article aria-hidden="true" data-clon ');
+    destacadosGrid.innerHTML = Array.from({ length: COPIAS }, (_, i) => (i === CENTRAL ? html : clon)).join('');
+    destacadosGrid.querySelectorAll('[data-clon] button, [data-clon] a').forEach((el) => { el.tabIndex = -1; });
+    bucle = true;
+    destacadosGrid.classList.add('en-bucle');
+    carruselWrap?.classList.add('con-flechas');
+    medirCarrusel();
+    destacadosGrid.scrollLeft = CENTRAL * anchoSet + indice * pasoCard;
+  }
   function renderDestacados() {
     const sec = $('#destacados');
     if (!destacadosGrid || !sec) return;
-    const lista = PRODUCTOS.filter((p) => p.destacado).slice(0, 12);
-    sec.hidden = !lista.length;
-    destacadosGrid.innerHTML = lista.map(tarjetaMini).join('');
-    requestAnimationFrame(actualizarFlechas);
+    listaDest = PRODUCTOS.filter((p) => p.destacado).slice(0, 12);
+    sec.hidden = !listaDest.length;
+    montarCarrusel();
   }
-  // Carrusel: flechas en computador; en celular se desliza con el dedo
-  const flechas = $('#destacadosFlechas');
-  function actualizarFlechas() {
-    if (!destacadosGrid || !flechas) return;
-    const max = destacadosGrid.scrollWidth - destacadosGrid.clientWidth;
-    flechas.hidden = max <= 4;
-    $('#destacadosPrev').disabled = destacadosGrid.scrollLeft <= 4;
-    $('#destacadosNext').disabled = destacadosGrid.scrollLeft >= max - 4;
-    destacadosGrid.classList.toggle('al-final', destacadosGrid.scrollLeft >= max - 4);
+  // Lleva la posición a la copia central (mismo contenido, salto invisible)
+  function desfaseCentral(x) {
+    const min = CENTRAL * anchoSet;
+    return x - (min + ((((x - min) % anchoSet) + anchoSet) % anchoSet));
+  }
+  let caducaObjetivo;
+  function recolocar() {
+    if (!bucle || !anchoSet) return;
+    // Si una flecha está llevando el carrusel a un destino, se espera a que llegue
+    if (objetivo !== null && Math.abs(destacadosGrid.scrollLeft - objetivo) > 2) return;
+    objetivo = null;
+    const d = desfaseCentral(destacadosGrid.scrollLeft);
+    if (Math.abs(d) > 1) destacadosGrid.scrollLeft -= d;
   }
   const pasoCarrusel = (dir) => {
-    const card = destacadosGrid.querySelector('.producto');
-    const paso = card ? card.getBoundingClientRect().width + parseFloat(getComputedStyle(destacadosGrid).columnGap || 16) : destacadosGrid.clientWidth;
-    const visibles = Math.max(1, Math.floor((destacadosGrid.clientWidth + 8) / paso));
-    destacadosGrid.scrollBy({ left: dir * paso * visibles, behavior: reduceMotion ? 'auto' : 'smooth' });
+    if (!bucle || !anchoSet) return;
+    const gap = parseFloat(getComputedStyle(destacadosGrid).columnGap) || 0;
+    const visibles = Math.max(1, Math.floor((destacadosGrid.clientWidth + gap + 2) / pasoCard));
+    let destino = (objetivo ?? destacadosGrid.scrollLeft) + dir * visibles * pasoCard;
+    const d = desfaseCentral(destino);
+    if (Math.abs(d) > 1) { destacadosGrid.scrollLeft -= d; destino -= d; }
+    objetivo = destino;
+    clearTimeout(caducaObjetivo);
+    caducaObjetivo = setTimeout(() => { objetivo = null; recolocar(); }, 1500);
+    destacadosGrid.scrollTo({ left: destino, behavior: reduceMotion ? 'auto' : 'smooth' });
   };
+  // Si cambia el tamaño (o la sección estaba oculta al cargar), se vuelve a armar
+  function revisarCarrusel() {
+    if (!destacadosGrid || !listaDest.length || !destacadosGrid.clientWidth) return;
+    const indice = bucle && pasoCard ? Math.round((destacadosGrid.scrollLeft - CENTRAL * anchoSet) / pasoCard) : 0;
+    const n = listaDest.length;
+    montarCarrusel(((indice % n) + n) % n);
+  }
   $('#destacadosPrev')?.addEventListener('click', () => pasoCarrusel(-1));
   $('#destacadosNext')?.addEventListener('click', () => pasoCarrusel(1));
-  destacadosGrid?.addEventListener('scroll', actualizarFlechas, { passive: true });
-  window.addEventListener('resize', actualizarFlechas);
-  window.addEventListener('hashchange', () => setTimeout(actualizarFlechas, 50));
+  // Si la persona arrastra o usa la rueda, manda ella (se olvida el destino de la flecha)
+  ['pointerdown', 'wheel', 'touchstart'].forEach((ev) => destacadosGrid?.addEventListener(ev, () => { objetivo = null; }, { passive: true }));
+  let finScroll;
+  if ('onscrollend' in window) destacadosGrid?.addEventListener('scrollend', recolocar);
+  else destacadosGrid?.addEventListener('scroll', () => { clearTimeout(finScroll); finScroll = setTimeout(recolocar, 160); }, { passive: true });
+  let anchoPrevio = destacadosGrid?.clientWidth || 0, finResize;
+  window.addEventListener('resize', () => {
+    clearTimeout(finResize);
+    finResize = setTimeout(() => {
+      if (destacadosGrid.clientWidth !== anchoPrevio) { anchoPrevio = destacadosGrid.clientWidth; revisarCarrusel(); }
+    }, 150);
+  });
+  window.addEventListener('hashchange', () => setTimeout(() => {
+    if (destacadosGrid && destacadosGrid.clientWidth && destacadosGrid.clientWidth !== anchoPrevio) { anchoPrevio = destacadosGrid.clientWidth; revisarCarrusel(); }
+  }, 50));
   renderDestacados();
   const productoModal = $('#productoModal');
   const productoBody = $('#productoModalBody');

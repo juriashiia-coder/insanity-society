@@ -84,15 +84,13 @@
       <div id="destacados" class="destacados" hidden>
         <div class="destacados-head">
           <h2 id="destacadosTitulo">Destacados</h2>
-          <div class="destacados-acciones">
-            <a class="col-cta" href="#tienda" data-tab="tienda">Ver toda la tienda →</a>
-            <div class="carrusel-flechas" id="destacadosFlechas" hidden>
-              <button type="button" class="carrusel-btn" id="destacadosPrev" aria-label="Anteriores">‹</button>
-              <button type="button" class="carrusel-btn" id="destacadosNext" aria-label="Siguientes">›</button>
-            </div>
-          </div>
+          <a class="col-cta" href="#tienda" data-tab="tienda">Ver toda la tienda →</a>
         </div>
-        <div class="productos carrusel" id="destacadosGrid" tabindex="0" aria-label="Productos destacados (desliza para ver más)"></div>
+        <div class="carrusel-wrap" id="destacadosWrap">
+          <button type="button" class="carrusel-btn carrusel-btn--prev" id="destacadosPrev" aria-label="Anteriores">‹</button>
+          <div class="productos carrusel" id="destacadosGrid" tabindex="0" aria-label="Productos destacados (desliza para ver más)"></div>
+          <button type="button" class="carrusel-btn carrusel-btn--next" id="destacadosNext" aria-label="Siguientes">›</button>
+        </div>
       </div>
     </section>
 
