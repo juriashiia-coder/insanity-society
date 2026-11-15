@@ -57,6 +57,8 @@
     <section id="vistaPanel" class="hidden">
       <nav class="admin-tabs" id="adminTabs" aria-label="Secciones del panel">
         <button type="button" class="admin-tab active" data-seccion="productos">Productos</button>
+        <button type="button" class="admin-tab" data-seccion="pedidos">Pedidos <span id="tabPendientes" class="admin-tab-num hidden"></span></button>
+        <button type="button" class="admin-tab" data-seccion="estadisticas">Estadísticas</button>
         <button type="button" class="admin-tab" data-seccion="inventario">Inventario</button>
         <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
         <button type="button" class="admin-tab" data-seccion="colecciones">Colecciones</button>
@@ -97,9 +99,66 @@
             </select>
           </div>
         </div>
-        <p class="admin-hint admin-ayuda">Las unidades se cargan por color y talla en cada producto. Como los pedidos llegan por WhatsApp, descuéntalas aquí cuando confirmes la venta.</p>
+        <p class="admin-hint admin-ayuda">Las unidades se cargan por color y talla en cada producto. Se descuentan solas cuando confirmas un pedido en la pestaña Pedidos (y vuelven si lo cancelas). Aquí puedes corregirlas a mano.</p>
         <div id="invResumen" class="inv-resumen"></div>
         <div id="inventarioLista" class="admin-lista" aria-live="polite"></div>
+      </div>
+
+      <div id="subPedidos" class="hidden">
+        <div class="admin-toolbar">
+          <h1>Pedidos <span id="pedidosConteo" class="admin-conteo"></span></h1>
+          <div class="admin-toolbar-acciones">
+            <input id="pedBuscar" type="search" placeholder="Buscar: nombre, celular, ciudad o #" aria-label="Buscar pedidos" />
+            <select id="pedFiltro" aria-label="Filtrar por estado">
+              <option value="todos">Todos</option>
+              <option value="pendiente">Pendientes</option>
+              <option value="confirmado">Confirmados</option>
+              <option value="enviado">Enviados</option>
+              <option value="entregado">Entregados</option>
+              <option value="cancelado">Cancelados</option>
+            </select>
+            <button id="btnNuevaVenta" class="btn-primario" type="button">+ Registrar venta</button>
+          </div>
+        </div>
+        <p class="admin-hint admin-ayuda">Cada pedido que llega por la web queda aquí como <strong>pendiente</strong>. Cuando el cliente pague, márcalo como <strong>confirmado</strong>: solo así cuenta en las estadísticas y se descuentan las unidades del inventario (si lo cancelas, se devuelven). Las ventas por Instagram o en persona regístralas con “+ Registrar venta”.</p>
+        <p id="pedidosError" class="admin-error hidden" role="alert"></p>
+        <div id="listaPedidos" class="admin-lista" aria-live="polite"></div>
+        <button id="pedMas" class="btn-secundario btn-bloque hidden" type="button">Ver más</button>
+      </div>
+
+      <div id="subEstadisticas" class="hidden">
+        <div class="admin-toolbar">
+          <h1>Estadísticas</h1>
+        </div>
+        <div class="est-periodos" role="group" aria-label="Periodo">
+          <button type="button" class="est-chip" data-periodo="hoy">Hoy</button>
+          <button type="button" class="est-chip" data-periodo="7d">7 días</button>
+          <button type="button" class="est-chip is-activo" data-periodo="30d">30 días</button>
+          <button type="button" class="est-chip" data-periodo="mes">Este mes</button>
+          <button type="button" class="est-chip" data-periodo="anio">Este año</button>
+          <button type="button" class="est-chip" data-periodo="todo">Todo</button>
+          <span class="est-rango">
+            <label>Desde <input id="estDesde" type="date" /></label>
+            <label>Hasta <input id="estHasta" type="date" /></label>
+          </span>
+        </div>
+        <p id="estadisticasError" class="admin-error hidden" role="alert"></p>
+        <p id="estPeriodoTxt" class="admin-hint est-periodo-txt"></p>
+        <div id="estKpis" class="est-kpis"></div>
+        <section class="est-panel">
+          <div class="est-panel-head"><h2 id="estSerieTitulo">Ventas por día</h2></div>
+          <div id="estSerie" class="est-serie"></div>
+        </section>
+        <div class="est-grid">
+          <section class="est-panel"><div class="est-panel-head"><h2>Productos más vendidos</h2><select id="estOrdenProd" aria-label="Ordenar productos"><option value="u">Por unidades</option><option value="v">Por dinero</option></select></div><div id="estProductos"></div></section>
+          <section class="est-panel"><div class="est-panel-head"><h2>¿De dónde compran?</h2><select id="estLugar" aria-label="Agrupar por"><option value="departamento">Departamentos</option><option value="ciudad">Ciudades</option></select></div><div id="estLugares"></div></section>
+          <section class="est-panel"><div class="est-panel-head"><h2>Tallas más pedidas</h2></div><div id="estTallas"></div></section>
+          <section class="est-panel"><div class="est-panel-head"><h2>Colores más pedidos</h2></div><div id="estColores"></div></section>
+          <section class="est-panel"><div class="est-panel-head"><h2>Por colección</h2></div><div id="estColecciones"></div></section>
+          <section class="est-panel"><div class="est-panel-head"><h2>Canal de venta</h2></div><div id="estCanales"></div></section>
+        </div>
+        <section class="est-panel"><div class="est-panel-head"><h2>Códigos de descuento usados</h2></div><div id="estCupones"></div></section>
+        <p class="admin-hint">Solo cuentan los pedidos confirmados, enviados o entregados. Fechas en hora de Colombia.</p>
       </div>
 
       <div id="subCupones" class="hidden">
@@ -319,6 +378,92 @@
     </div>
   </div>
 
+  <div id="pedidoModal" class="modal-overlay hidden">
+    <div class="modal admin-editor admin-editor--pedido" role="dialog" aria-modal="true" aria-labelledby="pedidoTitulo">
+      <div class="modal-header">
+        <h3 id="pedidoTitulo">Pedido</h3>
+        <button id="cerrarPedido" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <div id="pedidoBody" class="modal-body"></div>
+      <div class="modal-footer">
+        <button id="btnBorrarPedido" class="btn-secundario admin-peligro" type="button">Eliminar</button>
+        <span class="admin-espacio"></span>
+        <button id="btnCerrarPedido" class="btn-secundario" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ventaModal" class="modal-overlay hidden">
+    <div class="modal admin-editor admin-editor--pedido" role="dialog" aria-modal="true" aria-labelledby="ventaTitulo">
+      <div class="modal-header">
+        <h3 id="ventaTitulo">Registrar venta</h3>
+        <button id="cerrarVenta" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <form id="formVenta" class="modal-body admin-form" novalidate>
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="vFecha">Fecha</label>
+            <input id="vFecha" type="date" />
+          </div>
+          <div class="form-row">
+            <label for="vCanal">Canal</label>
+            <select id="vCanal">
+              <option value="whatsapp">WhatsApp</option>
+              <option value="instagram">Instagram</option>
+              <option value="presencial">En persona</option>
+              <option value="otro">Otro</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <label for="vEstado">Estado</label>
+          <select id="vEstado">
+            <option value="entregado">Entregado</option>
+            <option value="enviado">Enviado</option>
+            <option value="confirmado">Confirmado (pagado, por enviar)</option>
+            <option value="pendiente">Pendiente (aún sin pagar)</option>
+          </select>
+        </div>
+        <fieldset class="admin-fieldset">
+          <legend>Productos</legend>
+          <div id="vItems" class="venta-items"></div>
+          <button id="vAgregarItem" class="btn-secundario" type="button">+ Agregar producto</button>
+        </fieldset>
+        <div class="form-grid">
+          <div class="form-row">
+            <label for="vDescuento">Descuento (opcional)</label>
+            <input id="vDescuento" type="text" inputmode="numeric" placeholder="Ej: 10.000" />
+          </div>
+          <div class="form-row">
+            <label>Total</label>
+            <p id="vTotal" class="venta-total">$0</p>
+          </div>
+        </div>
+        <fieldset class="admin-fieldset">
+          <legend>Cliente (opcional)</legend>
+          <div class="form-grid">
+            <div class="form-row"><label for="vNombre">Nombre</label><input id="vNombre" type="text" maxlength="120" /></div>
+            <div class="form-row"><label for="vCelular">Celular</label><input id="vCelular" type="text" inputmode="tel" maxlength="20" /></div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row"><label for="vDepartamento">Departamento</label><input id="vDepartamento" type="text" list="listaDepartamentos" maxlength="60" /></div>
+            <div class="form-row"><label for="vCiudad">Ciudad</label><input id="vCiudad" type="text" maxlength="80" /></div>
+          </div>
+          <datalist id="listaDepartamentos"></datalist>
+          <div class="form-row"><label for="vNotas">Notas</label><input id="vNotas" type="text" maxlength="600" /></div>
+        </fieldset>
+        <p class="admin-hint">Si el producto controla inventario y la venta no está pendiente, las unidades se descuentan solas.</p>
+        <p id="ventaError" class="admin-error hidden" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <span class="admin-espacio"></span>
+        <button id="btnCancelarVenta" class="btn-secundario" type="button">Cancelar</button>
+        <button id="btnGuardarVenta" class="btn-primario" type="submit" form="formVenta">Guardar venta</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="estTip" class="est-tip hidden" role="status"></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
   <script src="js/config.js"></script>
@@ -326,5 +471,6 @@
   <script src="js/admin.js"></script>
   <script src="js/admin-contenido.js"></script>
   <script src="js/admin-cupones.js"></script>
+  <script src="js/admin-pedidos.js"></script>
 </body>
 </html>

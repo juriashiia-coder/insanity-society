@@ -1010,8 +1010,32 @@
   $('#cerrarCheckoutModal').addEventListener('click', () => setCheckout(false));
   checkoutModal.addEventListener('click', (e) => { if (e.target === checkoutModal) setCheckout(false); });
 
-  $('#enviarWhatsapp').addEventListener('click', () => {
-    if (!carrito.length) return;
+  // Guarda el pedido en la base (para el panel y las estadísticas). Si falla, el pedido
+  // igual se envía por WhatsApp: nunca se bloquea una venta por esto.
+  async function registrarPedido(cliente) {
+    if (!conSupabase) return null;
+    try {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 5000);
+      const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/crear_pedido`, {
+        method: 'POST', signal: ctrl.signal,
+        headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          p_items: carrito.map((i) => ({ id: i.id, color: i.color, talla: i.talla, variante: i.variante || null, cantidad: i.cantidad })),
+          p_cliente: cliente,
+          p_cupon: descuentoCupon() ? cupon.codigo : null
+        })
+      });
+      clearTimeout(t);
+      if (!r.ok) return null;
+      const id = await r.json();
+      return Number(id) || null;
+    } catch { return null; }
+  }
+
+  let enviando = false;
+  $('#enviarWhatsapp').addEventListener('click', async () => {
+    if (!carrito.length || enviando) return;
     const fallos = Object.keys(reglas).filter((k) => !validarCampo(k, true));
     if (fallos.length) { (f[fallos[0]] || f.nombre).focus(); toast('Revisa los campos marcados.'); return; }
 
@@ -1021,9 +1045,21 @@
       ciudadOtra: f.ciudadOtra.value.trim(), direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim()
     });
 
+    // La ventana se abre ya (dentro del clic) para que el navegador no la bloquee,
+    // y se le pone la dirección de WhatsApp cuando el pedido queda guardado.
+    const win = window.open('', '_blank');
+    if (win) { win.opener = null; try { win.document.title = 'Abriendo WhatsApp…'; win.document.body.innerHTML = '<p style="font:16px system-ui;padding:2rem;color:#555">Abriendo WhatsApp…</p>'; } catch { /* sin acceso */ } }
+    const btnEnviar = $('#enviarWhatsapp');
+    enviando = true; btnEnviar.disabled = true; btnEnviar.dataset.texto ??= btnEnviar.textContent; btnEnviar.textContent = 'Enviando…';
+    const numeroPedido = await registrarPedido({
+      nombre: f.nombre.value.trim(), celular: f.celular.value, cedula: f.cedula.value,
+      departamento: f.dep.value, ciudad, direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim(), notas: f.notas.value.trim()
+    });
+    enviando = false; btnEnviar.disabled = false; btnEnviar.textContent = btnEnviar.dataset.texto;
+
     const lineas = carrito.map((i) => `• ${i.nombre}\n   ${detalleItem(i)} · Cant: ${i.cantidad} · ${dinero(i.precio * i.cantidad)}`);
     const mensaje = [
-      '*NUEVO PEDIDO — INSANITY SOCIETY*', '',
+      `*NUEVO PEDIDO${numeroPedido ? ` #${numeroPedido}` : ''} — INSANITY SOCIETY*`, '',
       ...lineas, '',
       ...(descuentoCupon() ? [`Subtotal: ${dinero(subtotalCarrito())}`, `Código de descuento ${cupon.codigo} (${textoCupon(cupon)}): −${dinero(descuentoCupon())}`] : []),
       `*Total productos: ${dinero(totalCarrito())}*`, '',
@@ -1038,15 +1074,15 @@
     ].filter((l) => l !== null).join('\n');
 
     const url = `https://wa.me/${numeroWa}?text=${encodeURIComponent(mensaje)}`;
-    const win = window.open(url, '_blank');
-    if (win) win.opener = null; else location.href = url; // si el navegador bloquea la ventana
+    if (win && !win.closed) win.location.href = url;
+    else location.href = url; // si el navegador bloqueó la ventana
 
     carrito = [];
     cupon = null; storage.set(CLAVE_CUPON, null);
     guardarYRender();
     form.reset();
     setCheckout(false);
-    toast('¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
+    toast(numeroPedido ? `¡Pedido #${numeroPedido} listo! Envía el mensaje en WhatsApp para confirmarlo.` : '¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
   });
 
   // ---------- Acceso secreto al panel ----------

@@ -34,6 +34,7 @@
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Sin conexión con Supabase. Revisa tu internet y js/config.js.';
     if (/'stock'|stock column|column.*stock/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar el inventario: ejecuta supabase/inventario.sql en Supabase (SQL Editor).';
     if (/destacado|oferta_pct|oferta_hasta|cupones|validar_cupon/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar las promociones: ejecuta supabase/promos.sql en Supabase (SQL Editor).';
+    if (/pedidos|crear_pedido/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar los pedidos: ejecuta supabase/pedidos.sql en Supabase (SQL Editor).';
     return m;
   };
 
@@ -496,7 +497,7 @@
     if (error) throw error;
     return sb.storage.from(BUCKET).getPublicUrl(ruta).data.publicUrl;
   }
-  window.AdminCore = { sb, toast, esc, slug, traducir, subirImagen, errorEn };
+  window.AdminCore = { sb, toast, esc, slug, traducir, subirImagen, errorEn, recargarProductos: () => cargarProductos(), get productos() { return productos; } };
 
   sb.auth.onAuthStateChange((evento) => { if (evento === 'SIGNED_OUT') revisarSesion(); });
   revisarSesion();

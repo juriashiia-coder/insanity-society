@@ -41,6 +41,11 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 1. **SQL Editor** → **New query**.
 2. Pega `supabase/inventario.sql` y pulsa **Run**.
 
+### 2e. Activar pedidos y estadísticas
+
+1. **SQL Editor** → **New query**.
+2. Pega `supabase/pedidos.sql` y pulsa **Run** (después de los pasos 2c y 2d).
+
 ## 3. Crear tu usuario de administrador
 
 1. Ve a **Authentication** → **Users** → **Add user** → **Create new user**.
@@ -125,7 +130,21 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - Si no lo marcas, el producto se vende sin límite (ideal para prendas bajo pedido).
 - En la tienda: las tallas en 0 salen tachadas, con 3 o menos aparece "¡Últimas unidades!" y si todo está en 0 el producto muestra "Agotado" con un botón para avisar por WhatsApp. El carrito no deja pedir más de lo que hay.
 - La pestaña **Inventario** muestra el total de unidades, los productos agotados y los que hay que revisar.
-- **Importante:** como los pedidos llegan por WhatsApp, las unidades no se descuentan solas. Descuéntalas cuando confirmes cada venta.
+- Las unidades se descuentan solas cuando marcas un pedido como confirmado, enviado o entregado, y vuelven si lo cancelas o lo eliminas. En la pestaña Inventario puedes corregirlas a mano.
+
+### Pedidos
+
+- Cada compra hecha en la web se guarda sola como **pendiente**, con un número (ej. #1001) que también aparece en el mensaje de WhatsApp que te llega. La pestaña muestra cuántos pendientes hay.
+- Cuando el cliente pague, cambia el estado a **Confirmado** (luego Enviado → Entregado). Si no compra, márcalo **Cancelado**.
+- **Ver** muestra todos los datos de envío y un botón para escribirle al cliente por WhatsApp.
+- **+ Registrar venta**: para ventas por Instagram, en persona o por WhatsApp directo, así también cuentan en las estadísticas.
+- Los precios de los pedidos web se calculan en el servidor (con ofertas y cupón); nadie puede alterarlos desde el navegador. Los datos de los clientes solo los ve el administrador.
+
+### Estadísticas
+
+- Elige el periodo: hoy, 7 días, 30 días, este mes, este año, todo, o un rango con *Desde/Hasta*.
+- Verás: total vendido, número de pedidos, prendas vendidas, ticket promedio (con la variación frente al periodo anterior), pedidos por confirmar, ventas por día/semana/mes, productos más vendidos, de dónde compran (departamentos o ciudades), tallas, colores, colecciones, canal de venta y códigos de descuento usados.
+- Solo cuentan los pedidos confirmados, enviados o entregados.
 
 ### Productos
 
@@ -142,6 +161,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta crear la tabla de contenido" en el panel:** ejecuta `supabase/contenido.sql` (paso 2b).
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
+- **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.
 - **"Correo o contraseña incorrectos":** revisa el usuario en *Authentication → Users*.
