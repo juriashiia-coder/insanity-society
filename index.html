@@ -33,6 +33,13 @@
     </nav>
 
     <div class="nav-actions">
+      <a class="btn-nav-icono btn-nav-pedidos" href="#mispedidos" data-tab="mispedidos" aria-label="Mis pedidos" title="Mis pedidos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>
+      </a>
+      <a class="btn-nav-icono" href="#favoritos" data-tab="favoritos" aria-label="Favoritos" title="Favoritos">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.6 4.2 13A5 5 0 0 1 12 6.6 5 5 0 0 1 19.8 13Z"/></svg>
+        <span id="contadorFav" class="contador hidden" aria-live="polite">0</span>
+      </a>
       <button id="toggleCarrito" class="btn-carrito" type="button" aria-controls="carrito" aria-expanded="false">
         <span aria-hidden="true">🛒</span><span class="btn-carrito-txt"> Carrito</span>
         <span id="contadorCarrito" class="contador hidden" aria-live="polite">0</span>
@@ -48,6 +55,8 @@
       <a class="tab-link" href="#sociedad" data-tab="sociedad">La Sociedad</a>
       <a class="tab-link" href="#tienda" data-tab="tienda">Tienda</a>
       <a class="tab-link" href="#blog" data-tab="blog">Comunidad</a>
+      <a class="tab-link" href="#favoritos" data-tab="favoritos">♥ Favoritos</a>
+      <a class="tab-link" href="#mispedidos" data-tab="mispedidos">Mis pedidos</a>
     </nav>
   </header>
 
@@ -311,12 +320,40 @@
         </article>
       </div>
     </section>
+    <!-- FAVORITOS -->
+    <section id="favoritos" class="tab-content" aria-labelledby="favoritos-title" hidden>
+      <h2 id="favoritos-title">Favoritos</h2>
+      <p class="seccion-intro">Toca el ♥ de cualquier prenda para guardarla aquí. Se guardan en este dispositivo.</p>
+      <div id="favoritosVacio" class="estado-vacio">
+        <p>Aún no tienes favoritos.</p>
+        <a class="btn-primario" href="#tienda" data-tab="tienda">Ir a la tienda</a>
+      </div>
+      <div class="productos" id="favoritosGrid"></div>
+    </section>
+
+    <!-- MIS PEDIDOS -->
+    <section id="mispedidos" class="tab-content" aria-labelledby="mispedidos-title" hidden>
+      <h2 id="mispedidos-title">Mis pedidos</h2>
+      <p class="seccion-intro">Aquí ves el estado de los pedidos que hiciste en este dispositivo. Igual te escribimos por WhatsApp para confirmar el pago y el envío.</p>
+      <div id="misPedidosLista" class="mis-pedidos-lista" aria-live="polite"></div>
+      <form id="buscarPedidoForm" class="buscar-pedido" novalidate>
+        <h3>¿Hiciste tu pedido desde otro celular o computador?</h3>
+        <p>Consúltalo con el número de pedido (te llegó en el mensaje, ej. #1001) y el celular con el que lo hiciste.</p>
+        <div class="buscar-pedido-campos">
+          <label><span>Número de pedido</span><input id="bpNumero" type="text" inputmode="numeric" placeholder="1001" autocomplete="off" /></label>
+          <label><span>Celular</span><input id="bpCelular" type="tel" inputmode="tel" placeholder="3XX XXX XXXX" autocomplete="tel" /></label>
+          <button class="btn-primario" type="submit">Consultar</button>
+        </div>
+        <p id="bpMsg" class="cupon-msg hidden" role="status"></p>
+      </form>
+    </section>
   </main>
 
   <footer class="footer">
     <div class="footer-inner">
       <p class="footer-logo">INSANITY SOCIETY</p>
       <p id="footerTexto">Hecho en Colombia. Entrenamos en la oscuridad para conquistar la luz.</p>
+      <p class="footer-links"><a href="#mispedidos" data-tab="mispedidos">Mis pedidos</a> · <a href="#favoritos" data-tab="favoritos">Favoritos</a></p>
       <p><a id="footerWhatsapp" href="https://wa.me/573241457674" target="_blank" rel="noopener">WhatsApp +57 324 145 7674</a></p>
       <p class="footer-copy">© <span id="anio">2025</span> Insanity Society</p>
     </div>

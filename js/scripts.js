@@ -71,9 +71,10 @@
       a.classList.toggle('active', activo);
       if (activo) a.setAttribute('aria-current', 'page'); else a.removeAttribute('aria-current');
     });
+    $$('.btn-nav-icono').forEach((a) => a.classList.toggle('active', a.dataset.tab === id));
     setMenu(false);
     if (scroll) window.scrollTo({ top: 0, behavior: reduceMotion ? 'auto' : 'smooth' });
-    const titulos = { home: 'Insanity Society — Ropa de entrenamiento con carácter', colecciones: 'Colecciones', sociedad: 'La Sociedad', tienda: 'Tienda', blog: 'Comunidad' };
+    const titulos = { home: 'Insanity Society — Ropa de entrenamiento con carácter', colecciones: 'Colecciones', sociedad: 'La Sociedad', tienda: 'Tienda', blog: 'Comunidad', favoritos: 'Favoritos', mispedidos: 'Mis pedidos' };
     document.title = id === 'home' ? titulos.home : `${titulos[id]} | Insanity Society`;
   }
   // Admite #tienda/RAIJIN para abrir la tienda filtrada por colección
@@ -291,6 +292,12 @@
     return m[slug(c).replace(/-/g, ' ')] || '#666';
   }
 
+  // ---------- Favoritos (se guardan en este dispositivo) ----------
+  const CLAVE_FAV = 'insanity-favoritos';
+  let favoritos = new Set((storage.get(CLAVE_FAV) || []).filter((x) => typeof x === 'string'));
+  const esFavorito = (id) => favoritos.has(id);
+  const botonFav = (p, extra = '') => `<button type="button" class="btn-fav ${extra}" data-fav="${esc(p.id)}" aria-pressed="${esFavorito(p.id)}" aria-label="${esFavorito(p.id) ? 'Quitar de favoritos' : 'Agregar a favoritos'}: ${esc(p.nombre)}" title="Favoritos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.6 4.2 13A5 5 0 0 1 12 6.6 5 5 0 0 1 19.8 13Z"/></svg></button>`;
+
   function tarjetaProducto(p, pref = 't') {
     const uid = `${pref}-${p.id}`;
     const pct = ofertaActiva(p);
@@ -320,7 +327,7 @@
         </div>
         <div class="producto-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
-          <h4 class="producto-nombre">${esc(p.nombre)}</h4>
+          <div class="nombre-fila"><h4 class="producto-nombre">${esc(p.nombre)}</h4>${botonFav(p, 'btn-fav--inline')}</div>
           <p class="producto-material">${esc(p.material)}</p>
           <p class="precio">${sinPrecio ? 'Precio por confirmar' : precioHtml(p, varIni)}</p>
           ${pct && p.oferta_hasta ? `<p class="oferta-hasta">Oferta hasta el ${esc(fechaCorta(p.oferta_hasta))}</p>` : ''}
@@ -357,7 +364,8 @@
     const precio = p.precio == null ? 'Precio por confirmar'
       : (p.variantes?.length > 1 && new Set(p.variantes.map((v) => v.precio)).size > 1 ? '<span class="mini-desde">Desde</span> ' : '') + precioHtml(p, p.variantes?.length ? p.variantes.reduce((a, b) => (b.precio < a.precio ? b : a)).nombre : undefined);
     return `
-      <article class="card producto producto-mini${agotado(p) ? ' is-agotado' : ''}" data-id="${esc(p.id)}">
+      <article class="card producto producto-mini${agotado(p) ? ' is-agotado' : ''}${pct ? ' con-oferta' : ''}" data-id="${esc(p.id)}">
+        ${botonFav(p)}
         <button type="button" class="product-media mini-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}" data-abrir aria-label="Ver detalles de ${esc(p.nombre)}">
           ${imgs ? `<img class="product-img" src="${esc(imgs.frente)}" alt="${esc(p.nombre)}" width="900" height="900" loading="lazy" decoding="async" />` : ''}
           ${imgs?.espalda ? `<img class="mini-img-alt" src="${esc(imgs.espalda)}" alt="" width="900" height="900" loading="lazy" decoding="async" aria-hidden="true" />` : ''}
@@ -504,6 +512,139 @@
   $('#cerrarProducto')?.addEventListener('click', cerrarProducto);
   productoModal?.addEventListener('click', (e) => { if (e.target === productoModal) cerrarProducto(); });
   const contenedoresTarjetas = [productoBody].filter(Boolean);
+
+  // ---------- Favoritos: corazón, contador y sección #favoritos ----------
+  function renderFavoritos() {
+    const n = [...favoritos].filter((id) => productosPorId.has(id)).length;
+    const cont = $('#contadorFav');
+    if (cont) { cont.textContent = n; cont.classList.toggle('hidden', !n); }
+    const grid = $('#favoritosGrid'); if (!grid) return;
+    const lista = PRODUCTOS.filter((p) => favoritos.has(p.id));
+    $('#favoritosVacio')?.classList.toggle('hidden', lista.length > 0);
+    grid.innerHTML = lista.map(tarjetaMini).join('');
+  }
+  function alternarFavorito(id) {
+    const p = productosPorId.get(id); if (!p) return;
+    if (favoritos.has(id)) favoritos.delete(id); else favoritos.add(id);
+    storage.set(CLAVE_FAV, [...favoritos]);
+    const activo = favoritos.has(id);
+    $$(`.btn-fav[data-fav="${CSS.escape(id)}"]`).forEach((b) => {
+      b.setAttribute('aria-pressed', activo);
+      b.setAttribute('aria-label', `${activo ? 'Quitar de favoritos' : 'Agregar a favoritos'}: ${p.nombre}`);
+      if (activo && !reduceMotion) { b.classList.remove('latido'); void b.offsetWidth; b.classList.add('latido'); }
+    });
+    toast(activo ? `♥ Guardado en favoritos: ${p.nombre}` : `Quitado de favoritos: ${p.nombre}`);
+    renderFavoritos();
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('.btn-fav[data-fav]'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    alternarFavorito(b.dataset.fav);
+  }, true);
+  $('#favoritosGrid')?.addEventListener('click', (e) => {
+    const card = e.target.closest('.producto-mini');
+    if (card && (e.target.closest('[data-abrir]') || !e.target.closest('button, a'))) abrirProducto(card.dataset.id);
+  });
+  renderFavoritos();
+
+  // ---------- Mis pedidos: seguimiento sin cuentas ----------
+  // Los pedidos hechos en este dispositivo se guardan aquí (número + celular).
+  // El estado se consulta en Supabase con ese par; sin él, no se ve nada.
+  const CLAVE_MIS_PEDIDOS = 'insanity-mis-pedidos';
+  const misPedidos = () => (storage.get(CLAVE_MIS_PEDIDOS) || []).filter((x) => x && x.id && x.celular);
+  function recordarPedido(id, celular) {
+    const lista = misPedidos().filter((x) => String(x.id) !== String(id));
+    lista.unshift({ id: Number(id), celular: String(celular).replace(/\D/g, '') });
+    storage.set(CLAVE_MIS_PEDIDOS, lista.slice(0, 20));
+  }
+  const ESTADO_CLIENTE = {
+    pendiente: { txt: 'Recibido', det: 'Te escribiremos por WhatsApp para confirmar el pago.', paso: 0 },
+    confirmado: { txt: 'Pago confirmado', det: 'Estamos preparando tu pedido.', paso: 1 },
+    enviado: { txt: 'Enviado', det: 'Tu pedido va en camino.', paso: 2 },
+    entregado: { txt: 'Entregado', det: '¡Gracias por ser parte de la Sociedad!', paso: 3 },
+    cancelado: { txt: 'Cancelado', det: 'Este pedido fue cancelado. Si es un error, escríbenos.', paso: -1 }
+  };
+  const PASOS = ['Recibido', 'Pago confirmado', 'Enviado', 'Entregado'];
+  const fechaPedido = (t) => new Date(t).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Bogota' });
+
+  async function consultarPedidos(pares) {
+    const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/consultar_pedidos`, {
+      method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ p_consultas: pares.map((x) => ({ id: x.id, celular: x.celular })) })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.json();
+  }
+  function tarjetaPedido(p) {
+    const est = ESTADO_CLIENTE[p.estado] || ESTADO_CLIENTE.pendiente;
+    const pasos = est.paso < 0 ? '' : `<ol class="pedido-pasos" aria-label="Progreso del pedido">${PASOS.map((t, i) =>
+      `<li class="${i < est.paso ? 'hecho' : i === est.paso ? 'actual' : ''}"${i === est.paso ? ' aria-current="step"' : ''}><span></span>${t}</li>`).join('')}</ol>`;
+    const msg = `Hola, quiero saber de mi pedido #${p.id}`;
+    return `
+      <article class="pedido-card estado-${esc(p.estado)}" data-pedido="${p.id}">
+        <header class="pedido-head">
+          <div><h3>Pedido #${p.id}</h3><p class="pedido-fecha">${esc(fechaPedido(p.fecha))}${p.ciudad ? ' · ' + esc(p.ciudad) : ''}</p></div>
+          <span class="pedido-estado">${esc(est.txt)}</span>
+        </header>
+        ${pasos}
+        <p class="pedido-det">${esc(est.det)}</p>
+        ${p.guia ? `<p class="pedido-guia">Guía de envío: <strong>${esc(p.guia)}</strong></p>` : ''}
+        <ul class="pedido-items">${(p.items || []).map((i) => `<li><span>${i.cantidad}× ${esc(i.nombre)} <small>${esc([i.variante, i.color, i.talla].filter(Boolean).join(' · '))}</small></span><span>${dinero(i.precio * i.cantidad)}</span></li>`).join('')}</ul>
+        <p class="pedido-total">${p.descuento ? `<small>Descuento ${p.cupon ? esc(p.cupon) : ''}: −${dinero(p.descuento)}</small>` : ''}<span>Total</span> <strong>${dinero(p.total)}</strong></p>
+        <div class="pedido-acciones">
+          <a class="btn-secundario" target="_blank" rel="noopener" href="https://wa.me/${numeroWa}?text=${encodeURIComponent(msg)}">Preguntar por WhatsApp</a>
+          <button type="button" class="link-btn" data-olvidar="${p.id}">Quitar de esta lista</button>
+        </div>
+      </article>`;
+  }
+  let cargandoMisPedidos = false;
+  async function renderMisPedidos() {
+    const cont = $('#misPedidosLista'); if (!cont) return;
+    const pares = misPedidos();
+    if (!conSupabase) { cont.innerHTML = '<p class="mis-pedidos-vacio">El seguimiento de pedidos no está disponible en este momento. Escríbenos por WhatsApp.</p>'; return; }
+    if (!pares.length) { cont.innerHTML = '<p class="mis-pedidos-vacio">Aún no hay pedidos guardados en este dispositivo. Cuando hagas uno, aparecerá aquí con su estado.</p>'; return; }
+    if (cargandoMisPedidos) return;
+    cargandoMisPedidos = true;
+    cont.innerHTML = '<p class="mis-pedidos-vacio">Consultando tus pedidos…</p>';
+    try {
+      const data = await consultarPedidos(pares);
+      cont.innerHTML = data.length ? data.map(tarjetaPedido).join('')
+        : '<p class="mis-pedidos-vacio">No encontramos los pedidos guardados. Si crees que es un error, escríbenos por WhatsApp.</p>';
+    } catch {
+      cont.innerHTML = '<p class="mis-pedidos-vacio">No pudimos consultar tus pedidos ahora. Revisa tu conexión e intenta de nuevo.</p>';
+    } finally { cargandoMisPedidos = false; }
+  }
+  $('#misPedidosLista')?.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-olvidar]'); if (!b) return;
+    storage.set(CLAVE_MIS_PEDIDOS, misPedidos().filter((x) => String(x.id) !== b.dataset.olvidar));
+    b.closest('.pedido-card')?.remove();
+    if (!misPedidos().length) renderMisPedidos();
+  });
+  $('#buscarPedidoForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const id = $('#bpNumero').value.replace(/\D/g, '');
+    const cel = $('#bpCelular').value.replace(/\D/g, '');
+    const msg = $('#bpMsg');
+    const decir = (t, cls) => { msg.textContent = t; msg.className = `cupon-msg ${cls}`; };
+    if (!id || cel.length < 10) { decir('Escribe el número de pedido y el celular (10 dígitos) con el que lo hiciste.', 'cupon-msg--error'); return; }
+    if (!conSupabase) { decir('El seguimiento no está disponible ahora. Escríbenos por WhatsApp.', 'cupon-msg--error'); return; }
+    const btn = e.submitter || $('#buscarPedidoForm button'); btn.disabled = true;
+    try {
+      const data = await consultarPedidos([{ id, celular: cel }]);
+      if (!data.length) { decir('No encontramos un pedido con esos datos. Revisa el número y el celular.', 'cupon-msg--error'); return; }
+      recordarPedido(id, cel);
+      decir(`Pedido #${id} encontrado.`, 'cupon-msg--ok');
+      $('#buscarPedidoForm').reset();
+      renderMisPedidos();
+    } catch { decir('No pudimos consultar ahora. Intenta de nuevo.', 'cupon-msg--error'); }
+    finally { btn.disabled = false; }
+  });
+  window.addEventListener('hashchange', () => {
+    const { id } = leerHash();
+    if (id === 'mispedidos') renderMisPedidos();
+    if (id === 'favoritos') renderFavoritos();
+  });
+  if (leerHash().id === 'mispedidos') renderMisPedidos();
 
   // Imagen que no carga → recuadro con el nombre de la colección
   [catalogo, destacadosGrid, productoBody].filter(Boolean).forEach((cont) => cont.addEventListener('error', (e) => {
@@ -732,8 +873,9 @@
     if (msg && cupon && sub > 0 && sub < (cupon.minimo_compra || 0)) {
       msg.textContent = `El código ${cupon.codigo} aplica en compras desde ${dinero(cupon.minimo_compra)}.`;
       msg.className = 'cupon-msg cupon-msg--aviso';
-    } else if (msg && cupon && msg.classList.contains('cupon-msg--aviso')) {
-      msg.className = 'cupon-msg hidden';
+    } else if (msg && (!cupon || msg.classList.contains('cupon-msg--aviso'))) {
+      msg.className = 'cupon-msg hidden'; // sin cupón (o ya cumple el mínimo): nada que avisar
+      if (!cupon) msg.textContent = '';
     }
   }
   $('#cuponForm')?.addEventListener('submit', async (e) => {
@@ -1014,23 +1156,29 @@
   // igual se envía por WhatsApp: nunca se bloquea una venta por esto.
   async function registrarPedido(cliente) {
     if (!conSupabase) return null;
-    try {
-      const ctrl = new AbortController();
-      const t = setTimeout(() => ctrl.abort(), 5000);
-      const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/crear_pedido`, {
-        method: 'POST', signal: ctrl.signal,
-        headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          p_items: carrito.map((i) => ({ id: i.id, color: i.color, talla: i.talla, variante: i.variante || null, cantidad: i.cantidad })),
-          p_cliente: cliente,
-          p_cupon: descuentoCupon() ? cupon.codigo : null
-        })
-      });
-      clearTimeout(t);
-      if (!r.ok) return null;
-      const id = await r.json();
-      return Number(id) || null;
-    } catch { return null; }
+    const cuerpo = JSON.stringify({
+      p_items: carrito.map((i) => ({ id: i.id, color: i.color, talla: i.talla, variante: i.variante || null, cantidad: i.cantidad })),
+      p_cliente: cliente,
+      p_cupon: descuentoCupon() ? cupon.codigo : null
+    });
+    for (let intento = 1; intento <= 2; intento++) {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 8000);
+        const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/crear_pedido`, {
+          method: 'POST', signal: ctrl.signal,
+          headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
+          body: cuerpo
+        });
+        clearTimeout(t);
+        if (r.ok) return Number(await r.json()) || null;
+        console.warn('[Insanity] No se pudo registrar el pedido:', r.status, await r.text());
+        if (r.status < 500) return null; // error de datos: reintentar no ayuda
+      } catch (err) {
+        console.warn('[Insanity] No se pudo registrar el pedido (intento ' + intento + '):', err?.name || err);
+      }
+    }
+    return null;
   }
 
   let enviando = false;
@@ -1056,6 +1204,7 @@
       departamento: f.dep.value, ciudad, direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim(), notas: f.notas.value.trim()
     });
     enviando = false; btnEnviar.disabled = false; btnEnviar.textContent = btnEnviar.dataset.texto;
+    if (numeroPedido) recordarPedido(numeroPedido, f.celular.value);
 
     const lineas = carrito.map((i) => `• ${i.nombre}\n   ${detalleItem(i)} · Cant: ${i.cantidad} · ${dinero(i.precio * i.cantidad)}`);
     const mensaje = [
@@ -1082,7 +1231,7 @@
     guardarYRender();
     form.reset();
     setCheckout(false);
-    toast(numeroPedido ? `¡Pedido #${numeroPedido} listo! Envía el mensaje en WhatsApp para confirmarlo.` : '¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
+    toast(numeroPedido ? `¡Pedido #${numeroPedido} listo! Envía el mensaje en WhatsApp. Puedes seguirlo en «Mis pedidos».` : '¡Pedido listo! Envía el mensaje en WhatsApp para confirmarlo.');
   });
 
   // ---------- Acceso secreto al panel ----------

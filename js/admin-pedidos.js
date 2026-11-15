@@ -120,7 +120,7 @@
         <div class="admin-item-info">
           <h3>${e(p.cliente_nombre || 'Sin nombre')}${lugarDe(p) ? ` <span class="ped-lugar">· ${e(lugarDe(p))}</span>` : ''}</h3>
           <p class="admin-meta ped-resumen">${e(resumenItems(p))}</p>
-          <p class="ped-total">${dinero(p.total)} <span class="admin-meta">· ${e(CANALES[p.canal] || p.canal)}${p.cupon ? ' · ' + e(p.cupon) : ''}</span></p>
+          <p class="ped-total">${dinero(p.total)} <span class="admin-meta">· ${e(CANALES[p.canal] || p.canal)}${p.cupon ? ' · ' + e(p.cupon) : ''}${p.guia ? ' · Guía ' + e(p.guia) : ''}</span></p>
         </div>
         <div class="admin-item-acciones">
           <select class="ped-estado" data-accion="estado" aria-label="Estado del pedido #${p.id}">${opcionesEstado(p.estado)}</select>
@@ -179,12 +179,32 @@
           <tr class="ped-tabla-total"><th colspan="2">Total</th><td>${dinero(p.total)}</td></tr>
         </tfoot>
       </table>
+      <div class="ped-guia">
+        <label for="pedGuia">Guía de envío <small class="admin-hint">(el cliente la ve en «Mis pedidos»)</small></label>
+        <div class="ped-guia-fila">
+          <input id="pedGuia" type="text" maxlength="120" placeholder="Ej: Servientrega 2190000001" value="${e(p.guia || '')}" />
+          <button id="pedGuiaGuardar" class="btn-secundario" type="button">Guardar</button>
+        </div>
+      </div>
       <table class="ped-cliente">
         ${fila('Nombre', p.cliente_nombre)}${fila('Cédula', p.cedula)}${fila('Celular', p.celular)}
         ${fila('Ciudad', lugarDe(p))}${fila('Dirección', p.direccion)}${fila('Barrio', p.barrio)}${fila('Notas', p.notas)}
       </table>
       ${cel ? `<a class="btn-secundario ped-wa" href="https://wa.me/${cel.length === 10 ? '57' + cel : cel}?text=${encodeURIComponent(`Hola ${p.cliente_nombre || ''}, te escribimos de Insanity Society por tu pedido #${p.id}.`)}" target="_blank" rel="noopener">Escribirle por WhatsApp</a>` : ''}`;
     $('#pedEstadoModal').addEventListener('change', (ev) => cambiarEstado(id, ev.target.value));
+    $('#pedGuiaGuardar').addEventListener('click', async () => {
+      const guia = $('#pedGuia').value.trim() || null;
+      const btn = $('#pedGuiaGuardar'); btn.disabled = true;
+      const { error } = await core.sb.from('pedidos').update({ guia }).eq('id', id);
+      btn.disabled = false;
+      if (error) {
+        core.toast(/guia/i.test(error.message || '') ? 'Falta activar «Mis pedidos»: ejecuta supabase/mis-pedidos.sql en Supabase.' : core.traducir(error));
+        return;
+      }
+      p.guia = guia;
+      core.toast(guia ? `Guía guardada en el pedido #${id}` : `Guía borrada del pedido #${id}`);
+      renderPedidos();
+    });
     $('#pedidoModal').classList.remove('hidden');
     $('#cerrarPedido').focus();
   }

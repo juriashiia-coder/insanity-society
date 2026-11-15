@@ -45,6 +45,7 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 
 1. **SQL Editor** → **New query**.
 2. Pega `supabase/pedidos.sql` y pulsa **Run** (después de los pasos 2c y 2d).
+3. Luego pega `supabase/mis-pedidos.sql` y pulsa **Run** (seguimiento para clientes y guía de envío).
 
 ## 3. Crear tu usuario de administrador
 
@@ -137,8 +138,14 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - Cada compra hecha en la web se guarda sola como **pendiente**, con un número (ej. #1001) que también aparece en el mensaje de WhatsApp que te llega. La pestaña muestra cuántos pendientes hay.
 - Cuando el cliente pague, cambia el estado a **Confirmado** (luego Enviado → Entregado). Si no compra, márcalo **Cancelado**.
 - **Ver** muestra todos los datos de envío y un botón para escribirle al cliente por WhatsApp.
+- **Guía de envío:** en *Ver* escribe la transportadora y el número de guía y pulsa *Guardar*. El cliente la ve en «Mis pedidos».
 - **+ Registrar venta**: para ventas por Instagram, en persona o por WhatsApp directo, así también cuentan en las estadísticas.
 - Los precios de los pedidos web se calculan en el servidor (con ofertas y cupón); nadie puede alterarlos desde el navegador. Los datos de los clientes solo los ve el administrador.
+
+### Lo que ve el cliente
+
+- **Mis pedidos** (icono de caja arriba, o en el menú del celular): los pedidos hechos en ese dispositivo aparecen solos con su estado (Recibido → Pago confirmado → Enviado → Entregado) y la guía. Desde otro dispositivo se consultan con el número de pedido + el celular. No se muestra dirección, cédula ni nombre.
+- **Favoritos** (corazón): cada cliente guarda prendas con el ♥ de las tarjetas. Se guardan en su dispositivo, sin cuenta.
 
 ### Estadísticas
 

@@ -297,3 +297,8 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
   .est-serie-plot { height: 190px; margin-left: 3.1rem; }
 }
 .admin-form input[type=date] { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .6rem .8rem; border-radius: 10px; width: 100%; color-scheme: dark; }
+.ped-guia { margin-bottom: 1rem; }
+.ped-guia label { display: block; font-size: .85rem; font-weight: 700; margin-bottom: .35rem; }
+.ped-guia-fila { display: flex; gap: .5rem; }
+.ped-guia-fila input { flex: 1; min-width: 0; background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .6rem .75rem; border-radius: 10px; }
+.ped-guia-fila input:focus { outline: none; border-color: #fff; }
