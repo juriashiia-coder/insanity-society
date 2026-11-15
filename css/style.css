@@ -551,3 +551,47 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 .guia-tela li { margin: .3rem 0; }
 .guia-tela strong { color: #fff; }
 @container (max-width: 230px) { .guia-link { font-size: .85em; } }
+
+/* ---------- Destacados, ofertas y cupones ---------- */
+.destacados { max-width: 1280px; margin: 0 auto; padding: 2rem clamp(1rem, 4vw, 2.5rem) 1rem; }
+.destacados-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; flex-wrap: wrap; }
+.destacados-head h2 { color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; font-size: clamp(1.4rem, 3vw, 2rem); }
+.destacados-head .col-cta { padding-top: 0; }
+.badge-oferta {
+  position: absolute; top: .55rem; right: .55rem; z-index: 2;
+  background: var(--accent); color: #fff; font-weight: 800; font-size: .8rem; padding: .2rem .55rem; border-radius: 999px;
+  box-shadow: 0 4px 12px rgba(229,9,20,.4);
+}
+.precio-antes { color: #888; font-weight: 600; font-size: .82em; text-decoration: line-through; margin-right: .2rem; }
+.precio-oferta { color: #ff4d55; }
+.oferta-hasta { font-size: .78rem; color: #ff8a8a; margin-top: -.2rem; }
+.promo-bar {
+  display: flex; align-items: center; justify-content: center; gap: .5rem; position: relative;
+  background: linear-gradient(90deg, var(--accent-dark), var(--accent)); color: #fff; font-weight: 700; font-size: .9rem;
+  padding: .55rem 2.75rem; text-align: center;
+}
+.promo-bar[hidden] { display: none !important; }
+.promo-bar a { color: #fff; text-decoration: none; }
+.promo-bar a:hover { text-decoration: underline; }
+.promo-bar .icon-btn { position: absolute; right: .4rem; top: 50%; transform: translateY(-50%); font-size: .95rem; }
+.cupon { margin-bottom: .75rem; }
+.cupon-form { display: flex; gap: .4rem; }
+.cupon-form input { flex: 1; min-width: 0; background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .6rem .75rem; border-radius: 8px; text-transform: uppercase; }
+.cupon-form input::placeholder { text-transform: none; color: #666; }
+.cupon-form input:focus { outline: none; border-color: #fff; }
+.cupon-form .btn-secundario { padding-inline: .9rem; }
+.cupon-aplicado { display: flex; justify-content: space-between; align-items: center; background: rgba(46,160,67,.12); border: 1px dashed #2ea043; border-radius: 8px; padding: .5rem .75rem; font-size: .9rem; }
+.cupon-msg { font-size: .82rem; margin-top: .4rem; }
+.cupon-msg--ok { color: #56d364; }
+.cupon-msg--error { color: #ff6b70; }
+.cupon-msg--aviso { color: #ffb84d; }
+.carrito-fila { display: flex; justify-content: space-between; font-size: .92rem; color: #cfcfcf; margin-bottom: .35rem; }
+.carrito-fila--desc { color: #56d364; }
+.checkout-desc { display: block; color: #56d364; font-weight: 600; font-size: .88rem; margin-bottom: .2rem; }
+.checkout-total small { color: #888; font-weight: 400; }
+@media (max-width: 700px) {
+  .destacados { padding: 1.5rem 1rem .5rem; }
+  .badge-oferta { font-size: .72rem; top: .4rem; right: .4rem; }
+  .promo-bar { font-size: .82rem; padding: .5rem 2.4rem .5rem 1rem; }
+}
+.badge-oferta--inline { position: static; display: inline-block; vertical-align: middle; box-shadow: none; }

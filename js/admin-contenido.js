@@ -24,6 +24,10 @@
         AREA('subtitulo', 'Subtítulo', { filas: 2 }),
         TXT('boton_tienda', 'Texto del botón principal (va a la tienda)'),
         TXT('boton_colecciones', 'Texto del botón secundario (va a colecciones)'),
+        CHECK('promo_activa', 'Mostrar barra de promoción arriba de la web'),
+        TXT('promo_texto', 'Texto de la barra de promoción', { placeholder: 'Ej: 🔥 20% OFF en Dark Rebirth · Usa el código INSANE20' }),
+        TXT('promo_enlace', 'Enlace de la barra (opcional)', { placeholder: 'Ej: #tienda o #tienda/DARK REBIRTH' }),
+        TXT('destacados_titulo', 'Título de la sección de productos destacados', { placeholder: 'Destacados', ayuda: 'Los productos destacados se eligen en la pestaña Productos (★ Destacado en Inicio).' }),
         IMG('imagen_portada', 'Imagen de portada', { ayuda: 'Se ve en celulares y mientras carga el video. Vacío = foto actual de la sentadilla.' }),
         { k: 'franja', l: 'Franja de beneficios (debajo de la portada)', t: 'lista', item: 'Beneficio', tituloDe: 'titulo', max: 4,
           campos: [TXT('titulo', 'Título', { req: true }), TXT('texto', 'Texto')] }
@@ -124,10 +128,13 @@
     seccion = id;
     $$('.admin-tab').forEach((t) => t.classList.toggle('active', t.dataset.seccion === id));
     const esProductos = id === 'productos';
+    const esCupones = id === 'cupones';
     $('#subProductos').classList.toggle('hidden', !esProductos);
-    $('#subContenido').classList.toggle('hidden', esProductos);
+    $('#subCupones').classList.toggle('hidden', !esCupones);
+    $('#subContenido').classList.toggle('hidden', esProductos || esCupones);
     datos = null; original = '';
-    if (esProductos) return;
+    document.dispatchEvent(new CustomEvent('admin:seccion', { detail: id }));
+    if (esProductos || esCupones) return;
     const esq = ESQUEMAS[id];
     $('#contenidoTitulo').textContent = esq.titulo;
     $('#contenidoAyuda').textContent = esq.ayuda || '';

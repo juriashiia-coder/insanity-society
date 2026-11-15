@@ -32,6 +32,7 @@
     if (/duplicate key|already exists/i.test(m)) return 'Ya existe un producto con ese nombre. Cambia el nombre.';
     if (/row-level security|permission denied/i.test(m)) return 'Tu cuenta no tiene permiso para esta acción.';
     if (/Failed to fetch|NetworkError/i.test(m)) return 'Sin conexión con Supabase. Revisa tu internet y js/config.js.';
+    if (/destacado|oferta_pct|oferta_hasta|cupones|validar_cupon/i.test(m) && /does not exist|schema cache|could not find/i.test(m)) return 'Falta activar las promociones: ejecuta supabase/promos.sql en Supabase (SQL Editor).';
     return m;
   };
 
@@ -86,6 +87,11 @@
     renderLista();
   }
 
+  const ofertaVigente = (p) => Number(p.oferta_pct) > 0 && (!p.oferta_hasta || new Date(p.oferta_hasta) > new Date());
+  const fechaCorta = (f) => new Date(f).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' });
+  // Fecha (YYYY-MM-DD) <-> fin de ese día en hora de Colombia
+  const aFinDeDia = (d) => (d ? `${d}T23:59:59-05:00` : null);
+  const aFechaInput = (iso) => { if (!iso) return ''; const d = new Date(new Date(iso).getTime() - 5 * 3600 * 1000); return d.toISOString().slice(0, 10); };
   const primeraFoto = (p) => { const i = p.imagenes && Object.values(p.imagenes)[0]; return i?.frente || i?.espalda || null; };
 
   function renderLista() {
@@ -93,7 +99,8 @@
     const estado = $('#filtroEstado').value;
     const lista = productos.filter((p) =>
       (!q || slug(p.nombre + ' ' + p.coleccion).includes(q)) &&
-      (estado === 'todos' || (estado === 'activos' ? p.activo : !p.activo)));
+      (estado === 'todos' || (estado === 'activos' && p.activo) || (estado === 'ocultos' && !p.activo) ||
+       (estado === 'destacados' && p.destacado) || (estado === 'ofertas' && ofertaVigente(p))));
     $('#conteo').textContent = `${lista.length} de ${productos.length}`;
     $('#listaProductos').innerHTML = lista.length ? lista.map((p) => {
       const foto = primeraFoto(p);
@@ -104,6 +111,7 @@
         <div class="admin-item-info">
           <p class="producto-col">${esc(p.coleccion)}</p>
           <h3>${esc(p.nombre)}</h3>
+          ${p.destacado || p.oferta_pct ? `<p class="admin-badges">${p.destacado ? '<span class="admin-badge">★ Destacado</span>' : ''}${p.oferta_pct ? `<span class="admin-badge admin-badge--oferta${ofertaVigente(p) ? '' : ' is-vencida'}">-${p.oferta_pct}%${p.oferta_hasta ? ' hasta ' + esc(fechaCorta(p.oferta_hasta)) : ''}${ofertaVigente(p) ? '' : ' (vencida)'}</span>` : ''}</p>` : ''}
           <p class="admin-meta">${esc(precio)} · ${esc(p.colores.join(', '))} · ${esc(p.tallas.join(' '))}</p>
         </div>
         <div class="admin-item-acciones">
@@ -155,6 +163,10 @@
     $('#pPrecio').value = p?.precio != null ? Number(p.precio).toLocaleString('es-CO') : '';
     $('#pOrden').value = p?.orden ?? (Math.max(0, ...productos.map((x) => x.orden || 0)) + 10);
     $('#pActivo').checked = p ? p.activo : true;
+    $('#pDestacado').checked = !!p?.destacado;
+    $('#pOfertaPct').value = p?.oferta_pct || '';
+    $('#pOfertaHasta').value = aFechaInput(p?.oferta_hasta);
+    actualizarVistaOferta();
     $('#btnBorrar').classList.toggle('hidden', !p);
     errorEn('#editorError', '');
     actualizarId();
@@ -163,6 +175,17 @@
     document.body.classList.add('no-scroll');
     $('#pNombre').focus();
   }
+  function actualizarVistaOferta() {
+    const pct = parseInt($('#pOfertaPct').value, 10) || 0;
+    const base = estado.variantes.length ? Math.min(...estado.variantes.filter((v) => v.precio != null).map((v) => v.precio)) : soloNumero($('#pPrecio').value);
+    const el = $('#pOfertaVista');
+    if (!pct) { el.textContent = 'Sin oferta.'; return; }
+    if (pct > 90) { el.textContent = 'Máximo 90%.'; return; }
+    el.textContent = base && isFinite(base) ? `Precio con oferta: ${dinero(Math.round(base * (1 - pct / 100) / 100) * 100)}${estado.variantes.length ? ' (variante más barata)' : ''} en lugar de ${dinero(base)}.` : `${pct}% de descuento.`;
+  }
+  ['#pOfertaPct', '#pPrecio'].forEach((s) => $(s).addEventListener('input', actualizarVistaOferta));
+  $('#pOfertaPct').addEventListener('input', (e) => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 2); });
+
   function cerrarEditor() { modal.classList.add('hidden'); document.body.classList.remove('no-scroll'); editando = null; }
   $('#btnNuevo').addEventListener('click', () => abrirEditor(null));
   $('#cerrarEditor').addEventListener('click', cerrarEditor);
@@ -325,7 +348,10 @@
       variantes: variantes.length ? variantes.map((v) => ({ nombre: v.nombre.trim(), precio: v.precio })) : null,
       imagenes: Object.keys(imagenes).length ? imagenes : null,
       orden: parseInt($('#pOrden').value, 10) || 0,
-      activo: $('#pActivo').checked
+      activo: $('#pActivo').checked,
+      destacado: $('#pDestacado').checked,
+      oferta_pct: Math.min(90, parseInt($('#pOfertaPct').value, 10) || 0) || null,
+      oferta_hasta: (parseInt($('#pOfertaPct').value, 10) || 0) ? aFinDeDia($('#pOfertaHasta').value) : null
     };
 
     const btn = $('#btnGuardar');

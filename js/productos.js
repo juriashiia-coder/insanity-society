@@ -219,5 +219,11 @@ const PRODUCTOS_DESCONTINUADOS = [
 // Número de WhatsApp que recibe los pedidos (formato internacional, sin +)
 const WHATSAPP_NUMERO = '573241457674';
 
+// Destacados iniciales en Inicio (en Supabase se eligen desde el panel)
+['control-vs-chaos', 'revelation', 'awakening', 'insane-premium'].forEach((id) => {
+  const p = PRODUCTOS.find((x) => x.id === id);
+  if (p) p.destacado = true;
+});
+
 // Respaldo: la tienda usa esta lista si Supabase no está configurado o no responde
 window.PRODUCTOS_LOCAL = PRODUCTOS;

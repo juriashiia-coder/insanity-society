@@ -139,3 +139,21 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
   .admin .modal-footer .admin-espacio { display: none; }
   #btnBorrar { order: 3; flex: 1 1 100%; }
 }
+
+/* ---------- Promociones y cupones ---------- */
+.admin-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin: .15rem 0 .1rem; }
+.admin-badge { font-size: .72rem; font-weight: 800; padding: .1rem .5rem; border-radius: 999px; background: #2a2410; color: #ffd166; border: 1px solid #4a3d10; }
+.admin-badge--oferta { background: rgba(229,9,20,.15); color: #ff8a8a; border-color: #5a0000; }
+.admin-badge.is-vencida { opacity: .6; text-decoration: line-through; }
+.admin-cupon { grid-template-columns: auto 1fr auto; }
+.admin-cupon-codigo {
+  font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 800; font-size: 1rem; letter-spacing: 1px;
+  color: #fff; background: #1d1d1d; border: 1px dashed #555; border-radius: 8px; padding: .5rem .7rem; white-space: nowrap;
+}
+.admin-editor--cupon { width: min(560px, 100%); }
+#cCodigo { text-transform: uppercase; font-family: ui-monospace, Menlo, Consolas, monospace; letter-spacing: 1px; }
+@media (max-width: 700px) {
+  .admin-cupon { grid-template-columns: 1fr; }
+  .admin-cupon-codigo { justify-self: start; }
+  .admin-item-acciones { flex-wrap: wrap; }
+}

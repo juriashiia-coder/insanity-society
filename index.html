@@ -51,6 +51,11 @@
     </nav>
   </header>
 
+  <div id="promoBar" class="promo-bar" hidden>
+    <p id="promoTexto"></p>
+    <button id="cerrarPromo" class="icon-btn" type="button" aria-label="Cerrar aviso">✕</button>
+  </div>
+
   <main id="main">
     <!-- HOME -->
     <section id="home" class="tab-content active" aria-labelledby="home-title">
@@ -74,6 +79,14 @@
         <div><strong>Envíos</strong><span>a todo Colombia</span></div>
         <div><strong>Pedido directo</strong><span>por WhatsApp</span></div>
         <div><strong>Algodón premium</strong><span>200 g · corte oversize</span></div>
+      </div>
+
+      <div id="destacados" class="destacados" hidden>
+        <div class="destacados-head">
+          <h2 id="destacadosTitulo">Destacados</h2>
+          <a class="col-cta" href="#tienda" data-tab="tienda">Ver toda la tienda →</a>
+        </div>
+        <div class="productos" id="destacadosGrid"></div>
       </div>
     </section>
 
@@ -244,6 +257,7 @@
           <button id="closeFilters" class="icon-btn" type="button" aria-label="Cerrar filtros">✕</button>
         </div>
         <div class="filters-content">
+          <fieldset class="filter-group" hidden><legend>Ofertas</legend><div class="filter-options" id="filtroOferta"></div></fieldset>
           <fieldset class="filter-group"><legend>Categoría</legend><div class="filter-options" id="filtroCategoria"></div></fieldset>
           <fieldset class="filter-group"><legend>Colección</legend><div class="filter-options" id="filtroColeccion"></div></fieldset>
           <fieldset class="filter-group"><legend>Talla</legend><div class="filter-options" id="filtroTalla"></div></fieldset>
@@ -313,6 +327,19 @@
     <ul id="lista-carrito" class="lista-carrito"></ul>
     <p id="carritoVacio" class="carrito-vacio">Tu carrito está vacío.</p>
     <div class="carrito-footer">
+      <div class="cupon">
+        <form id="cuponForm" class="cupon-form" novalidate>
+          <input id="cuponInput" type="text" placeholder="Código de descuento" autocomplete="off" autocapitalize="characters" maxlength="30" aria-label="Código de descuento" />
+          <button class="btn-secundario" type="submit">Aplicar</button>
+        </form>
+        <div id="cuponAplicado" class="cupon-aplicado hidden">
+          <span>🏷️ <strong id="cuponCodigo"></strong> aplicado</span>
+          <button id="quitarCupon" type="button" class="item-quitar">Quitar</button>
+        </div>
+        <p id="cuponMsg" class="cupon-msg hidden" role="status"></p>
+      </div>
+      <p id="filaSubtotal" class="carrito-fila hidden">Subtotal <span id="subtotal">$0</span></p>
+      <p id="filaDescuento" class="carrito-fila carrito-fila--desc hidden"><span id="descuentoTxt">Descuento</span> <span id="descuentoValor">−$0</span></p>
       <p class="carrito-total">Total <span id="total">$0</span></p>
       <button id="realizarPedido" class="btn-primario btn-bloque" type="button" disabled>Continuar con el pedido</button>
     </div>

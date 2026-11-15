@@ -164,6 +164,17 @@
         $('#homeStrip').style.setProperty('--cols', f.length || 1);
         $('#homeStrip').hidden = !f.length;
       }
+      setTexto('#destacadosTitulo', ini.destacados_titulo);
+      const bar = $('#promoBar');
+      let cerrada = false; try { cerrada = sessionStorage.getItem('insanity-promo-cerrada') === (ini.promo_texto || ''); } catch { /* */ }
+      if (bar && ini.promo_activa && ini.promo_texto?.trim() && !cerrada) {
+        const link = enlaceSeguro(ini.promo_enlace);
+        $('#promoTexto').innerHTML = link
+          ? `<a href="${esc(link)}"${esExterno(link) ? ' target="_blank" rel="noopener"' : ''}>${esc(ini.promo_texto)} <span aria-hidden="true">→</span></a>`
+          : esc(ini.promo_texto);
+        bar.hidden = false;
+        $('#cerrarPromo')?.addEventListener('click', () => { bar.hidden = true; try { sessionStorage.setItem('insanity-promo-cerrada', ini.promo_texto || ''); } catch { /* */ } });
+      }
       const img = enlaceSeguro(ini.imagen_portada);
       if (img) {
         $('.hero').style.backgroundImage = `url("${img.replace(/"/g, '%22')}")`;
@@ -241,10 +252,27 @@
     const primera = Object.keys(p.imagenes)[0];
     return primera ? { ...p.imagenes[primera], referencia: true, colorRef: primera } : null;
   }
-  function precioDe(p, varianteNombre) {
+  // Ofertas: % de descuento por producto, con fecha de fin opcional
+  const ofertaActiva = (p) => {
+    const pct = Number(p.oferta_pct) || 0;
+    return pct > 0 && pct <= 90 && (!p.oferta_hasta || new Date(p.oferta_hasta) > new Date()) ? pct : 0;
+  };
+  const redondear = (n) => Math.round(n / 100) * 100;
+  function precioBaseDe(p, varianteNombre) {
     const v = p.variantes?.find((x) => x.nombre === varianteNombre);
     return v ? v.precio : p.precio;
   }
+  function precioDe(p, varianteNombre) {
+    const base = precioBaseDe(p, varianteNombre);
+    const pct = ofertaActiva(p);
+    return base == null || !pct ? base : redondear(base * (1 - pct / 100));
+  }
+  function precioHtml(p, varianteNombre) {
+    const pct = ofertaActiva(p);
+    if (!pct) return dinero(precioBaseDe(p, varianteNombre));
+    return `<span class="precio-antes">${dinero(precioBaseDe(p, varianteNombre))}</span> <span class="precio-oferta">${dinero(precioDe(p, varianteNombre))}</span>`;
+  }
+  const fechaCorta = (f) => new Date(f).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 
   function chips(nombre, valores, tipo, seleccionado) {
     return valores.map((v) => `
@@ -258,11 +286,12 @@
     return m[slug(c).replace(/-/g, ' ')] || '#666';
   }
 
-  function tarjetaProducto(p) {
+  function tarjetaProducto(p, pref = 't') {
+    const uid = `${pref}-${p.id}`;
+    const pct = ofertaActiva(p);
     const colorIni = p.colores[0];
     const varIni = p.variantes?.[0]?.nombre;
     const imgs = imagenesDe(p, colorIni);
-    const precio = precioDe(p, varIni);
     const sinPrecio = p.precio == null;
 
     const media = imgs
@@ -275,9 +304,10 @@
          </div>` : '';
 
     return `
-      <article class="card producto" data-id="${esc(p.id)}">
+      <article class="card producto" data-id="${esc(p.id)}" data-uid="${esc(uid)}">
         <div class="product-media ${imgs ? '' : 'sin-foto'}" data-label="${esc(p.coleccion)}">
           ${media}
+          ${pct ? `<span class="badge-oferta">-${pct}%</span>` : ''}
           <span class="foto-ref ${imgs?.referencia ? '' : 'hidden'}">Foto de referencia</span>
           ${vista}
         </div>
@@ -285,14 +315,15 @@
           <p class="producto-col">${esc(p.coleccion)}</p>
           <h4 class="producto-nombre">${esc(p.nombre)}</h4>
           <p class="producto-material">${esc(p.material)}</p>
-          <p class="precio">${sinPrecio ? 'Precio por confirmar' : dinero(precio)}</p>
+          <p class="precio">${sinPrecio ? 'Precio por confirmar' : precioHtml(p, varIni)}</p>
+          ${pct && p.oferta_hasta ? `<p class="oferta-hasta">Oferta hasta el ${esc(fechaCorta(p.oferta_hasta))}</p>` : ''}
           ${sinPrecio ? `
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
                href="https://wa.me/${numeroWa}?text=${encodeURIComponent(`Hola, quiero información y precio de: ${p.nombre}`)}">Consultar por WhatsApp</a>`
           : `
-            ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + p.id, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
-            <fieldset class="opciones"><legend>Color: <span class="color-sel">${esc(colorIni)}</span></legend>${p.colores.length > 1 ? chips('color-' + p.id, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(p.id)}" value="${esc(colorIni)}">`}</fieldset>
-            <fieldset class="opciones"><legend>Talla <button type="button" class="guia-link" data-guia>Guía de tallas</button></legend>${chips('talla-' + p.id, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
+            ${p.variantes ? `<fieldset class="opciones"><legend>Material</legend>${chips('var-' + uid, p.variantes.map((v) => v.nombre), 'var', varIni)}</fieldset>` : ''}
+            <fieldset class="opciones"><legend>Color: <span class="color-sel">${esc(colorIni)}</span></legend>${p.colores.length > 1 ? chips('color-' + uid, p.colores, 'color', colorIni) : `<input type="hidden" name="color-${esc(uid)}" value="${esc(colorIni)}">`}</fieldset>
+            <fieldset class="opciones"><legend>Talla <button type="button" class="guia-link" data-guia>Guía de tallas</button></legend>${chips('talla-' + uid, p.tallas, 'talla', p.tallas.length === 1 ? p.tallas[0] : null)}</fieldset>
             <p class="opciones-error hidden" role="alert">Elige tu talla.</p>
             <button type="button" class="agregar-carrito btn-primario btn-bloque">Agregar<span class="add-extra"> al carrito</span></button>`}
         </div>
@@ -301,22 +332,34 @@
 
   function renderCatalogo() {
     if (!catalogo) return;
-    catalogo.innerHTML = `<div class="productos">${PRODUCTOS.map(tarjetaProducto).join('')}</div>`;
+    catalogo.innerHTML = `<div class="productos">${PRODUCTOS.map((p) => tarjetaProducto(p, 't')).join('')}</div>`;
   }
   renderCatalogo();
 
+  // Destacados en Inicio (los elige el administrador; máximo 8)
+  const destacadosGrid = $('#destacadosGrid');
+  function renderDestacados() {
+    const sec = $('#destacados');
+    if (!destacadosGrid || !sec) return;
+    const lista = PRODUCTOS.filter((p) => p.destacado).slice(0, 8);
+    sec.hidden = !lista.length;
+    destacadosGrid.innerHTML = lista.map((p) => tarjetaProducto(p, 'd')).join('');
+  }
+  renderDestacados();
+  const contenedoresTarjetas = [catalogo, destacadosGrid].filter(Boolean);
+
   // Imagen que no carga → recuadro con el nombre de la colección
-  catalogo?.addEventListener('error', (e) => {
+  contenedoresTarjetas.forEach((cont) => cont.addEventListener('error', (e) => {
     if (e.target.matches?.('.product-img')) {
       const media = e.target.closest('.product-media');
       e.target.remove();
       media.classList.add('sin-foto');
       media.querySelector('.view-toggle')?.remove();
     }
-  }, true);
+  }, true));
 
   // Interacciones de tarjeta (delegadas)
-  catalogo?.addEventListener('click', (e) => {
+  contenedoresTarjetas.forEach((cont) => cont.addEventListener('click', (e) => {
     const card = e.target.closest('.producto');
     if (!card) return;
     const p = productosPorId.get(card.dataset.id);
@@ -328,22 +371,22 @@
       return;
     }
     if (e.target.closest('.agregar-carrito')) agregarDesdeTarjeta(card, p);
-  });
-  catalogo?.addEventListener('change', (e) => {
+  }));
+  contenedoresTarjetas.forEach((cont) => cont.addEventListener('change', (e) => {
     const card = e.target.closest('.producto');
     if (!card) return;
     const p = productosPorId.get(card.dataset.id);
     if (e.target.name.startsWith('color-')) { actualizarImagen(card, p); const cs = $('.color-sel', card); if (cs) cs.textContent = e.target.value; }
-    if (e.target.name.startsWith('var-')) $('.precio', card).textContent = dinero(precioDe(p, e.target.value));
+    if (e.target.name.startsWith('var-')) $('.precio', card).innerHTML = precioHtml(p, e.target.value);
     if (e.target.name.startsWith('talla-')) $('.opciones-error', card)?.classList.add('hidden');
-  });
+  }));
 
   const valorSel = (card, name) => (card.querySelector(`input[name="${CSS.escape(name)}"]:checked`) || card.querySelector(`input[type=hidden][name="${CSS.escape(name)}"]`))?.value || null;
 
   function actualizarImagen(card, p) {
     const img = $('.product-img', card);
     if (!img) return;
-    const color = valorSel(card, 'color-' + p.id) || p.colores[0];
+    const color = valorSel(card, 'color-' + card.dataset.uid) || p.colores[0];
     const imgs = imagenesDe(p, color);
     if (!imgs) return;
     const vista = $('.view-btn.active', card)?.dataset.view || 'frente';
@@ -370,31 +413,52 @@
     const p = productosPorId.get(it.id);
     if (!p || p.precio == null) return false;
     it.precio = precioDe(p, it.variante);
+    it.oferta = ofertaActiva(p) || 0;
     it.nombre = p.nombre;
     it.cantidad = Math.max(1, Math.min(20, parseInt(it.cantidad, 10) || 1));
     return true;
   });
 
   function agregarDesdeTarjeta(card, p) {
-    const talla = valorSel(card, 'talla-' + p.id);
+    const uid = card.dataset.uid;
+    const talla = valorSel(card, 'talla-' + uid);
     if (!talla) {
       $('.opciones-error', card)?.classList.remove('hidden');
-      card.querySelector(`input[name="${CSS.escape('talla-' + p.id)}"]`)?.focus();
+      card.querySelector(`input[name="${CSS.escape('talla-' + uid)}"]`)?.focus();
       return;
     }
-    const color = valorSel(card, 'color-' + p.id) || p.colores[0];
-    const variante = p.variantes ? valorSel(card, 'var-' + p.id) : null;
+    const color = valorSel(card, 'color-' + uid) || p.colores[0];
+    const variante = p.variantes ? valorSel(card, 'var-' + uid) : null;
     const key = [p.id, color, talla, variante || ''].join('|');
     const existente = carrito.find((i) => i.key === key);
     if (existente) existente.cantidad = Math.min(20, existente.cantidad + 1);
-    else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), cantidad: 1 });
+    else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1 });
     guardarYRender();
     toast(`Agregado: ${p.nombre} · ${color} · ${talla}`);
     btnCarrito?.classList.remove('pulse'); void btnCarrito?.offsetWidth; btnCarrito?.classList.add('pulse');
   }
 
-  const totalCarrito = () => carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
-  const detalleItem = (i) => [i.variante, `Color: ${i.color}`, `Talla: ${i.talla}`].filter(Boolean).join(' · ');
+  // ---------- Códigos de descuento ----------
+  const CLAVE_CUPON = 'insanity-cupon';
+  let cupon = storage.get(CLAVE_CUPON); // { codigo, tipo, valor, minimo_compra }
+  const subtotalCarrito = () => carrito.reduce((s, i) => s + i.precio * i.cantidad, 0);
+  function descuentoCupon(sub = subtotalCarrito()) {
+    if (!cupon || sub <= 0 || sub < (cupon.minimo_compra || 0)) return 0;
+    const d = cupon.tipo === 'porcentaje' ? redondear(sub * cupon.valor / 100) : cupon.valor;
+    return Math.min(d, sub);
+  }
+  const totalCarrito = () => subtotalCarrito() - descuentoCupon();
+  const textoCupon = (c) => (c.tipo === 'porcentaje' ? `${c.valor}%` : dinero(c.valor));
+  async function validarCupon(codigo) {
+    if (!conSupabase) throw new Error('no-disponible');
+    const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/validar_cupon`, {
+      method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_codigo: codigo })
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    return Array.isArray(data) ? data[0] || null : data;
+  }
+  const detalleItem = (i) => [i.variante, `Color: ${i.color}`, `Talla: ${i.talla}`, i.oferta ? `Oferta -${i.oferta}%` : ''].filter(Boolean).join(' · ');
 
   function guardarYRender() {
     storage.set(CLAVE_CARRITO, carrito);
@@ -417,6 +481,7 @@
         </div>
       </li>`).join('');
     $('#carritoVacio')?.classList.toggle('hidden', carrito.length > 0);
+    renderCupon();
     totalEl.textContent = dinero(totalCarrito());
     contador.textContent = unidades;
     contador.classList.toggle('hidden', unidades === 0);
@@ -434,6 +499,62 @@
     if (btn.dataset.accion === 'quitar' || item.cantidad < 1) carrito = carrito.filter((i) => i.key !== key);
     guardarYRender();
   });
+
+  function renderCupon() {
+    const sub = subtotalCarrito();
+    const desc = descuentoCupon(sub);
+    const sub$ = $('#subtotal'); if (sub$) sub$.textContent = dinero(sub);
+    $('#filaSubtotal')?.classList.toggle('hidden', !cupon);
+    $('#filaDescuento')?.classList.toggle('hidden', !desc);
+    const dv = $('#descuentoValor'); if (dv) dv.textContent = '−' + dinero(desc);
+    const dt = $('#descuentoTxt'); if (dt && cupon) dt.textContent = `Código ${cupon.codigo} (${textoCupon(cupon)})`;
+    $('#cuponForm')?.classList.toggle('hidden', !!cupon);
+    const ap = $('#cuponAplicado');
+    if (ap) {
+      ap.classList.toggle('hidden', !cupon);
+      if (cupon) $('#cuponCodigo').textContent = cupon.codigo;
+    }
+    const msg = $('#cuponMsg');
+    if (msg && cupon && sub > 0 && sub < (cupon.minimo_compra || 0)) {
+      msg.textContent = `El código ${cupon.codigo} aplica en compras desde ${dinero(cupon.minimo_compra)}.`;
+      msg.className = 'cupon-msg cupon-msg--aviso';
+    } else if (msg && cupon && msg.classList.contains('cupon-msg--aviso')) {
+      msg.className = 'cupon-msg hidden';
+    }
+  }
+  $('#cuponForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const input = $('#cuponInput'); const msg = $('#cuponMsg'); const btn = e.submitter || $('#cuponForm button');
+    const codigo = input.value.trim().toUpperCase();
+    if (!codigo) { input.focus(); return; }
+    btn.disabled = true; btn.textContent = '…';
+    try {
+      const c = await validarCupon(codigo);
+      if (!c) throw new Error('invalido');
+      cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 };
+      storage.set(CLAVE_CUPON, cupon);
+      input.value = '';
+      msg.className = 'cupon-msg cupon-msg--ok'; msg.textContent = `¡Listo! ${textoCupon(cupon)} de descuento aplicado.`;
+    } catch (err) {
+      msg.className = 'cupon-msg cupon-msg--error';
+      msg.textContent = err.message === 'no-disponible' ? 'Los códigos de descuento no están disponibles en este momento.'
+        : err.message === 'invalido' ? 'Ese código no existe o ya venció.' : 'No pudimos validar el código. Intenta de nuevo.';
+    }
+    btn.disabled = false; btn.textContent = 'Aplicar';
+    guardarYRender();
+  });
+  $('#quitarCupon')?.addEventListener('click', () => {
+    cupon = null; storage.set(CLAVE_CUPON, null);
+    const msg = $('#cuponMsg'); if (msg) msg.className = 'cupon-msg hidden';
+    guardarYRender();
+  });
+  // Revalidar el cupón guardado (puede haber vencido o sido desactivado)
+  if (cupon && conSupabase) {
+    validarCupon(cupon.codigo).then((c) => {
+      if (!c) { cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender(); }
+      else { cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 }; storage.set(CLAVE_CUPON, cupon); guardarYRender(); }
+    }).catch(() => {});
+  } else if (cupon && !conSupabase) { cupon = null; storage.set(CLAVE_CUPON, null); }
 
   let ultimoFoco = null;
   function setCarrito(open) {
@@ -454,12 +575,13 @@
   // =========================================================
   // FILTROS
   // =========================================================
-  const filtros = { categoria: new Set(), coleccion: new Set(), talla: new Set(), color: new Set() };
+  const filtros = { oferta: new Set(), categoria: new Set(), coleccion: new Set(), talla: new Set(), color: new Set() };
   const panel = $('#filtersPanel');
   const filtersOverlay = $('#filtersOverlay');
   const btnFiltros = $('#openFilters');
 
   const valoresDe = {
+    oferta: (p) => (ofertaActiva(p) ? ['En oferta'] : []),
     categoria: (p) => [p.categoria],
     coleccion: (p) => [p.coleccion],
     talla: (p) => p.tallas,
@@ -478,11 +600,13 @@
   }
 
   function renderOpcionesFiltro() {
-    const conts = { categoria: '#filtroCategoria', coleccion: '#filtroColeccion', talla: '#filtroTalla', color: '#filtroColor' };
+    const conts = { oferta: '#filtroOferta', categoria: '#filtroCategoria', coleccion: '#filtroColeccion', talla: '#filtroTalla', color: '#filtroColor' };
     Object.entries(conts).forEach(([g, sel]) => {
       const cont = $(sel);
       if (!cont) return;
-      cont.innerHTML = opcionesUnicas(g).map((v) => `
+      const opciones = opcionesUnicas(g);
+      cont.closest('fieldset')?.toggleAttribute('hidden', !opciones.length);
+      cont.innerHTML = opciones.map((v) => `
         <label class="chip">
           <input type="checkbox" name="f-${g}" value="${esc(v)}" ${filtros[g].has(v) ? 'checked' : ''} />
           <span>${g === 'color' ? `<i class="swatch" style="--sw:${colorCss(v)}"></i>` : ''}${esc(etiqueta(g, v))}</span>
@@ -658,7 +782,9 @@
     document.body.classList.toggle('no-scroll', open || carritoPanel.classList.contains('active'));
     if (open) {
       $('#checkoutResumen').innerHTML = resumenHtml();
-      $('#checkoutTotal').textContent = 'Total productos: ' + dinero(totalCarrito()) + ' (envío por confirmar)';
+      const desc = descuentoCupon();
+      $('#checkoutTotal').innerHTML = (desc ? `<span class="checkout-desc">Subtotal ${dinero(subtotalCarrito())} · Código ${esc(cupon.codigo)}: −${dinero(desc)}</span>` : '')
+        + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(envío por confirmar)</small>';
       const guardado = storage.get('insanity-cliente');
       if (guardado) Object.entries(guardado).forEach(([k, v]) => { if (f[k] && k !== 'autorizo' && !f[k].value) f[k].value = v; });
       if (guardado?.dep) { f.dep.dispatchEvent(new Event('change')); f.ciudad.value = guardado.ciudad || ''; if (f.ciudad.value === OTRA) f.ciudadOtra.classList.remove('hidden'); }
@@ -685,6 +811,7 @@
     const mensaje = [
       '*NUEVO PEDIDO — INSANITY SOCIETY*', '',
       ...lineas, '',
+      ...(descuentoCupon() ? [`Subtotal: ${dinero(subtotalCarrito())}`, `Código de descuento ${cupon.codigo} (${textoCupon(cupon)}): −${dinero(descuentoCupon())}`] : []),
       `*Total productos: ${dinero(totalCarrito())}*`, '',
       '*Datos de envío*',
       `Nombre: ${f.nombre.value.trim()}`,
@@ -701,6 +828,7 @@
     if (win) win.opener = null; else location.href = url; // si el navegador bloquea la ventana
 
     carrito = [];
+    cupon = null; storage.set(CLAVE_CUPON, null);
     guardarYRender();
     form.reset();
     setCheckout(false);

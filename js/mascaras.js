@@ -33,7 +33,13 @@
     const precio = sec.querySelector('.capitulo-precio');
     if (p && p.activo !== false && p.precio != null) {
       const min = p.variantes?.length ? Math.min(...p.variantes.map((v) => v.precio)) : p.precio;
-      precio.textContent = (p.variantes?.length ? 'Desde ' : '') + dinero(min) + ' · Tallas ' + p.tallas[0] + ' a ' + p.tallas[p.tallas.length - 1];
+      const pct = Number(p.oferta_pct) > 0 && (!p.oferta_hasta || new Date(p.oferta_hasta) > new Date()) ? Number(p.oferta_pct) : 0;
+      const final = pct ? Math.round(min * (1 - pct / 100) / 100) * 100 : min;
+      const tallas = ' · Tallas ' + p.tallas[0] + ' a ' + p.tallas[p.tallas.length - 1];
+      const desde = p.variantes?.length ? 'Desde ' : '';
+      if (pct) {
+        precio.innerHTML = `${desde}<span class="precio-antes">${dinero(min)}</span> <span class="precio-oferta">${dinero(final)}</span> <span class="badge-oferta badge-oferta--inline">-${pct}%</span>${tallas}`;
+      } else precio.textContent = desde + dinero(min) + tallas;
     }
   });
 })();
