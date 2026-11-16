@@ -55,20 +55,31 @@
 
     <!-- Estado: panel -->
     <section id="vistaPanel" class="hidden">
-      <nav class="admin-tabs" id="adminTabs" aria-label="Secciones del panel">
-        <button type="button" class="admin-tab active" data-seccion="productos">Productos</button>
-        <button type="button" class="admin-tab" data-seccion="pedidos">Pedidos <span id="tabPendientes" class="admin-tab-num hidden"></span></button>
-        <button type="button" class="admin-tab" data-seccion="estadisticas">Estadísticas</button>
-        <button type="button" class="admin-tab" data-seccion="inventario">Inventario</button>
-        <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
-        <button type="button" class="admin-tab" data-seccion="colecciones">Colecciones</button>
-        <button type="button" class="admin-tab" data-seccion="sociedad">La Sociedad</button>
-        <button type="button" class="admin-tab" data-seccion="tienda">Tienda</button>
-        <button type="button" class="admin-tab" data-seccion="comunidad">Comunidad</button>
-        <button type="button" class="admin-tab" data-seccion="cupones">Cupones</button>
-        <button type="button" class="admin-tab" data-seccion="vip">Lista VIP</button>
-        <button type="button" class="admin-tab" data-seccion="embajadores">Embajadores</button>
-        <button type="button" class="admin-tab" data-seccion="general">General</button>
+      <nav class="panel-nav" id="adminTabs" aria-label="Secciones del panel">
+        <div class="admin-grupos">
+          <button type="button" class="admin-grupo" data-grupo="pedidos" data-seccion="pedidos">Pedidos <span id="tabPendientes" class="admin-tab-num hidden"></span></button>
+          <button type="button" class="admin-grupo" data-grupo="estadisticas" data-seccion="estadisticas">Estadísticas</button>
+          <button type="button" class="admin-grupo active" data-grupo="tienda">Tienda</button>
+          <button type="button" class="admin-grupo" data-grupo="descuentos">Descuentos</button>
+          <button type="button" class="admin-grupo" data-grupo="contenido">Contenido</button>
+        </div>
+        <div class="admin-subtabs" data-grupo="tienda">
+          <button type="button" class="admin-tab active" data-seccion="productos">Productos</button>
+          <button type="button" class="admin-tab" data-seccion="inventario">Inventario</button>
+          <button type="button" class="admin-tab" data-seccion="tienda">Textos de la tienda</button>
+        </div>
+        <div class="admin-subtabs hidden" data-grupo="descuentos">
+          <button type="button" class="admin-tab" data-seccion="cupones">Cupones</button>
+          <button type="button" class="admin-tab" data-seccion="embajadores">Embajadores</button>
+          <button type="button" class="admin-tab" data-seccion="vip">Lista VIP</button>
+        </div>
+        <div class="admin-subtabs hidden" data-grupo="contenido">
+          <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
+          <button type="button" class="admin-tab" data-seccion="colecciones">Colecciones</button>
+          <button type="button" class="admin-tab" data-seccion="sociedad">La Sociedad</button>
+          <button type="button" class="admin-tab" data-seccion="comunidad">Comunidad</button>
+          <button type="button" class="admin-tab" data-seccion="general">General</button>
+        </div>
       </nav>
 
       <div id="subContenido" class="hidden">

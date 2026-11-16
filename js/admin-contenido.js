@@ -119,15 +119,29 @@
   }
 
   // ---------- Pestañas ----------
+  // Barra en dos niveles: grupos (Pedidos, Estadísticas, Tienda, Descuentos, Contenido)
+  // y, debajo, los apartados del grupo abierto. Cada grupo recuerda el último apartado usado.
+  const grupoDe = (id) => $(`.admin-subtabs .admin-tab[data-seccion="${id}"]`)?.closest('.admin-subtabs')?.dataset.grupo || id;
+  const ultimoDelGrupo = {};
   $('#adminTabs').addEventListener('click', (e) => {
-    const b = e.target.closest('.admin-tab'); if (!b || b.dataset.seccion === seccion) return;
+    const g = e.target.closest('.admin-grupo');
+    const t = e.target.closest('.admin-tab');
+    let destino = null;
+    if (t) destino = t.dataset.seccion;
+    else if (g) destino = g.dataset.seccion || ultimoDelGrupo[g.dataset.grupo]
+      || $(`.admin-subtabs[data-grupo="${g.dataset.grupo}"] .admin-tab`)?.dataset.seccion;
+    if (!destino || destino === seccion) return;
     if (hayCambios() && !window.confirm('Tienes cambios sin guardar en esta sección. ¿Salir sin guardar?')) return;
-    abrirSeccion(b.dataset.seccion);
+    abrirSeccion(destino);
   });
 
   function abrirSeccion(id) {
     seccion = id;
-    $$('.admin-tab').forEach((t) => t.classList.toggle('active', t.dataset.seccion === id));
+    const grupo = grupoDe(id);
+    ultimoDelGrupo[grupo] = id;
+    $$('.admin-tab').forEach((t) => { const on = t.dataset.seccion === id; t.classList.toggle('active', on); t.setAttribute('aria-current', on ? 'page' : 'false'); });
+    $$('.admin-grupo').forEach((g) => g.classList.toggle('active', g.dataset.grupo === grupo));
+    $$('.admin-subtabs').forEach((s) => s.classList.toggle('hidden', s.dataset.grupo !== grupo));
     const vistasPropias = { productos: '#subProductos', pedidos: '#subPedidos', estadisticas: '#subEstadisticas', cupones: '#subCupones', vip: '#subVip', embajadores: '#subEmbajadores', inventario: '#subInventario' };
     Object.entries(vistasPropias).forEach(([k, sel]) => $(sel).classList.toggle('hidden', k !== id));
     $('#subContenido').classList.toggle('hidden', id in vistasPropias);
