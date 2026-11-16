@@ -417,7 +417,8 @@
       </div>
       <p id="filaSubtotal" class="carrito-fila hidden">Subtotal <span id="subtotal">$0</span></p>
       <p id="filaDescuento" class="carrito-fila carrito-fila--desc hidden"><span id="descuentoTxt">Descuento</span> <span id="descuentoValor">−$0</span></p>
-      <p class="carrito-total">Total <span id="total">$0</span></p>
+      <p class="carrito-total">Total <small>(sin envío)</small> <span id="total">$0</span></p>
+      <p class="nota-envio nota-envio--dinamica"></p>
       <p class="aviso-confeccion aviso-confeccion--dinamico" hidden></p>
       <button id="realizarPedido" class="btn-primario btn-bloque" type="button" disabled>Continuar con el pedido</button>
     </div>
@@ -468,6 +469,7 @@
       <div class="modal-body">
         <div id="checkoutResumen" class="checkout-resumen"></div>
         <p id="checkoutTotal" class="checkout-total">Total: $0</p>
+        <p class="nota-envio nota-envio--dinamica"></p>
         <p id="checkoutAviso" class="checkout-aviso hidden" role="alert"></p>
         <p class="aviso-confeccion aviso-confeccion--dinamico" hidden></p>
 

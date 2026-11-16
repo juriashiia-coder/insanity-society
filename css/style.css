@@ -886,3 +886,6 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 .aviso-confeccion { display: flex; gap: .45rem; align-items: flex-start; font-size: .85rem; line-height: 1.4; color: #d6d6d6; background: #141414; border: 1px solid #2a2a2a; border-left: 3px solid var(--accent); border-radius: 10px; padding: .55rem .7rem; margin: .1rem 0 .8rem; }
 .aviso-confeccion[hidden] { display: none; }
 .carrito-footer .aviso-confeccion { margin: .5rem 0 .7rem; font-size: .8rem; }
+.nota-envio { display: flex; gap: .45rem; align-items: flex-start; font-size: .8rem; line-height: 1.4; color: #a8a8a8; margin: -.2rem 0 .7rem; }
+.carrito-total small { font-size: .72rem; font-weight: 400; color: #888; margin-right: auto; margin-left: .35rem; align-self: center; }
+.checkout-total + .nota-envio { margin-top: -.6rem; }

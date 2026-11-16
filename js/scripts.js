@@ -15,6 +15,8 @@
   // Tiempo de confección (editable en el panel: General)
   const CONFECCION_DEF = 'Prendas hechas sobre pedido: se despachan de 2 a 3 días hábiles.';
   const textoConfeccion = () => CONTENIDO?.general?.tiempo_confeccion?.trim() || CONFECCION_DEF; // se usa después de cargar el contenido
+  const ENVIO_DEF = 'El envío no está incluido en el total: su costo depende de la ciudad y te lo confirmamos por WhatsApp.';
+  const textoEnvio = () => CONTENIDO?.general?.nota_envio?.trim() || ENVIO_DEF;
   const storage = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }
@@ -359,6 +361,7 @@
               ${preventaCerrada(p) ? '' : '<small>Apártala ahora: te confirmamos el pago y la entrega por WhatsApp.</small>'}
             </div>` : ''}
           ${p.preventa ? '' : `<p class="aviso-confeccion"><span aria-hidden="true">🧵</span> ${esc(textoConfeccion())}</p>`}
+          <p class="nota-envio"><span aria-hidden="true">🚚</span> ${esc(textoEnvio())}</p>
           ${preventaCerrada(p) ? `
             <p class="stock-agotado">La preventa cerró. Muy pronto estará disponible.</p>
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
@@ -1340,12 +1343,13 @@
   function pintarAvisosConfeccion() {
     const hay = carrito.some((i) => !i.preventa);
     $$('.aviso-confeccion--dinamico').forEach((el) => { el.hidden = !hay; el.innerHTML = `<span aria-hidden="true">🧵</span> ${esc(textoConfeccion())}`; });
+    $$('.nota-envio--dinamica').forEach((el) => { el.innerHTML = `<span aria-hidden="true">🚚</span> ${esc(textoEnvio())}`; });
   }
   function pintarTotalCheckout() {
     pintarAvisosConfeccion();
     const desc = descuentoCupon();
     $('#checkoutTotal').innerHTML = (desc ? `<span class="checkout-desc">Subtotal ${dinero(subtotalCarrito())} · Código ${esc(cupon.codigo)}: −${dinero(desc)}</span>` : '')
-      + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(envío por confirmar)</small>';
+      + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(sin envío)</small>';
   }
   function setCheckout(open) {
     checkoutModal.classList.toggle('hidden', !open);
@@ -1448,7 +1452,8 @@
       ...(carrito.some((i) => i.preventa) ? ['⏳ Incluye prendas en PREVENTA: se entregan en la fecha estimada.', ''] : []),
       ...(carrito.some((i) => !i.preventa) ? [`🧵 ${textoConfeccion()} (desde la confirmación del pago)`, ''] : []),
       ...(descuentoCupon() ? [`Subtotal: ${dinero(subtotalCarrito())}`, `Código de descuento ${cupon.codigo} (${textoCupon(cupon)}): −${dinero(descuentoCupon())}`] : []),
-      `*Total productos: ${dinero(totalCarrito())}*`, '',
+      `*Total productos: ${dinero(totalCarrito())}* (sin envío)`,
+      `🚚 ${textoEnvio()}`, '',
       '*Datos de envío*',
       `Nombre: ${f.nombre.value.trim()}`,
       `Cédula: ${f.cedula.value}`,
@@ -1513,15 +1518,51 @@
   $('#cerrarGuia2')?.addEventListener('click', () => setGuia(false));
   guiaModal?.addEventListener('click', (e) => { if (e.target === guiaModal) setGuia(false); });
 
-  // ---------- Tecla Escape cierra lo que esté abierto ----------
+  // ---------- Ventanas abiertas: Escape y botón "atrás" las cierran ----------
+  // Orden: de la que queda encima a la de abajo.
+  const ventanas = [
+    [vipModal, () => !vipModal.classList.contains('hidden'), () => cerrarVip()],
+    [guiaModal, () => !guiaModal.classList.contains('hidden'), () => setGuia(false)],
+    [productoModal, () => !productoModal.classList.contains('hidden'), () => cerrarProducto()],
+    [checkoutModal, () => !checkoutModal.classList.contains('hidden'), () => setCheckout(false)],
+    [panel, () => panel.classList.contains('open'), () => setPanel(false)],
+    [carritoPanel, () => carritoPanel.classList.contains('active'), () => setCarrito(false)]
+  ].filter(([el]) => el);
+  const hayVentana = () => ventanas.some(([, abierta]) => abierta());
+  function cerrarVentanaSuperior() {
+    const v = ventanas.find(([, abierta]) => abierta());
+    if (v) { v[2](); return true; }
+    return false;
+  }
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
-    if (vipModal && !vipModal.classList.contains('hidden')) cerrarVip();
-    else if (guiaModal && !guiaModal.classList.contains('hidden')) setGuia(false);
-    else if (productoModal && !productoModal.classList.contains('hidden')) cerrarProducto();
-    else if (!checkoutModal.classList.contains('hidden')) setCheckout(false);
-    else if (panel.classList.contains('open')) setPanel(false);
-    else if (carritoPanel.classList.contains('active')) setCarrito(false);
-    else setMenu(false);
+    if (!cerrarVentanaSuperior()) setMenu(false);
+  });
+
+  // En el celular, "atrás" debe cerrar el producto/carrito abierto y no sacar a la persona
+  // de la sección. Al abrir una ventana se añade una entrada al historial y "atrás" la consume
+  // cerrando la ventana. Si se cierra con la ✕, esa entrada queda en desuso: se reutiliza al abrir
+  // otra ventana y, si alguien vuelve a caer en ella con "atrás", se salta sola.
+  const esEntradaVentana = () => !!history.state?.ventana;
+  let entradaVentana = false, revisarPendiente = false;
+  function sincronizarHistorial() {
+    revisarPendiente = false;
+    const hay = hayVentana();
+    if (hay && !entradaVentana) {
+      if (!esEntradaVentana()) history.pushState({ ventana: true }, '');
+      entradaVentana = true;
+    } else if (!hay) entradaVentana = false;
+  }
+  const observador = new MutationObserver(() => {
+    if (revisarPendiente) return;
+    revisarPendiente = true;
+    setTimeout(sincronizarHistorial, 0); // cerrar un producto y abrir otro no debe tocar el historial
+  });
+  ventanas.forEach(([el]) => observador.observe(el, { attributes: true, attributeFilter: ['class', 'hidden'] }));
+  window.addEventListener('popstate', () => {
+    if (entradaVentana) {
+      entradaVentana = false;
+      cerrarVentanaSuperior(); // si queda otra abierta debajo, el observador vuelve a añadir la entrada
+    } else if (esEntradaVentana() && !hayVentana()) history.back(); // entrada en desuso: saltarla
   });
 })();

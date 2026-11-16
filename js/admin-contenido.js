@@ -96,7 +96,8 @@
       campos: [
         TXT('whatsapp', 'Número de WhatsApp para pedidos', { req: true, ayuda: 'Con indicativo 57 y sin espacios ni +. Ej: 573241457674', numerico: true }),
         AREA('pie', 'Frase del pie de página', { filas: 2 }),
-        TXT('tiempo_confeccion', 'Tiempo de confección (se muestra en la tienda)', { placeholder: 'Hecha sobre pedido: se despacha en 2 a 3 días hábiles.', ayuda: 'Aparece en cada prenda, en el carrito, en el pedido de WhatsApp y en «Mis pedidos». Déjalo vacío para usar el texto de ejemplo.' })
+        TXT('tiempo_confeccion', 'Tiempo de confección (se muestra en la tienda)', { placeholder: 'Hecha sobre pedido: se despacha en 2 a 3 días hábiles.', ayuda: 'Aparece en cada prenda, en el carrito, en el pedido de WhatsApp y en «Mis pedidos». Déjalo vacío para usar el texto de ejemplo.' }),
+        TXT('nota_envio', 'Nota sobre el envío (se muestra junto al total)', { placeholder: 'El envío no está incluido en el total: su costo depende de la ciudad y te lo confirmamos por WhatsApp.', ayuda: 'Aparece en cada prenda, en el carrito, en el formulario de pedido y en el mensaje de WhatsApp. Déjalo vacío para usar el texto de ejemplo.' })
       ]
     }
   };
