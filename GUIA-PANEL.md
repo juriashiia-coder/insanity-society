@@ -47,7 +47,8 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 2. Pega `supabase/pedidos.sql` y pulsa **Run** (después de los pasos 2c y 2d).
 3. Luego pega `supabase/mis-pedidos.sql` y pulsa **Run** (seguimiento para clientes y guía de envío).
 4. Luego pega `supabase/cupones-preventa.sql` y pulsa **Run** (límite de uso de cupones y preventa).
-5. Por último pega `supabase/lista-vip.sql` y pulsa **Run** (Lista VIP con código personal de bienvenida).
+5. Luego pega `supabase/lista-vip.sql` y pulsa **Run** (Lista VIP con código personal de bienvenida).
+6. Por último pega `supabase/embajadores.sql` y pulsa **Run** (códigos de embajadores, comisiones y pagos).
 
 ## 3. Crear tu usuario de administrador
 
@@ -130,6 +131,32 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **Usos en total:** opcional, para cosas como "solo los primeros 50". Al llegar al límite, el código se marca como *Agotado*.
 - Cada código muestra cuántas veces se ha usado.
 
+### Embajadores
+
+- Pestaña **Embajadores** → **+ Nuevo embajador**. Debes poner:
+  - nombre (Instagram y WhatsApp son opcionales);
+  - **su código** (ej. `SARA10`) y el **descuento para el cliente**;
+  - usos por cliente (por defecto 1 vez por persona) y compra mínima opcional;
+  - **su comisión (%)**.
+- **Cómo se calcula la comisión:** total pagado del pedido (después del descuento, sin envío) × su %.
+  - Solo cuenta cuando el pedido está **confirmado, enviado o entregado**; los pendientes o cancelados no suman.
+  - El % queda guardado en cada pedido: si mañana le subes la comisión, lo ya ganado no cambia.
+- **Qué muestra cada embajador:**
+  - pedidos, total vendido y comisión del periodo elegido (este mes, mes pasado, este año o todo);
+  - en total: cuánto ha ganado, cuánto le has pagado y **cuánto le debes**;
+  - en "Ver pedidos y pagos", el detalle pedido por pedido.
+- **Registrar pago:** cuando le pagues, anota el monto (viene sugerido lo pendiente), la fecha y una nota (ej. "Nequi"). Si te equivocas, lo borras desde el detalle.
+- **Desactivar:** desmarca *Activo* y su código deja de funcionar. Mejor que eliminarlo, porque eliminarlo borra su historial.
+- **Ventas por fuera de la web:** si alguien compró por Instagram o en persona con el código de un embajador, al usar *+ Registrar venta* elige el código en «Código de embajador usado» y la comisión se suma sola.
+- **Estadísticas** tiene un bloque *Embajadores* con lo vendido y la comisión de cada uno en el periodo elegido.
+- Los códigos de embajadores no aparecen en la pestaña Cupones: se manejan desde su pestaña.
+
+### Tiempo de confección
+
+- En **General → Tiempo de confección** está el aviso "Prendas hechas sobre pedido: se despachan de 2 a 3 días hábiles." Puedes cambiarlo cuando quieras.
+- Se muestra en cada prenda, en el carrito, en el formulario de compra, en el mensaje de WhatsApp ("desde la confirmación del pago") y en «Mis pedidos» cuando el pago está confirmado.
+- Las prendas en preventa muestran su propia fecha de entrega.
+
 ### Lista VIP
 
 - Pestaña **Lista VIP**. Todo empieza **apagado** y sin porcentaje.
@@ -203,6 +230,7 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
 - **Volver a correr archivos SQL:** se puede hacer sin miedo; ninguno reemplaza las reglas nuevas de cupones, pedidos o Lista VIP. La única excepción es `catalogo-agosto-2026.sql`: córrelo **una sola vez**, porque devuelve los productos del catálogo a como estaban en el PDF.
+- **"Falta activar Embajadores":** ejecuta `supabase/embajadores.sql`.
 - **"Falta activar la Lista VIP":** ejecuta `supabase/cupones-preventa.sql` y luego `supabase/lista-vip.sql`.
 - **"Falta activar preventa y límites de cupones":** ejecuta `supabase/cupones-preventa.sql` (paso 2e, punto 4).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.

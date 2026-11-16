@@ -877,3 +877,8 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
   #vipModal .vip-modal { height: auto; max-height: 92dvh; border-radius: 18px 18px 0 0; border-top: 1px solid #3a1212; }
   #vipModal .vip-caja { padding-bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
 }
+
+/* ---------- Aviso de confección sobre pedido ---------- */
+.aviso-confeccion { display: flex; gap: .45rem; align-items: flex-start; font-size: .85rem; line-height: 1.4; color: #d6d6d6; background: #141414; border: 1px solid #2a2a2a; border-left: 3px solid var(--accent); border-radius: 10px; padding: .55rem .7rem; margin: .1rem 0 .8rem; }
+.aviso-confeccion[hidden] { display: none; }
+.carrito-footer .aviso-confeccion { margin: .5rem 0 .7rem; font-size: .8rem; }

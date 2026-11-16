@@ -12,6 +12,9 @@
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const slug = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
   const soloCelular = (v) => { const d = String(v || '').replace(/\D/g, ''); return (/^57\d{10}$/.test(d) ? d.slice(2) : d).slice(0, 10); };
+  // Tiempo de confección (editable en el panel: General)
+  const CONFECCION_DEF = 'Prendas hechas sobre pedido: se despachan de 2 a 3 días hábiles.';
+  const textoConfeccion = () => CONTENIDO?.general?.tiempo_confeccion?.trim() || CONFECCION_DEF; // se usa después de cargar el contenido
   const storage = {
     get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
     set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* sin almacenamiento */ } }
@@ -355,6 +358,7 @@
               ${p.stock && !preventaCerrada(p) ? '<span>Unidades limitadas</span>' : ''}
               ${preventaCerrada(p) ? '' : '<small>Apártala ahora: te confirmamos el pago y la entrega por WhatsApp.</small>'}
             </div>` : ''}
+          ${p.preventa ? '' : `<p class="aviso-confeccion"><span aria-hidden="true">🧵</span> ${esc(textoConfeccion())}</p>`}
           ${preventaCerrada(p) ? `
             <p class="stock-agotado">La preventa cerró. Muy pronto estará disponible.</p>
             <a class="btn-secundario btn-bloque" target="_blank" rel="noopener"
@@ -622,7 +626,7 @@
   }
   const ESTADO_CLIENTE = {
     pendiente: { txt: 'Recibido', det: 'Te escribiremos por WhatsApp para confirmar el pago.', paso: 0 },
-    confirmado: { txt: 'Pago confirmado', det: 'Estamos preparando tu pedido.', paso: 1 },
+    confirmado: { txt: 'Pago confirmado', get det() { return `Estamos confeccionando tu pedido. ${textoConfeccion()}`; }, paso: 1 },
     enviado: { txt: 'Enviado', det: 'Tu pedido va en camino.', paso: 2 },
     entregado: { txt: 'Entregado', det: '¡Gracias por ser parte de la Sociedad!', paso: 3 },
     cancelado: { txt: 'Cancelado', det: 'Este pedido fue cancelado. Si es un error, escríbenos.', paso: -1 }
@@ -898,6 +902,7 @@
       </li>`).join('');
     $('#carritoVacio')?.classList.toggle('hidden', carrito.length > 0);
     renderCupon();
+    pintarAvisosConfeccion();
     totalEl.textContent = dinero(totalCarrito());
     contador.textContent = unidades;
     contador.classList.toggle('hidden', unidades === 0);
@@ -1324,7 +1329,12 @@
   function resumenHtml() {
     return `<ul>${carrito.map((i) => `<li><span>${esc(i.nombre)} <small>${esc(detalleItem(i))} · x${i.cantidad}</small></span><strong>${dinero(i.precio * i.cantidad)}</strong></li>`).join('')}</ul>`;
   }
+  function pintarAvisosConfeccion() {
+    const hay = carrito.some((i) => !i.preventa);
+    $$('.aviso-confeccion--dinamico').forEach((el) => { el.hidden = !hay; el.innerHTML = `<span aria-hidden="true">🧵</span> ${esc(textoConfeccion())}`; });
+  }
   function pintarTotalCheckout() {
+    pintarAvisosConfeccion();
     const desc = descuentoCupon();
     $('#checkoutTotal').innerHTML = (desc ? `<span class="checkout-desc">Subtotal ${dinero(subtotalCarrito())} · Código ${esc(cupon.codigo)}: −${dinero(desc)}</span>` : '')
       + 'Total productos: ' + dinero(totalCarrito()) + ' <small>(envío por confirmar)</small>';
@@ -1428,6 +1438,7 @@
       `*NUEVO PEDIDO${numeroPedido ? ` #${numeroPedido}` : ''} — INSANITY SOCIETY*`, '',
       ...lineas, '',
       ...(carrito.some((i) => i.preventa) ? ['⏳ Incluye prendas en PREVENTA: se entregan en la fecha estimada.', ''] : []),
+      ...(carrito.some((i) => !i.preventa) ? [`🧵 ${textoConfeccion()} (desde la confirmación del pago)`, ''] : []),
       ...(descuentoCupon() ? [`Subtotal: ${dinero(subtotalCarrito())}`, `Código de descuento ${cupon.codigo} (${textoCupon(cupon)}): −${dinero(descuentoCupon())}`] : []),
       `*Total productos: ${dinero(totalCarrito())}*`, '',
       '*Datos de envío*',

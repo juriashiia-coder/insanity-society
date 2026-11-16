@@ -95,7 +95,8 @@
       ayuda: 'Datos que se usan en toda la web.',
       campos: [
         TXT('whatsapp', 'Número de WhatsApp para pedidos', { req: true, ayuda: 'Con indicativo 57 y sin espacios ni +. Ej: 573241457674', numerico: true }),
-        AREA('pie', 'Frase del pie de página', { filas: 2 })
+        AREA('pie', 'Frase del pie de página', { filas: 2 }),
+        TXT('tiempo_confeccion', 'Tiempo de confección (se muestra en la tienda)', { placeholder: 'Hecha sobre pedido: se despacha en 2 a 3 días hábiles.', ayuda: 'Aparece en cada prenda, en el carrito, en el pedido de WhatsApp y en «Mis pedidos». Déjalo vacío para usar el texto de ejemplo.' })
       ]
     }
   };
@@ -127,7 +128,7 @@
   function abrirSeccion(id) {
     seccion = id;
     $$('.admin-tab').forEach((t) => t.classList.toggle('active', t.dataset.seccion === id));
-    const vistasPropias = { productos: '#subProductos', pedidos: '#subPedidos', estadisticas: '#subEstadisticas', cupones: '#subCupones', vip: '#subVip', inventario: '#subInventario' };
+    const vistasPropias = { productos: '#subProductos', pedidos: '#subPedidos', estadisticas: '#subEstadisticas', cupones: '#subCupones', vip: '#subVip', embajadores: '#subEmbajadores', inventario: '#subInventario' };
     Object.entries(vistasPropias).forEach(([k, sel]) => $(sel).classList.toggle('hidden', k !== id));
     $('#subContenido').classList.toggle('hidden', id in vistasPropias);
     datos = null; original = '';

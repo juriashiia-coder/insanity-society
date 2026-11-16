@@ -328,3 +328,27 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
   .vip-item { grid-template-columns: 40px 1fr; }
   .vip-item .admin-item-acciones { grid-column: 1 / -1; }
 }
+
+/* ---------- Embajadores ---------- */
+.emb-item { grid-template-columns: 48px 1fr auto; }
+.emb-item.is-pausado { opacity: .7; }
+.emb-cod { margin: .2rem 0 .35rem; display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .9rem; }
+.emb-cod code { font-size: .9rem; letter-spacing: 1px; background: #0f0f0f; border: 1px dashed var(--accent); padding: .1rem .45rem; border-radius: 6px; color: #fff; }
+.emb-cifras { display: flex; flex-wrap: wrap; align-items: baseline; gap: .3rem 1rem; margin: .2rem 0 .3rem; }
+.emb-cifras span { font-size: .9rem; color: #ccc; }
+.emb-cifras b { color: #fff; font-size: 1.05rem; }
+.emb-pendiente { color: #ffb84d; }
+.emb-detalle { margin-top: .5rem; }
+.emb-detalle summary { cursor: pointer; color: #ccc; font-size: .85rem; font-weight: 700; }
+.emb-detalle summary:hover { color: #fff; }
+.emb-tabla { margin-top: .5rem; font-size: .84rem; }
+.emb-no-suma { opacity: .55; }
+.emb-sub { font-size: .8rem; text-transform: uppercase; letter-spacing: .5px; color: #aaa; margin: .4rem 0 .2rem; }
+.emb-pagos { list-style: none; padding: 0; margin: 0; font-size: .86rem; }
+.emb-pagos li { display: flex; justify-content: space-between; gap: .8rem; padding: .35rem 0; border-bottom: 1px solid #222; }
+.inv-card--alerta strong { color: #ffb84d; }
+.est-emb-total { margin-top: .7rem; }
+@media (max-width: 700px) {
+  .emb-item { grid-template-columns: 40px 1fr; }
+  .emb-item .admin-item-acciones { grid-column: 1 / -1; flex-wrap: wrap; }
+}

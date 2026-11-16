@@ -21,6 +21,7 @@
   let cargando = null;
   let mostrarHasta = 50;
   let abierto = null;
+  let embNombres = null; // id -> nombre (null si embajadores no está activado)
 
   const dinero = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('es-CO');
   const numero = (n) => Math.round(Number(n) || 0).toLocaleString('es-CO');
@@ -64,6 +65,9 @@
       }
       mostrarError('');
       pedidos = todos; cargados = true;
+      // Nombres de embajadores (si la función está activada)
+      const re = await core.sb.from('embajadores').select('id, nombre');
+      embNombres = re.error ? null : Object.fromEntries((re.data || []).map((x) => [x.id, x.nombre]));
       actualizarPendientes();
       return true;
     })();
@@ -275,8 +279,23 @@
   });
   $('#vDescuento').addEventListener('input', totalVenta);
 
+  async function cargarCodigosEmbajadores() {
+    const sel = $('#vCupon'); if (!sel) return;
+    sel.innerHTML = '<option value="">Ninguno</option>';
+    const [rc, re] = await Promise.all([
+      core.sb.from('cupones').select('codigo, valor, embajador_id').not('embajador_id', 'is', null),
+      core.sb.from('embajadores').select('id, nombre')
+    ]);
+    const error = rc.error || re.error;
+    const nombres = Object.fromEntries((re.data || []).map((x) => [x.id, x.nombre]));
+    const data = (rc.data || []).map((c) => ({ ...c, nombre: nombres[c.embajador_id] || 'embajador' }));
+    sel.closest('.form-row').hidden = !!error || !data.length;
+    data.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+      .forEach((c) => sel.add(new Option(`${c.codigo} — ${c.nombre} (−${c.valor}%)`, c.codigo)));
+  }
   function abrirVenta() {
     $('#formVenta').reset();
+    cargarCodigosEmbajadores();
     $('#vFecha').value = hoyCo();
     $('#vFecha').max = hoyCo();
     $('#vItems').innerHTML = '';
@@ -313,6 +332,7 @@
     const fila = {
       fecha, estado: $('#vEstado').value, canal: $('#vCanal').value, items,
       subtotal: sub, descuento: desc, total: sub - desc,
+      ...($('#vCupon')?.value ? { cupon: $('#vCupon').value } : {}),
       cliente_nombre: $('#vNombre').value.trim() || null, celular: $('#vCelular').value.replace(/\D/g, '') || null,
       departamento: $('#vDepartamento').value.trim() || null, ciudad: $('#vCiudad').value.trim() || null,
       notas: $('#vNotas').value.trim() || null
@@ -546,6 +566,18 @@
     barras('#estCanales', agrupar(vend, (p) => [{ clave: p.canal, etiqueta: CANALES[p.canal] || p.canal, n: 1, v: Number(p.total) || 0 }], 'n'), {
       medida: 'n', valor: (f) => `${numero(f.n)} pedido${f.n === 1 ? '' : 's'} · ${dinero(f.v)}`
     });
+    const panelEmb = $('#estEmbajadores')?.closest('.est-panel');
+    if (panelEmb) panelEmb.hidden = !embNombres;
+    if (embNombres) {
+      const conEmb = vend.filter((p) => p.embajador_id);
+      const comisionDe = (p) => Math.round((Number(p.total) || 0) * (Number(p.comision_pct) || 0) / 100);
+      const totCom = conEmb.reduce((t, p) => t + comisionDe(p), 0);
+      barras('#estEmbajadores', agrupar(conEmb, (p) => [{ clave: p.embajador_id, etiqueta: embNombres[p.embajador_id] || 'Embajador eliminado', n: 1, v: Number(p.total) || 0, u: comisionDe(p) }], 'v'), {
+        medida: 'v', max: 10, vacio: 'Ninguna venta con códigos de embajadores en este periodo.',
+        valor: (f) => `${dinero(f.v)} vendido · ${dinero(f.u)} comisión · ${numero(f.n)} pedido${f.n === 1 ? '' : 's'}`
+      });
+      if (conEmb.length) $('#estEmbajadores').insertAdjacentHTML('beforeend', `<p class="admin-hint est-emb-total">Total: ${dinero(conEmb.reduce((t, p) => t + (Number(p.total) || 0), 0))} vendido por embajadores · ${dinero(totCom)} en comisiones.</p>`);
+    }
     barras('#estCupones', agrupar(vend.filter((p) => p.cupon), (p) => {
       const vip = /^VIP-/.test(p.cupon);
       return [{ clave: vip ? '__vip' : p.cupon, etiqueta: vip ? 'Lista VIP (códigos personales)' : p.cupon, n: 1, v: Number(p.descuento) || 0 }];

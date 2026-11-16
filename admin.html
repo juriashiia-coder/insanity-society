@@ -67,6 +67,7 @@
         <button type="button" class="admin-tab" data-seccion="comunidad">Comunidad</button>
         <button type="button" class="admin-tab" data-seccion="cupones">Cupones</button>
         <button type="button" class="admin-tab" data-seccion="vip">Lista VIP</button>
+        <button type="button" class="admin-tab" data-seccion="embajadores">Embajadores</button>
         <button type="button" class="admin-tab" data-seccion="general">General</button>
       </nav>
 
@@ -158,6 +159,7 @@
           <section class="est-panel"><div class="est-panel-head"><h2>Por colección</h2></div><div id="estColecciones"></div></section>
           <section class="est-panel"><div class="est-panel-head"><h2>Canal de venta</h2></div><div id="estCanales"></div></section>
         </div>
+        <section class="est-panel"><div class="est-panel-head"><h2>Embajadores</h2></div><div id="estEmbajadores"></div></section>
         <section class="est-panel"><div class="est-panel-head"><h2>Códigos de descuento usados</h2></div><div id="estCupones"></div></section>
         <p class="admin-hint">Solo cuentan los pedidos confirmados, enviados o entregados. Fechas en hora de Colombia.</p>
       </div>
@@ -217,6 +219,25 @@
         <button id="vipMas" class="btn-secundario btn-bloque hidden" type="button">Ver más</button>
       </div>
 
+      <div id="subEmbajadores" class="hidden">
+        <div class="admin-toolbar">
+          <h1>Embajadores <span id="embConteo" class="admin-conteo"></span></h1>
+          <div class="admin-toolbar-acciones">
+            <select id="embPeriodo" aria-label="Periodo de las cifras">
+              <option value="mes">Este mes</option>
+              <option value="mes_pasado">Mes pasado</option>
+              <option value="anio">Este año</option>
+              <option value="todo">Todo</option>
+            </select>
+            <button id="btnNuevoEmb" class="btn-primario" type="button">+ Nuevo embajador</button>
+          </div>
+        </div>
+        <p class="admin-hint admin-ayuda">Cada embajador tiene su código de descuento y gana un % de lo que se vende con él. La comisión se calcula sobre el total pagado del pedido (después del descuento, sin envío) y solo cuenta cuando el pedido está <strong>confirmado, enviado o entregado</strong>. Lo que le pagas a cada uno lo registras con «Registrar pago» y el panel te muestra cuánto le debes.</p>
+        <p id="embError" class="admin-error hidden" role="alert"></p>
+        <div id="embResumen" class="inv-resumen"></div>
+        <div id="embLista" class="admin-lista" aria-live="polite"></div>
+      </div>
+
       <div id="subCupones" class="hidden">
         <div class="admin-toolbar">
           <h1>Códigos de descuento <span id="cuponesConteo" class="admin-conteo"></span></h1>
@@ -224,7 +245,7 @@
             <button id="btnNuevoCupon" class="btn-primario" type="button">+ Nuevo código</button>
           </div>
         </div>
-        <p class="admin-hint admin-ayuda">Los códigos personales de la Lista VIP (VIP-…) no aparecen aquí: se ven en la pestaña Lista VIP. El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
+        <p class="admin-hint admin-ayuda">Los códigos personales de la Lista VIP (VIP-…) y los de los embajadores no aparecen aquí: se ven en sus propias pestañas. El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
         <p id="cuponesError" class="admin-error hidden" role="alert"></p>
         <div id="listaCupones" class="admin-lista" aria-live="polite"></div>
       </div>
@@ -522,6 +543,11 @@
           <div id="vItems" class="venta-items"></div>
           <button id="vAgregarItem" class="btn-secundario" type="button">+ Agregar producto</button>
         </fieldset>
+        <div class="form-row">
+          <label for="vCupon">Código de embajador usado (opcional)</label>
+          <select id="vCupon"><option value="">Ninguno</option></select>
+          <small class="admin-hint">Si la venta fue con el código de un embajador, elígelo: así se le suma la comisión.</small>
+        </div>
         <div class="form-grid">
           <div class="form-row">
             <label for="vDescuento">Descuento (opcional)</label>
@@ -556,6 +582,94 @@
     </div>
   </div>
 
+  <div id="embModal" class="modal-overlay hidden">
+    <div class="modal admin-editor admin-editor--pedido" role="dialog" aria-modal="true" aria-labelledby="embTitulo">
+      <div class="modal-header">
+        <h3 id="embTitulo">Nuevo embajador</h3>
+        <button id="cerrarEmb" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <form id="formEmb" class="modal-body admin-form" novalidate>
+        <div class="form-grid">
+          <div class="form-row"><label for="eNombre">Nombre</label><input id="eNombre" type="text" maxlength="80" /></div>
+          <div class="form-row"><label for="eInstagram">Instagram (opcional)</label><input id="eInstagram" type="text" maxlength="60" placeholder="@usuario" /></div>
+        </div>
+        <div class="form-row"><label for="eCelular">WhatsApp (opcional)</label><input id="eCelular" type="text" inputmode="tel" maxlength="16" placeholder="3XX XXX XXXX" /></div>
+        <fieldset class="admin-fieldset">
+          <legend>Su código de descuento</legend>
+          <div class="form-grid">
+            <div class="form-row">
+              <label for="eCodigo">Código</label>
+              <input id="eCodigo" type="text" maxlength="30" autocomplete="off" autocapitalize="characters" placeholder="Ej: SARA10" />
+              <small class="admin-hint">Solo letras y números. El cliente lo escribe en el carrito.</small>
+            </div>
+            <div class="form-row">
+              <label for="eDescuento">Descuento para el cliente (%)</label>
+              <input id="eDescuento" type="text" inputmode="numeric" maxlength="2" placeholder="Ej: 10" />
+            </div>
+          </div>
+          <div class="form-grid">
+            <div class="form-row">
+              <label for="eUsos">Usos por cliente</label>
+              <select id="eUsos">
+                <option value="1">1 vez por persona</option>
+                <option value="0">Sin límite</option>
+                <option value="2">2 veces por persona</option>
+                <option value="3">3 veces por persona</option>
+              </select>
+            </div>
+            <div class="form-row">
+              <label for="eMinimo">Compra mínima (opcional)</label>
+              <input id="eMinimo" type="text" inputmode="numeric" placeholder="Ej: 100.000" />
+            </div>
+          </div>
+        </fieldset>
+        <fieldset class="admin-fieldset">
+          <legend>Su comisión</legend>
+          <div class="form-row">
+            <label for="eComision">Comisión del embajador (%)</label>
+            <input id="eComision" type="text" inputmode="decimal" maxlength="5" placeholder="Ej: 10" />
+            <small id="eComisionVista" class="admin-hint">Sobre el total pagado de cada pedido con su código.</small>
+          </div>
+        </fieldset>
+        <div class="form-row"><label for="eNotas">Notas internas (opcional)</label><input id="eNotas" type="text" maxlength="300" placeholder="Ej: paga por Nequi 300..." /></div>
+        <label class="check-row admin-check">
+          <input id="eActivo" type="checkbox" checked />
+          <span>Activo <small class="admin-hint">(si lo desactivas, su código deja de funcionar)</small></span>
+        </label>
+        <p id="embFormError" class="admin-error hidden" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <button id="btnBorrarEmb" class="btn-secundario admin-peligro hidden" type="button">Eliminar</button>
+        <span class="admin-espacio"></span>
+        <button id="btnCancelarEmb" class="btn-secundario" type="button">Cancelar</button>
+        <button id="btnGuardarEmb" class="btn-primario" type="submit" form="formEmb">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pagoModal" class="modal-overlay hidden">
+    <div class="modal admin-editor admin-editor--cupon" role="dialog" aria-modal="true" aria-labelledby="pagoTitulo">
+      <div class="modal-header">
+        <h3 id="pagoTitulo">Registrar pago</h3>
+        <button id="cerrarPago" class="icon-btn" type="button" aria-label="Cerrar">✕</button>
+      </div>
+      <form id="formPago" class="modal-body admin-form" novalidate>
+        <p id="pagoPendiente" class="admin-hint"></p>
+        <div class="form-grid">
+          <div class="form-row"><label for="pgMonto">Monto pagado</label><input id="pgMonto" type="text" inputmode="numeric" placeholder="Ej: 50.000" /></div>
+          <div class="form-row"><label for="pgFecha">Fecha</label><input id="pgFecha" type="date" /></div>
+        </div>
+        <div class="form-row"><label for="pgNota">Nota (opcional)</label><input id="pgNota" type="text" maxlength="200" placeholder="Ej: Nequi, comisiones de octubre" /></div>
+        <p id="pagoError" class="admin-error hidden" role="alert"></p>
+      </form>
+      <div class="modal-footer">
+        <span class="admin-espacio"></span>
+        <button id="btnCancelarPago" class="btn-secundario" type="button">Cancelar</button>
+        <button id="btnGuardarPago" class="btn-primario" type="submit" form="formPago">Guardar pago</button>
+      </div>
+    </div>
+  </div>
+
   <div id="estTip" class="est-tip hidden" role="status"></div>
   <div id="toast" class="toast hidden" role="status" aria-live="polite"></div>
 
@@ -566,5 +680,6 @@
   <script src="js/admin-cupones.js"></script>
   <script src="js/admin-pedidos.js"></script>
   <script src="js/admin-vip.js"></script>
+  <script src="js/admin-embajadores.js"></script>
 </body>
 </html>
