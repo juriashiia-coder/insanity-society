@@ -1005,12 +1005,16 @@
     $$('.vip-titulo').forEach((el) => { el.textContent = vipCfg?.titulo?.trim() || 'Únete a la Sociedad'; });
     $$('.vip-texto').forEach((el) => { el.textContent = vipCfg?.texto?.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'; });
     $$('.vip-regalo').forEach((el) => { el.textContent = textoRegaloVip(); el.hidden = !vipConRegalo; });
+    $$('.vip-barra-sub').forEach((el) => { el.textContent = textoRegaloVip() || vipCfg?.texto?.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'; });
     const pie = $('#vipPie'); if (pie) pie.hidden = !vipActiva || storage.get(CLAVE_VIP)?.estado === 'suscrito';
   }
   pintarInvitacionVip();
 
-  function abrirVip() {
+  let vipAbierta = false;
+  function abrirVip(origen = 'popup') {
     if (!vipModal) return;
+    vipAbierta = true;
+    const f = $('.vip-form', vipModal); if (f) f.dataset.origen = origen;
     vipModal.classList.remove('hidden');
     document.body.classList.add('no-scroll');
     $('.vip-form input[name="celular"]', vipModal)?.focus();
@@ -1022,6 +1026,8 @@
     if (recordar && storage.get(CLAVE_VIP)?.estado !== 'suscrito') storage.set(CLAVE_VIP, { estado: 'cerrado', t: Date.now() });
   }
   $('#cerrarVip')?.addEventListener('click', () => cerrarVip());
+  // La barra del pie abre la misma ventana (queda registrada como "pie de página")
+  $('#vipPieAbrir')?.addEventListener('click', () => abrirVip('pie'));
   vipModal?.addEventListener('click', (e) => { if (e.target === vipModal) cerrarVip(); });
 
   // La invitación aparece una sola vez: a los 15 s o al bajar más de la mitad de la página.
@@ -1033,7 +1039,7 @@
       let mostrada = false;
       const hayOtraVentana = () => [checkoutModal, $('#productoModal'), $('#guiaModal')].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
       const intentar = () => {
-        if (mostrada) return;
+        if (mostrada || vipAbierta) return;
         if (hayOtraVentana()) { setTimeout(intentar, 8000); return; }
         mostrada = true; window.removeEventListener('scroll', alBajar); abrirVip();
       };
@@ -1096,6 +1102,8 @@
       $('.vip-resultado', caja).hidden = false;
       form.hidden = true;
       $$('.vip-pre', caja).forEach((el) => { el.hidden = true; });
+      // Ya está suscrito: la invitación del pie sobra
+      const pie = $('#vipPie'); if (pie) pie.hidden = true;
     } catch (err) {
       decir({ CELULAR_INVALIDO: 'Ese celular no es válido.', CORREO_INVALIDO: 'Ese correo no es válido.', VIP_INACTIVO: 'Las inscripciones están cerradas por ahora.', INTENTA_LUEGO: 'Hay muchas inscripciones en este momento. Intenta en un minuto.' }[err.message]
         || 'No pudimos inscribirte. Revisa tu conexión e intenta de nuevo.');
