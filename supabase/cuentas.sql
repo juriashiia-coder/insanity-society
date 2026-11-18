@@ -97,7 +97,11 @@ begin
       'usado', usado,
       'disponible', not usado and coalesce(cu.activo, false)
                     and (cu.vence is null or cu.vence > now())
-                    and not coalesce((cfg->>'codigos_pausados')::boolean, false)
+                    and not coalesce((cfg->>'codigos_pausados')::boolean, false),
+      'motivo', case when usado then 'usado'
+                     when not coalesce(cu.activo, false) then 'inactivo'
+                     when cu.vence is not null and cu.vence <= now() then 'vencido'
+                     when coalesce((cfg->>'codigos_pausados')::boolean, false) then 'pausado' end
     ) end
   );
 end;
@@ -141,16 +145,24 @@ begin
   values (uid, v_nombre, cel, left(v_correo, 160), coalesce(p_promos, false));
 
   -- Código de bienvenida: uno por celular en toda la vida
+  select valor into cfg from public.contenido where clave = 'vip';
+  dias := nullif(cfg->>'dias_validez', '')::integer;
   select codigo into cod from public.cupones where celular_vip = cel order by creado_en limit 1;
   if cod is not null then
-    update public.cupones set cliente_id = uid where codigo = cod;
+    -- Hereda el código que ese celular ya tenía (Lista VIP anterior). Si nunca lo usó pero
+    -- quedó apagado o vencido, y el regalo está activo, se reactiva con validez nueva.
+    update public.cupones c
+       set cliente_id = uid,
+           activo = case when reactivar then true else c.activo end,
+           vence = case when reactivar then (case when dias > 0 then now() + make_interval(days => dias) end) else c.vence end
+      from (select coalesce((cfg->>'regalo_activo')::boolean, false)
+                   and not exists (select 1 from public.pedidos p where p.cupon = cod and p.estado <> 'cancelado') as reactivar) r
+     where c.codigo = cod;
   else
-    select valor into cfg from public.contenido where clave = 'vip';
     if coalesce((cfg->>'regalo_activo')::boolean, false) then
       pct := nullif(cfg->>'porcentaje', '')::integer;
       if pct between 1 and 90 then
         minimo := coalesce(nullif(cfg->>'minimo_compra', '')::integer, 0);
-        dias := nullif(cfg->>'dias_validez', '')::integer;
         loop
           cod := 'BIEN-' || (select string_agg(substr(alfabeto, 1 + floor(random() * length(alfabeto))::int, 1), '')
                                from generate_series(1, 5));

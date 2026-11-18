@@ -1251,12 +1251,21 @@
           'Es de un solo uso y solo funciona con tu cuenta.'].filter(Boolean).join(' ')}</p>`;
     } else if (b?.codigo && b.usado) {
       html += '<p>Ya usaste tu regalo de bienvenida antes. Igual serás de los primeros en enterarte de lanzamientos y preventas.</p>';
+    } else if (b?.codigo) {
+      html += `<p>Tu cuenta está lista. ${esc(MOTIVO_CODIGO[b.motivo] || '')}</p>`;
     } else {
       html += '<p>Tu cuenta está lista. Ya puedes agregar al carrito, hacer pedidos y seguirlos desde «Mis pedidos».</p>';
     }
     $('.cuenta-bienvenida', cuentaModal).innerHTML = html;
   }
   const fechaVence = (t) => new Date(t).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', timeZone: 'America/Bogota' });
+  // Por qué el código de bienvenida no se puede usar
+  const MOTIVO_CODIGO = {
+    usado: 'Ya usaste tu código de bienvenida. ¡Gracias por ser parte de la Sociedad!',
+    vencido: 'Tu código de bienvenida ya venció.',
+    pausado: 'Los códigos de bienvenida están pausados por ahora. Te avisaremos cuando vuelvan.',
+    inactivo: 'Tu código de bienvenida está desactivado. Si crees que es un error, escríbenos por WhatsApp.'
+  };
   function pintarMiCuenta() {
     const pf = cuenta?.perfil; if (!pf) return;
     $('.cuenta-nombre', cuentaModal).textContent = pf.nombre;
@@ -1265,8 +1274,7 @@
     const b = cuenta.bienvenida;
     $('.cuenta-codigo', cuentaModal).innerHTML = !b?.codigo ? ''
       : b.disponible ? `<p>Tu código de bienvenida (${b.porcentaje}%):</p><div class="vip-codigo"><strong>${esc(b.codigo)}</strong><button type="button" class="btn-secundario" data-copiar="${esc(b.codigo)}">Copiar</button></div>${b.vence ? `<p class="vip-condiciones">Válido hasta el ${esc(fechaVence(b.vence))}.</p>` : ''}`
-      : b.usado ? '<p class="vip-condiciones">Ya usaste tu código de bienvenida. ¡Gracias por ser parte de la Sociedad!</p>'
-      : '<p class="vip-condiciones">Tu código de bienvenida no está disponible en este momento.</p>';
+      : `<p class="vip-condiciones">${esc(MOTIVO_CODIGO[b.motivo] || (b.usado ? MOTIVO_CODIGO.usado : 'Tu código de bienvenida no está disponible en este momento.'))}</p>`;
   }
 
   // ----- Formularios -----
