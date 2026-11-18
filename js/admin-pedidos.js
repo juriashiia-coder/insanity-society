@@ -579,8 +579,8 @@
       if (conEmb.length) $('#estEmbajadores').insertAdjacentHTML('beforeend', `<p class="admin-hint est-emb-total">Total: ${dinero(conEmb.reduce((t, p) => t + (Number(p.total) || 0), 0))} vendido por embajadores · ${dinero(totCom)} en comisiones.</p>`);
     }
     barras('#estCupones', agrupar(vend.filter((p) => p.cupon), (p) => {
-      const vip = /^VIP-/.test(p.cupon);
-      return [{ clave: vip ? '__vip' : p.cupon, etiqueta: vip ? 'Lista VIP (códigos personales)' : p.cupon, n: 1, v: Number(p.descuento) || 0 }];
+      const vip = /^(VIP|BIEN)-/.test(p.cupon);
+      return [{ clave: vip ? '__vip' : p.cupon, etiqueta: vip ? 'Códigos de bienvenida (personales)' : p.cupon, n: 1, v: Number(p.descuento) || 0 }];
     }, 'n'), {
       medida: 'n', vacio: 'No se usaron códigos de descuento en este periodo.',
       valor: (f) => `${numero(f.n)} uso${f.n === 1 ? '' : 's'} · ${dinero(f.v)} descontados`

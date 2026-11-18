@@ -148,6 +148,78 @@
   }
   const [PRODUCTOS, CONTENIDO] = await Promise.all([cargarProductos(), cargarContenido()]);
 
+  // ---------- Cuentas de clientes (Supabase Auth) ----------
+  // Para agregar al carrito, usar códigos, pedir y ver "Mis pedidos" se necesita cuenta.
+  // La sesión del cliente se guarda aparte de la del panel (otra clave), así no se mezclan.
+  const urlBase = (cfgSb.supabaseUrl || '').replace(/\/+$/, '');
+  // Lo que trae el enlace del correo/Google (#access_token=…&type=recovery, o un error) antes de que Supabase lo limpie
+  const paramsUrl = new URLSearchParams(location.hash.slice(1) + '&' + location.search.slice(1));
+  const tipoEnlace = paramsUrl.get('type');
+  const errorEnlace = paramsUrl.get('error_description') || paramsUrl.get('error_code');
+  let sb = null;
+  try {
+    if (conSupabase && window.supabase?.createClient) {
+      sb = window.supabase.createClient(cfgSb.supabaseUrl, cfgSb.supabaseKey, {
+        auth: { storageKey: 'insanity-cuenta', persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' }
+      });
+    }
+  } catch (err) { console.warn('[Insanity] Cuentas no disponibles:', err); }
+  const cuentasActivas = !!sb;
+  let sesion = null;   // sesión de Supabase Auth
+  let cuenta = null;   // { perfil, bienvenida } desde mi_cuenta()
+  // Sin Supabase (modo local) la tienda funciona como antes, sin cuentas
+  const cuentaLista = () => !cuentasActivas || !!(sesion && cuenta?.perfil);
+  const CODIGOS_ERROR = /CUENTA_REQUERIDA|PERFIL_INCOMPLETO|CELULAR_EN_USO|CELULAR_INVALIDO|NOMBRE_INVALIDO|INTENTA_LUEGO|CUPON_YA_USADO|CUPON_NO_VALIDO|CUPON_PERSONAL|VIP_INACTIVO|CORREO_INVALIDO/;
+  async function tokenActual() {
+    if (!sb) return null;
+    try { const { data } = await sb.auth.getSession(); sesion = data.session; } catch { /* sin sesión */ }
+    return sesion?.access_token || null;
+  }
+  // Llama una función de la base con la sesión del cliente (si la hay)
+  async function rpc(nombre, cuerpo = {}, { timeout = 9000 } = {}) {
+    const headers = { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' };
+    const token = await tokenActual();
+    if (token) headers.Authorization = `Bearer ${token}`;
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), timeout);
+    try {
+      const r = await fetch(`${urlBase}/rest/v1/rpc/${nombre}`, { method: 'POST', headers, body: JSON.stringify(cuerpo), signal: ctrl.signal });
+      const txt = await r.text();
+      if (!r.ok) {
+        const e = new Error((txt.match(CODIGOS_ERROR) || ['ERROR'])[0]);
+        e.status = r.status; e.detalle = txt;
+        throw e;
+      }
+      return txt ? JSON.parse(txt) : null;
+    } finally { clearTimeout(t); }
+  }
+  // Carga los datos de la cuenta. Si se registró con correo, su perfil (nombre y celular)
+  // viene guardado en la cuenta y se termina de crear aquí, al primer ingreso.
+  let nuevaCuenta = false, errorPerfil = null, cargandoCuenta = null;
+  function cargarCuenta() {
+    if (cargandoCuenta) return cargandoCuenta;
+    cargandoCuenta = (async () => {
+      errorPerfil = null;
+      if (!sesion) { cuenta = null; return; }
+      try { cuenta = await rpc('mi_cuenta'); } catch (err) { console.warn('[Insanity] No se pudo leer la cuenta:', err.message); cuenta = null; return; }
+      if (cuenta && !cuenta.perfil) {
+        const m = sesion.user?.user_metadata || {};
+        if (m.celular && m.nombre) {
+          try { cuenta = await rpc('registrar_cliente', { p_nombre: m.nombre, p_celular: m.celular, p_promos: !!m.promos }); nuevaCuenta = true; }
+          catch (err) { errorPerfil = err.message; }
+        }
+      }
+    })().finally(() => { cargandoCuenta = null; });
+    return cargandoCuenta;
+  }
+  const authListo = sb ? (async () => {
+    try {
+      const { data } = await sb.auth.getSession();
+      sesion = data.session;
+      if (sesion) await cargarCuenta();
+    } catch (err) { console.warn('[Insanity] Sesión no disponible:', err); }
+  })() : Promise.resolve();
+
   // ---------- Aplicar textos editables (si existen en Supabase) ----------
   let numeroWa = WHATSAPP_NUMERO;
   const conSaltos = (t) => esc(t).replace(/\n/g, '<br />');
@@ -617,9 +689,10 @@
     if (cerro) { renderPreventa(); renderCatalogo(); aplicarFiltros(); renderDestacados(); renderFavoritos(); }
   }, 60000);
 
-  // ---------- Mis pedidos: seguimiento sin cuentas ----------
-  // Los pedidos hechos en este dispositivo se guardan aquí (número + celular).
-  // El estado se consulta en Supabase con ese par; sin él, no se ve nada.
+  // ---------- Mis pedidos ----------
+  // Con cuenta: se ven todos los pedidos de la cuenta (desde cualquier dispositivo).
+  // Además, los pedidos viejos guardados en este dispositivo (número + celular) o
+  // buscados con el formulario, por si son de antes de crear la cuenta.
   const CLAVE_MIS_PEDIDOS = 'insanity-mis-pedidos';
   const misPedidos = () => (storage.get(CLAVE_MIS_PEDIDOS) || []).filter((x) => x && x.id && x.celular);
   function recordarPedido(id, celular) {
@@ -638,14 +711,9 @@
   const fechaPedido = (t) => new Date(t).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'America/Bogota' });
 
   async function consultarPedidos(pares) {
-    const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/consultar_pedidos`, {
-      method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ p_consultas: pares.map((x) => ({ id: x.id, celular: x.celular })) })
-    });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    return r.json();
+    return (await rpc('consultar_pedidos', { p_consultas: pares.map((x) => ({ id: x.id, celular: x.celular })) })) || [];
   }
-  function tarjetaPedido(p) {
+  function tarjetaPedido(p, olvidable = true) {
     const est = ESTADO_CLIENTE[p.estado] || ESTADO_CLIENTE.pendiente;
     const pasos = est.paso < 0 ? '' : `<ol class="pedido-pasos" aria-label="Progreso del pedido">${PASOS.map((t, i) =>
       `<li class="${i < est.paso ? 'hecho' : i === est.paso ? 'actual' : ''}"${i === est.paso ? ' aria-current="step"' : ''}><span></span>${t}</li>`).join('')}</ol>`;
@@ -663,23 +731,34 @@
         <p class="pedido-total">${p.descuento ? `<small>Descuento ${p.cupon ? esc(p.cupon) : ''}: −${dinero(p.descuento)}</small>` : ''}<span>Total</span> <strong>${dinero(p.total)}</strong></p>
         <div class="pedido-acciones">
           <a class="btn-secundario" target="_blank" rel="noopener" href="https://wa.me/${numeroWa}?text=${encodeURIComponent(msg)}">Preguntar por WhatsApp</a>
-          <button type="button" class="link-btn" data-olvidar="${p.id}">Quitar de esta lista</button>
+          ${olvidable ? `<button type="button" class="link-btn" data-olvidar="${p.id}">Quitar de esta lista</button>` : ''}
         </div>
       </article>`;
   }
   let cargandoMisPedidos = false;
   async function renderMisPedidos() {
     const cont = $('#misPedidosLista'); if (!cont) return;
-    const pares = misPedidos();
+    const entrar = $('#misPedidosEntrar'), buscar = $('#buscarPedidoForm');
     if (!conSupabase) { cont.innerHTML = '<p class="mis-pedidos-vacio">El seguimiento de pedidos no está disponible en este momento. Escríbenos por WhatsApp.</p>'; return; }
-    if (!pares.length) { cont.innerHTML = '<p class="mis-pedidos-vacio">Aún no hay pedidos guardados en este dispositivo. Cuando hagas uno, aparecerá aquí con su estado.</p>'; return; }
+    await authListo;
+    const conCuenta = !cuentasActivas || !!sesion;
+    if (entrar) entrar.hidden = conCuenta;
+    if (buscar) buscar.hidden = !conCuenta;
+    if (!conCuenta) { cont.innerHTML = ''; return; }
+    const pares = misPedidos();
     if (cargandoMisPedidos) return;
     cargandoMisPedidos = true;
     cont.innerHTML = '<p class="mis-pedidos-vacio">Consultando tus pedidos…</p>';
     try {
-      const data = await consultarPedidos(pares);
-      cont.innerHTML = data.length ? data.map(tarjetaPedido).join('')
-        : '<p class="mis-pedidos-vacio">No encontramos los pedidos guardados. Si crees que es un error, escríbenos por WhatsApp.</p>';
+      const [deCuenta, deAntes] = await Promise.all([
+        cuentasActivas ? rpc('mis_pedidos').then((d) => d || []) : [],
+        pares.length ? consultarPedidos(pares) : []
+      ]);
+      const ids = new Set(deCuenta.map((p) => String(p.id)));
+      const todos = [...deCuenta.map((p) => [p, false]), ...deAntes.filter((p) => !ids.has(String(p.id))).map((p) => [p, true])]
+        .sort((a, b) => new Date(b[0].fecha) - new Date(a[0].fecha));
+      cont.innerHTML = todos.length ? todos.map(([p, olvidable]) => tarjetaPedido(p, olvidable)).join('')
+        : '<p class="mis-pedidos-vacio">Aún no tienes pedidos. Cuando hagas uno, aparecerá aquí con su estado.</p>';
     } catch {
       cont.innerHTML = '<p class="mis-pedidos-vacio">No pudimos consultar tus pedidos ahora. Revisa tu conexión e intenta de nuevo.</p>';
     } finally { cargandoMisPedidos = false; }
@@ -844,21 +923,31 @@
     }
     const color = valorSel(card, 'color-' + uid) || p.colores[0];
     const variante = p.variantes ? valorSel(card, 'var-' + uid) : null;
+    // Sin cuenta no se agrega: se recuerda la prenda y se agrega sola al entrar
+    if (!cuentaLista()) {
+      guardarPendiente({ tipo: 'agregar', id: p.id, color, talla, variante });
+      abrirCuenta(null, 'Para agregar productos al carrito necesitas una cuenta. Es gratis y toma un minuto.');
+      return;
+    }
+    if (agregarItem(p, color, talla, variante) && card.closest('#productoModal')) cerrarProducto();
+  }
+  // Agrega una prenda ya elegida (color/talla) al carrito. Devuelve true si se agregó.
+  function agregarItem(p, color, talla, variante) {
     const key = [p.id, color, talla, variante || ''].join('|');
     const existente = carrito.find((i) => i.key === key);
     const disp = stockDe(p, color, talla);
     const yaEnCarrito = carrito.filter((i) => i.id === p.id && i.color === color && i.talla === talla).reduce((s, i) => s + i.cantidad, 0);
     if (yaEnCarrito + 1 > disp) {
       toast(disp <= 0 ? `La talla ${talla} en ${color} está agotada.` : `Solo hay ${disp} unidad${disp === 1 ? '' : 'es'} en ${color} · ${talla} y ya están en tu carrito.`);
-      return;
+      return false;
     }
     if (existente) existente.cantidad = Math.min(20, existente.cantidad + 1);
     else carrito.push({ key, id: p.id, nombre: p.nombre, coleccion: p.coleccion, color, talla, variante, precio: precioDe(p, variante), oferta: ofertaActiva(p) || 0, cantidad: 1,
       preventa: enPreventa(p) || undefined, entrega: enPreventa(p) ? p.preventa_entrega || undefined : undefined });
     guardarYRender();
     toast(`${enPreventa(p) ? 'Apartado en preventa' : 'Agregado'}: ${p.nombre} · ${color} · ${talla}`);
-    if (card.closest('#productoModal')) cerrarProducto();
     btnCarrito?.classList.remove('pulse'); void btnCarrito?.offsetWidth; btnCarrito?.classList.add('pulse');
+    return true;
   }
 
   // ---------- Códigos de descuento ----------
@@ -872,8 +961,14 @@
   }
   const totalCarrito = () => subtotalCarrito() - descuentoCupon();
   const textoCupon = (c) => (c.tipo === 'porcentaje' ? `${c.valor}%` : dinero(c.valor));
+  // Con cuentas: el servidor revisa el código contra MI cuenta (ya usado, personal de otro…)
   async function validarCupon(codigo) {
     if (!conSupabase) throw new Error('no-disponible');
+    if (cuentasActivas) {
+      const r = await rpc('revisar_cupon', { p_codigo: codigo });
+      if (!r?.ok) throw new Error(r?.motivo || 'CUPON_NO_VALIDO');
+      return r;
+    }
     const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/validar_cupon`, {
       method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' }, body: JSON.stringify({ p_codigo: codigo })
     });
@@ -960,18 +1055,25 @@
     const input = $('#cuponInput'); const msg = $('#cuponMsg'); const btn = e.submitter || $('#cuponForm button');
     const codigo = input.value.trim().toUpperCase();
     if (!codigo) { input.focus(); return; }
+    if (!cuentaLista()) { setCarrito(false); abrirCuenta(null, 'Para usar códigos de descuento necesitas una cuenta.'); return; }
     btn.disabled = true; btn.textContent = '…';
     try {
       const c = await validarCupon(codigo);
-      if (!c) throw new Error('invalido');
+      if (!c) throw new Error('CUPON_NO_VALIDO');
       cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 };
       storage.set(CLAVE_CUPON, cupon);
       input.value = '';
       msg.className = 'cupon-msg cupon-msg--ok'; msg.textContent = `¡Listo! ${textoCupon(cupon)} de descuento aplicado.`;
     } catch (err) {
       msg.className = 'cupon-msg cupon-msg--error';
-      msg.textContent = err.message === 'no-disponible' ? 'Los códigos de descuento no están disponibles en este momento.'
-        : err.message === 'invalido' ? 'Ese código no existe o ya venció.' : 'No pudimos validar el código. Intenta de nuevo.';
+      msg.textContent = {
+        'no-disponible': 'Los códigos de descuento no están disponibles en este momento.',
+        CUPON_NO_VALIDO: 'Ese código no existe o ya venció.',
+        CUPON_YA_USADO: 'Ya usaste este código con tu cuenta (es de un solo uso por persona).',
+        CUPON_PERSONAL: 'Ese código es personal de otra persona.',
+        CUENTA_REQUERIDA: 'Entra a tu cuenta para usar códigos.',
+        PERFIL_INCOMPLETO: 'Termina de crear tu cuenta para usar códigos.'
+      }[err.message] || 'No pudimos validar el código. Intenta de nuevo.';
     }
     btn.disabled = false; btn.textContent = 'Aplicar';
     guardarYRender();
@@ -982,136 +1084,333 @@
     guardarYRender();
   });
   // Revalidar el cupón guardado (puede haber vencido o sido desactivado)
-  if (cupon && conSupabase) {
+  function revalidarCupon() {
+    if (!cupon) return;
+    if (!conSupabase || !cuentaLista()) { cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender(); return; }
     validarCupon(cupon.codigo).then((c) => {
-      if (!c) { cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender(); }
-      else { cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 }; storage.set(CLAVE_CUPON, cupon); guardarYRender(); }
-    }).catch(() => {});
-  } else if (cupon && !conSupabase) { cupon = null; storage.set(CLAVE_CUPON, null); }
-
-  // ---------- Lista VIP: suscripción con código personal de bienvenida ----------
-  // La configuración viene del panel (contenido -> 'vip'). Cada suscriptor recibe un
-  // código único que solo funciona con su celular; se aplica solo en el carrito.
-  const vipCfg = CONTENIDO?.vip || null;
-  const CLAVE_VIP = 'insanity-vip';
-  const vipActiva = conSupabase && !!vipCfg?.activo;
-  const vipPct = Number(vipCfg?.porcentaje) || 0;
-  const vipConRegalo = vipActiva && !!vipCfg?.regalo_activo && vipPct >= 1 && vipPct <= 90;
-  const vipModal = $('#vipModal');
-
-  function textoRegaloVip() {
-    if (!vipConRegalo) return '';
-    const min = Number(vipCfg.minimo_compra) || 0;
-    return `Recibe ${vipPct}% de descuento en tu primera compra${min ? ` desde ${dinero(min)}` : ''}.`;
-  }
-  function pintarInvitacionVip() {
-    $$('.vip-titulo').forEach((el) => { el.textContent = vipCfg?.titulo?.trim() || 'Únete a la Sociedad'; });
-    $$('.vip-texto').forEach((el) => { el.textContent = vipCfg?.texto?.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'; });
-    $$('.vip-regalo').forEach((el) => { el.textContent = textoRegaloVip(); el.hidden = !vipConRegalo; });
-    $$('.vip-barra-sub').forEach((el) => { el.textContent = textoRegaloVip() || vipCfg?.texto?.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'; });
-    const pie = $('#vipPie'); if (pie) pie.hidden = !vipActiva || storage.get(CLAVE_VIP)?.estado === 'suscrito';
-  }
-  pintarInvitacionVip();
-
-  let vipAbierta = false;
-  function abrirVip(origen = 'popup') {
-    if (!vipModal) return;
-    vipAbierta = true;
-    const f = $('.vip-form', vipModal); if (f) f.dataset.origen = origen;
-    vipModal.classList.remove('hidden');
-    document.body.classList.add('no-scroll');
-    $('.vip-form input[name="celular"]', vipModal)?.focus();
-  }
-  function cerrarVip(recordar = true) {
-    if (!vipModal || vipModal.classList.contains('hidden')) return;
-    vipModal.classList.add('hidden');
-    if (![checkoutModal, $('#productoModal')].some((m) => m && !m.classList.contains('hidden')) && !carritoPanel.classList.contains('active')) document.body.classList.remove('no-scroll');
-    if (recordar && storage.get(CLAVE_VIP)?.estado !== 'suscrito') storage.set(CLAVE_VIP, { estado: 'cerrado', t: Date.now() });
-  }
-  $('#cerrarVip')?.addEventListener('click', () => cerrarVip());
-  // La barra del pie abre la misma ventana (queda registrada como "pie de página")
-  $('#vipPieAbrir')?.addEventListener('click', () => abrirVip('pie'));
-  vipModal?.addEventListener('click', (e) => { if (e.target === vipModal) cerrarVip(); });
-
-  // La invitación aparece una sola vez: a los 15 s o al bajar más de la mitad de la página.
-  // Si la cierran, no vuelve a salir en 30 días.
-  if (vipActiva && vipModal) {
-    const guardado = storage.get(CLAVE_VIP);
-    const yaVista = guardado?.estado === 'suscrito' || (guardado?.estado === 'cerrado' && Date.now() - (guardado.t || 0) < 30 * 864e5);
-    if (!yaVista) {
-      let mostrada = false;
-      const hayOtraVentana = () => [checkoutModal, $('#productoModal'), $('#guiaModal')].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
-      const intentar = () => {
-        if (mostrada || vipAbierta) return;
-        if (hayOtraVentana()) { setTimeout(intentar, 8000); return; }
-        mostrada = true; window.removeEventListener('scroll', alBajar); abrirVip();
-      };
-      const alBajar = () => { if (window.scrollY + innerHeight > document.documentElement.scrollHeight * 0.6) intentar(); };
-      setTimeout(intentar, 15000);
-      window.addEventListener('scroll', alBajar, { passive: true });
-    }
-  }
-
-  async function suscribirVip(datos) {
-    const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/suscribir_vip`, {
-      method: 'POST', headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify(datos)
+      cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 }; storage.set(CLAVE_CUPON, cupon); guardarYRender();
+    }).catch((err) => {
+      if (CODIGOS_ERROR.test(err.message)) { cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender(); }
     });
-    const txt = await r.text();
-    if (!r.ok) { const m = txt.match(/VIP_INACTIVO|CELULAR_INVALIDO|CORREO_INVALIDO|INTENTA_LUEGO/); throw new Error(m ? m[0] : 'ERROR'); }
-    return JSON.parse(txt);
+  }
+  authListo.then(revalidarCupon);
+
+  // ---------- Cuenta: invitación, registro, ingreso, Google y "Mi cuenta" ----------
+  // La invitación usa la configuración de "Lista VIP" del panel (contenido -> 'vip'):
+  // activo = mostrar invitación; regalo_activo + porcentaje = código de bienvenida al crear cuenta.
+  const vipCfg = CONTENIDO?.vip || null;
+  const CLAVE_VIP = 'insanity-vip';               // recuerda si cerró la invitación
+  const CLAVE_PENDIENTE = 'insanity-pendiente';   // lo que quería hacer antes de entrar
+  const invitacionActiva = cuentasActivas && !!vipCfg?.activo;
+  const vipPct = Number(vipCfg?.porcentaje) || 0;
+  const conRegalo = cuentasActivas && !!vipCfg?.regalo_activo && vipPct >= 1 && vipPct <= 90;
+  const conGoogle = cuentasActivas && !!vipCfg?.google_activo;
+  const cuentaModal = $('#cuentaModal');
+  const vistaUrl = location.origin + location.pathname;
+  const primerNombre = () => (cuenta?.perfil?.nombre || '').split(/\s+/)[0] || '';
+
+  function textoRegalo() {
+    if (!conRegalo) return '';
+    const min = Number(vipCfg.minimo_compra) || 0;
+    return `Crea tu cuenta y recibe ${vipPct}% de descuento en tu primera compra${min ? ` desde ${dinero(min)}` : ''}.`;
+  }
+  function pintarInvitacion() {
+    $$('.cuenta-inv-titulo').forEach((el) => { el.textContent = vipCfg?.titulo?.trim() || 'Crea tu cuenta'; });
+    $$('.cuenta-inv-texto').forEach((el) => { el.textContent = vipCfg?.texto?.trim() || 'Guarda tus pedidos, síguelos desde cualquier dispositivo y entérate primero de lanzamientos y preventas.'; });
+    $$('.cuenta-regalo').forEach((el) => { el.textContent = textoRegalo(); el.hidden = !conRegalo; });
+    $$('.vip-barra-sub').forEach((el) => { el.textContent = textoRegalo() || 'Guarda tus pedidos y síguelos desde cualquier dispositivo.'; });
+    $$('[data-google]').forEach((el) => { el.hidden = !conGoogle; });
+  }
+  pintarInvitacion();
+
+  // Cabecera, pie y menú según haya sesión o no
+  function pintarCuenta() {
+    const dentro = !!(sesion && cuenta?.perfil);
+    const punto = $('.cuenta-punto'); if (punto) punto.hidden = !dentro;
+    const btn = $('#btnCuenta');
+    if (btn) { btn.classList.toggle('active', dentro); btn.setAttribute('aria-label', dentro ? `Mi cuenta (${primerNombre()})` : 'Entrar o crear cuenta'); btn.title = dentro ? 'Mi cuenta' : 'Entrar o crear cuenta'; }
+    $$('.menu-cuenta').forEach((el) => { el.textContent = dentro ? `Mi cuenta (${primerNombre()})` : 'Entrar / Crear cuenta'; });
+    const pie = $('#vipPie'); if (pie) pie.hidden = !invitacionActiva || !!sesion;
+  }
+  if (!cuentasActivas) { $('#btnCuenta')?.setAttribute('hidden', ''); $$('.menu-cuenta').forEach((el) => { el.hidden = true; }); }
+
+  // ----- Ventana -----
+  function mostrarVista(nombre, { motivo } = {}) {
+    $$('.cuenta-vista', cuentaModal).forEach((v) => { v.hidden = v.dataset.vista !== nombre; });
+    $$('.cuenta-msg', cuentaModal).forEach((m) => { m.className = 'cuenta-msg cupon-msg hidden'; m.textContent = ''; });
+    const mot = $('.cuenta-motivo', cuentaModal);
+    if (mot) { mot.textContent = motivo || ''; mot.hidden = !motivo || !['invitacion', 'registro', 'ingreso'].includes(nombre); }
+    if (nombre === 'cuenta') pintarMiCuenta();
+    if (nombre === 'perfil') {
+      const fp = $('[data-form="perfil"]', cuentaModal);
+      const m = sesion?.user?.user_metadata || {};
+      if (fp && !fp.nombre.value) fp.nombre.value = m.nombre || m.full_name || m.name || '';
+      if (fp && !fp.celular.value && m.celular) fp.celular.value = m.celular;
+    }
+    const vista = $(`.cuenta-vista[data-vista="${nombre}"]`, cuentaModal);
+    setTimeout(() => $('input:not([type=checkbox]), button.btn-primario', vista)?.focus(), 30);
+  }
+  function abrirCuenta(vista = null, motivo = '') {
+    if (!cuentaModal || !cuentasActivas) return;
+    setMenu(false);
+    vista = vista || (sesion ? (cuenta?.perfil ? 'cuenta' : 'perfil') : 'invitacion');
+    if (sesion && cuenta?.perfil && ['invitacion', 'registro', 'ingreso'].includes(vista)) vista = 'cuenta';
+    cuentaModal.classList.remove('hidden');
+    document.body.classList.add('no-scroll');
+    mostrarVista(vista, { motivo });
+  }
+  function cerrarCuenta({ invitado = false } = {}) {
+    if (!cuentaModal || cuentaModal.classList.contains('hidden')) return;
+    cuentaModal.classList.add('hidden');
+    if (![checkoutModal, $('#productoModal'), $('#guiaModal')].some((m) => m && !m.classList.contains('hidden')) && !carritoPanel.classList.contains('active')) document.body.classList.remove('no-scroll');
+    if (!sesion) storage.set(CLAVE_VIP, { estado: 'cerrado', t: Date.now() });
+    // Si ya tiene cuenta, se hace lo que había intentado (agregar al carrito, pedir…)
+    if (cuentaLista()) ejecutarPendiente();
+    else if (invitado || !sesion) sessionStorage.removeItem(CLAVE_PENDIENTE);
+  }
+  function guardarPendiente(acc) { try { sessionStorage.setItem(CLAVE_PENDIENTE, JSON.stringify(acc)); } catch { /* */ } }
+  function ejecutarPendiente() {
+    let acc = null;
+    try { acc = JSON.parse(sessionStorage.getItem(CLAVE_PENDIENTE)); sessionStorage.removeItem(CLAVE_PENDIENTE); } catch { /* */ }
+    if (!acc) return;
+    if (acc.tipo === 'agregar') {
+      const p = productosPorId.get(acc.id);
+      if (p) { const pm = $('#productoModal'); if (agregarItem(p, acc.color, acc.talla, acc.variante) && pm && !pm.classList.contains('hidden')) cerrarProducto(); }
+    } else if (acc.tipo === 'checkout' && carrito.length) { setCarrito(false); setCheckout(true); }
+  }
+  $('#cerrarCuenta')?.addEventListener('click', () => cerrarCuenta());
+  cuentaModal?.addEventListener('click', (e) => {
+    if (e.target === cuentaModal) { cerrarCuenta(); return; }
+    const ir = e.target.closest('[data-ir]'); if (ir) { mostrarVista(ir.dataset.ir, { motivo: $('.cuenta-motivo', cuentaModal)?.textContent }); return; }
+    if (e.target.closest('[data-invitado]')) { cerrarCuenta({ invitado: true }); return; }
+    if (e.target.closest('[data-cerrar-cuenta]')) { cerrarCuenta(); return; }
+    if (e.target.closest('[data-salir]')) { salir(); return; }
+    if (e.target.closest('button[data-google]')) { entrarConGoogle(); return; }
+    if (e.target.closest('[data-reenviar]')) reenviarConfirmacion(e.target.closest('[data-reenviar]'));
+  });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest('[data-abrir-cuenta], #btnCuenta');
+    if (!b || cuentaModal?.contains(b)) return;
+    e.preventDefault();
+    abrirCuenta(b.dataset.abrirCuenta || null);
+  });
+
+  // ----- Mensajes -----
+  const ERRORES_CUENTA = {
+    CELULAR_EN_USO: 'Ese WhatsApp ya tiene una cuenta. Entra con esa cuenta o usa otro número.',
+    CELULAR_INVALIDO: 'Escribe tu WhatsApp: celular colombiano de 10 dígitos.',
+    NOMBRE_INVALIDO: 'Escribe tu nombre.',
+    INTENTA_LUEGO: 'Hay muchos registros en este momento. Intenta en un minuto.'
+  };
+  function errorAuth(err) {
+    const t = `${err?.code || ''} ${err?.message || err || ''}`.toLowerCase();
+    if (t.includes('already registered') || t.includes('user_already_exists') || t.includes('already been registered')) return 'Ya existe una cuenta con ese correo. Entra o recupera tu contraseña.';
+    if (t.includes('invalid login') || t.includes('invalid_credentials')) return 'Correo o contraseña incorrectos.';
+    if (t.includes('not confirmed') || t.includes('email_not_confirmed')) return 'Primero confirma tu correo: abre el enlace que te enviamos (revisa Spam). Si no te llegó, crea la cuenta de nuevo para reenviarlo.';
+    if (t.includes('weak') || t.includes('password should')) return 'La contraseña es muy débil: usa al menos 8 caracteres, con letras y números.';
+    if (t.includes('rate limit') || t.includes('over_email_send_rate_limit') || t.includes('too many')) return 'Hiciste muchos intentos seguidos. Espera unos minutos e intenta de nuevo.';
+    if (t.includes('sending') && t.includes('email')) return 'No pudimos enviarte el correo en este momento. Intenta más tarde o escríbenos por WhatsApp.';
+    if (t.includes('same_password') || t.includes('different from the old')) return 'La contraseña nueva debe ser diferente a la anterior.';
+    if (t.includes('signup') && t.includes('disabled')) return 'Por ahora no se pueden crear cuentas. Escríbenos por WhatsApp.';
+    if (t.includes('fetch') || t.includes('network')) return 'Revisa tu conexión e intenta de nuevo.';
+    return ERRORES_CUENTA[err?.message] || 'Algo salió mal. Intenta de nuevo.';
+  }
+  function decirEn(form, texto, tipo = 'error') {
+    const m = $('.cuenta-msg', form?.closest('.cuenta-vista') || cuentaModal);
+    if (!m) return;
+    m.textContent = texto;
+    m.className = `cuenta-msg cupon-msg cupon-msg--${tipo}`;
+  }
+  const correoValido = (c) => /^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(c);
+
+  // ----- Después de entrar -----
+  async function despuesDeEntrar() {
+    pintarCuenta();
+    if (!cuenta?.perfil) { abrirCuenta('perfil'); if (errorPerfil) decirEn($('[data-form="perfil"]', cuentaModal), ERRORES_CUENTA[errorPerfil] || errorAuth(errorPerfil)); return; }
+    if (nuevaCuenta) { nuevaCuenta = false; await pintarBienvenida(); abrirCuenta('bienvenida'); return; }
+    if (!cuentaModal.classList.contains('hidden')) cerrarCuenta(); else ejecutarPendiente();
+    toast(`¡Hola, ${primerNombre()}!`);
+    revalidarCupon();
+    if (leerHash().id === 'mispedidos') renderMisPedidos();
+  }
+  async function pintarBienvenida() {
+    const b = cuenta?.bienvenida;
+    let html = `<p class="vip-ok-titulo">¡Bienvenido a la Sociedad${primerNombre() ? ', ' + esc(primerNombre()) : ''}!</p>`;
+    if (b?.codigo && b.disponible) {
+      let aplicado = false;
+      try {
+        const c = await validarCupon(b.codigo);
+        cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 };
+        storage.set(CLAVE_CUPON, cupon); guardarYRender(); aplicado = true;
+      } catch { /* se muestra igual */ }
+      html += `<p>Tu código de bienvenida de ${b.porcentaje}%:</p>
+        <div class="vip-codigo"><strong>${esc(b.codigo)}</strong><button type="button" class="btn-secundario" data-copiar="${esc(b.codigo)}">Copiar</button></div>
+        <p class="vip-condiciones">${[aplicado ? 'Ya quedó aplicado en tu carrito.' : 'Escríbelo en el carrito al comprar.',
+          b.minimo_compra ? `Para compras desde ${dinero(b.minimo_compra)}.` : '',
+          b.vence ? `Válido hasta el ${esc(fechaVence(b.vence))}.` : '',
+          'Es de un solo uso y solo funciona con tu cuenta.'].filter(Boolean).join(' ')}</p>`;
+    } else if (b?.codigo && b.usado) {
+      html += '<p>Ya usaste tu regalo de bienvenida antes. Igual serás de los primeros en enterarte de lanzamientos y preventas.</p>';
+    } else {
+      html += '<p>Tu cuenta está lista. Ya puedes agregar al carrito, hacer pedidos y seguirlos desde «Mis pedidos».</p>';
+    }
+    $('.cuenta-bienvenida', cuentaModal).innerHTML = html;
   }
   const fechaVence = (t) => new Date(t).toLocaleDateString('es-CO', { day: 'numeric', month: 'long', timeZone: 'America/Bogota' });
+  function pintarMiCuenta() {
+    const pf = cuenta?.perfil; if (!pf) return;
+    $('.cuenta-nombre', cuentaModal).textContent = pf.nombre;
+    $('.cuenta-datos', cuentaModal).innerHTML = `<dt>Correo</dt><dd>${esc(pf.correo || sesion?.user?.email || '')}</dd>
+      <dt>WhatsApp</dt><dd>${esc(String(pf.celular).replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3'))}</dd>`;
+    const b = cuenta.bienvenida;
+    $('.cuenta-codigo', cuentaModal).innerHTML = !b?.codigo ? ''
+      : b.disponible ? `<p>Tu código de bienvenida (${b.porcentaje}%):</p><div class="vip-codigo"><strong>${esc(b.codigo)}</strong><button type="button" class="btn-secundario" data-copiar="${esc(b.codigo)}">Copiar</button></div>${b.vence ? `<p class="vip-condiciones">Válido hasta el ${esc(fechaVence(b.vence))}.</p>` : ''}`
+      : b.usado ? '<p class="vip-condiciones">Ya usaste tu código de bienvenida. ¡Gracias por ser parte de la Sociedad!</p>'
+      : '<p class="vip-condiciones">Tu código de bienvenida no está disponible en este momento.</p>';
+  }
 
-  $$('.vip-form').forEach((form) => form.addEventListener('submit', async (e) => {
+  // ----- Formularios -----
+  const celularDe = (input) => { input.value = soloCelular(input.value); return input.value; };
+  $$('.cuenta-form input[name="celular"]').forEach((i) => i.addEventListener('input', () => { i.value = soloCelular(i.value); }));
+  async function conBoton(form, fn) {
+    const btn = $('button[type=submit]', form);
+    if (btn.disabled) return;
+    btn.disabled = true; btn.dataset.texto ??= btn.textContent; btn.textContent = 'Un momento…';
+    try { await fn(); } finally { btn.disabled = false; btn.textContent = btn.dataset.texto; }
+  }
+  $$('.cuenta-form').forEach((form) => form.addEventListener('submit', (e) => {
     e.preventDefault();
-    const caja = form.closest('.vip-caja');
-    const msg = $('.vip-msg', form);
-    const decir = (t) => { msg.textContent = t; msg.className = 'vip-msg cupon-msg cupon-msg--error'; };
-    const cel = form.celular.value.replace(/\D/g, '').replace(/^57(?=\d{10}$)/, '');
-    const correo = form.correo.value.trim();
-    if (!/^3\d{9}$/.test(cel)) { decir('Escribe tu WhatsApp: celular colombiano de 10 dígitos.'); form.celular.focus(); return; }
-    if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) { decir('Revisa tu correo (o déjalo vacío).'); form.correo.focus(); return; }
-    if (!form.autorizo.checked) { decir('Debes autorizar el uso de tus datos para unirte.'); return; }
-    const btn = $('button[type=submit]', form); btn.disabled = true;
-    try {
-      const r = await suscribirVip({ p_nombre: form.nombre.value.trim(), p_celular: cel, p_correo: correo || null, p_origen: form.dataset.origen || 'web' });
-      storage.set(CLAVE_VIP, { estado: 'suscrito', t: Date.now(), celular: cel, codigo: r.codigo || null });
-      // Dejar el celular listo para el formulario de compra
-      const cli = storage.get('insanity-cliente') || {};
-      if (!cli.celular) storage.set('insanity-cliente', { ...cli, celular: cel, nombre: cli.nombre || form.nombre.value.trim() });
-      let html;
-      if (r.codigo && r.disponible) {
-        let aplicado = false;
-        try {
-          const c = await validarCupon(r.codigo);
-          if (c) { cupon = { codigo: c.codigo, tipo: c.tipo, valor: c.valor, minimo_compra: c.minimo_compra || 0 }; storage.set(CLAVE_CUPON, cupon); guardarYRender(); aplicado = true; }
-        } catch { /* se muestra igual */ }
-        html = `<p class="vip-ok-titulo">${r.nuevo ? '¡Bienvenido a la Sociedad!' : '¡Ya estabas en la Sociedad!'}</p>
-          <p>Tu código personal de ${r.porcentaje}%:</p>
-          <div class="vip-codigo"><strong>${esc(r.codigo)}</strong><button type="button" class="btn-secundario" data-copiar="${esc(r.codigo)}">Copiar</button></div>
-          <p class="vip-condiciones">${[aplicado ? 'Ya quedó aplicado en tu carrito.' : 'Escríbelo en el carrito al comprar.',
-            r.minimo_compra ? `Para compras desde ${dinero(r.minimo_compra)}.` : '',
-            r.vence ? `Válido hasta el ${esc(fechaVence(r.vence))}.` : '',
-            'Es de un solo uso y solo funciona con este celular.'].filter(Boolean).join(' ')}</p>`;
-      } else if (r.codigo && r.usado) {
-        html = `<p class="vip-ok-titulo">¡Ya eres parte de la Sociedad!</p><p>Ya usaste tu regalo de bienvenida. Igual serás de los primeros en enterarte de lanzamientos y preventas.</p>`;
-      } else if (r.codigo) {
-        html = `<p class="vip-ok-titulo">¡Ya eres parte de la Sociedad!</p><p>Tu código ${esc(r.codigo)} no está disponible en este momento. Te avisaremos por WhatsApp de lo nuevo.</p>`;
-      } else {
-        html = `<p class="vip-ok-titulo">${r.nuevo ? '¡Listo, ya eres parte de la Sociedad!' : '¡Ya estabas en la lista!'}</p><p>Te avisaremos por WhatsApp de lanzamientos, preventas y ofertas exclusivas.</p>`;
-      }
-      $('.vip-resultado', caja).innerHTML = html;
-      $('.vip-resultado', caja).hidden = false;
-      form.hidden = true;
-      $$('.vip-pre', caja).forEach((el) => { el.hidden = true; });
-      // Ya está suscrito: la invitación del pie sobra
-      const pie = $('#vipPie'); if (pie) pie.hidden = true;
-    } catch (err) {
-      decir({ CELULAR_INVALIDO: 'Ese celular no es válido.', CORREO_INVALIDO: 'Ese correo no es válido.', VIP_INACTIVO: 'Las inscripciones están cerradas por ahora.', INTENTA_LUEGO: 'Hay muchas inscripciones en este momento. Intenta en un minuto.' }[err.message]
-        || 'No pudimos inscribirte. Revisa tu conexión e intenta de nuevo.');
-    } finally { btn.disabled = false; }
+    const tipo = form.dataset.form;
+    conBoton(form, async () => {
+      try {
+        if (tipo === 'registro') await registrarse(form);
+        else if (tipo === 'ingreso') await ingresar(form);
+        else if (tipo === 'recuperar') await recuperar(form);
+        else if (tipo === 'nueva-clave') await nuevaClave(form);
+        else if (tipo === 'perfil') await completarPerfil(form);
+      } catch (err) { console.warn('[Insanity] Cuenta:', err); decirEn(form, errorAuth(err)); }
+    });
   }));
+
+  async function registrarse(form) {
+    const nombre = form.nombre.value.trim().replace(/\s+/g, ' ');
+    const correo = form.correo.value.trim().toLowerCase();
+    const clave = form.clave.value;
+    const celular = celularDe(form.celular);
+    if (nombre.length < 3) { decirEn(form, 'Escribe tu nombre y apellido.'); form.nombre.focus(); return; }
+    if (!correoValido(correo)) { decirEn(form, 'Revisa tu correo.'); form.correo.focus(); return; }
+    if (clave.length < 8) { decirEn(form, 'La contraseña debe tener al menos 8 caracteres.'); form.clave.focus(); return; }
+    if (!/^3\d{9}$/.test(celular)) { decirEn(form, ERRORES_CUENTA.CELULAR_INVALIDO); form.celular.focus(); return; }
+    if (!form.autorizo.checked) { decirEn(form, 'Debes aceptar el uso de tus datos para crear la cuenta.'); return; }
+    if (!(await rpc('celular_disponible', { p_celular: celular }))) { decirEn(form, ERRORES_CUENTA.CELULAR_EN_USO); form.celular.focus(); return; }
+    const { data, error } = await sb.auth.signUp({
+      email: correo, password: clave,
+      options: { emailRedirectTo: vistaUrl, data: { nombre, celular, promos: form.promos.checked } }
+    });
+    if (error) throw error;
+    // Supabase no avisa si el correo ya existe (por privacidad): llega un usuario sin identidades
+    if (data.user && Array.isArray(data.user.identities) && data.user.identities.length === 0) { decirEn(form, errorAuth('already registered')); return; }
+    if (data.session) { sesion = data.session; await cargarCuenta(); await despuesDeEntrar(); return; }
+    $('.cuenta-correo-enviado', cuentaModal).textContent = correo;
+    cuentaModal.dataset.correo = correo;
+    mostrarVista('confirmar');
+    form.reset();
+  }
+  async function ingresar(form) {
+    const correo = form.correo.value.trim().toLowerCase();
+    if (!correoValido(correo)) { decirEn(form, 'Revisa tu correo.'); form.correo.focus(); return; }
+    if (!form.clave.value) { decirEn(form, 'Escribe tu contraseña.'); form.clave.focus(); return; }
+    const { data, error } = await sb.auth.signInWithPassword({ email: correo, password: form.clave.value });
+    if (error) throw error;
+    sesion = data.session;
+    form.reset();
+    await cargarCuenta();
+    await despuesDeEntrar();
+  }
+  async function recuperar(form) {
+    const correo = form.correo.value.trim().toLowerCase();
+    if (!correoValido(correo)) { decirEn(form, 'Revisa tu correo.'); form.correo.focus(); return; }
+    const { error } = await sb.auth.resetPasswordForEmail(correo, { redirectTo: vistaUrl });
+    if (error) throw error;
+    decirEn(form, 'Si ese correo tiene una cuenta, te llegó un enlace para crear una contraseña nueva (revisa Spam).', 'ok');
+  }
+  async function nuevaClave(form) {
+    if (form.clave.value.length < 8) { decirEn(form, 'La contraseña debe tener al menos 8 caracteres.'); return; }
+    const { error } = await sb.auth.updateUser({ password: form.clave.value });
+    if (error) throw error;
+    form.reset();
+    toast('Contraseña actualizada.');
+    await cargarCuenta();
+    await despuesDeEntrar();
+  }
+  async function completarPerfil(form) {
+    const nombre = form.nombre.value.trim().replace(/\s+/g, ' ');
+    const celular = celularDe(form.celular);
+    if (nombre.length < 3) { decirEn(form, 'Escribe tu nombre y apellido.'); form.nombre.focus(); return; }
+    if (!/^3\d{9}$/.test(celular)) { decirEn(form, ERRORES_CUENTA.CELULAR_INVALIDO); form.celular.focus(); return; }
+    if (!form.autorizo.checked) { decirEn(form, 'Debes aceptar el uso de tus datos para crear la cuenta.'); return; }
+    try {
+      cuenta = await rpc('registrar_cliente', { p_nombre: nombre, p_celular: celular, p_promos: form.promos.checked });
+    } catch (err) { decirEn(form, ERRORES_CUENTA[err.message] || errorAuth(err)); return; }
+    nuevaCuenta = true;
+    await despuesDeEntrar();
+  }
+  async function entrarConGoogle() {
+    const { error } = await sb.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: vistaUrl } });
+    if (error) toast(errorAuth(error));
+  }
+  async function reenviarConfirmacion(btn) {
+    const correo = cuentaModal.dataset.correo; if (!correo) return;
+    btn.disabled = true;
+    const { error } = await sb.auth.resend({ type: 'signup', email: correo, options: { emailRedirectTo: vistaUrl } });
+    btn.disabled = false;
+    decirEn(btn, error ? errorAuth(error) : 'Listo, te lo enviamos de nuevo.', error ? 'error' : 'ok');
+  }
+  async function salir() {
+    try { await sb.auth.signOut({ scope: 'local' }); } catch { /* igual se borra lo local */ }
+    sesion = null; cuenta = null;
+    // En un celular compartido, que el siguiente no vea el carrito ni los datos del anterior
+    carrito = []; cupon = null;
+    storage.set(CLAVE_CUPON, null); storage.set('insanity-cliente', null); storage.set(CLAVE_MIS_PEDIDOS, []);
+    guardarYRender();
+    pintarCuenta();
+    cerrarCuenta();
+    toast('Cerraste sesión.');
+    if (leerHash().id === 'mispedidos') renderMisPedidos();
+  }
+  sb?.auth.onAuthStateChange((evento, s) => {
+    sesion = s;
+    if (evento === 'SIGNED_OUT') { cuenta = null; pintarCuenta(); }
+    if (evento === 'PASSWORD_RECOVERY') abrirCuenta('nueva-clave');
+  });
+
+  // ----- Al cargar la página -----
+  authListo.then(async () => {
+    pintarCuenta();
+    if (!cuentasActivas) return;
+    // Volvió del enlace del correo o de Google: limpiar la dirección
+    if (tipoEnlace || errorEnlace || /access_token=/.test(location.hash)) history.replaceState(history.state, '', location.pathname + (leerHash().id !== 'home' && !/=/.test(location.hash) ? location.hash : ''));
+    if (errorEnlace) { abrirCuenta('ingreso'); decirEn($('[data-form="ingreso"]', cuentaModal), 'El enlace venció o ya se usó. Entra con tu correo y contraseña, o pide uno nuevo en «¿Olvidaste tu contraseña?».'); return; }
+    if (tipoEnlace === 'recovery' && sesion) { abrirCuenta('nueva-clave'); return; }
+    if (sesion && (!cuenta?.perfil || nuevaCuenta)) { await despuesDeEntrar(); return; }
+    if (sesion && cuenta?.perfil) { ejecutarPendiente(); if (tipoEnlace) toast(`¡Hola, ${primerNombre()}!`); return; }
+    // Invitación automática: a los 15 s o al bajar más de la mitad de la página.
+    // Si la cierran (o eligen "invitado"), no vuelve a salir en 30 días.
+    const guardado = storage.get(CLAVE_VIP);
+    const yaVista = guardado?.estado === 'suscrito' || (guardado?.estado === 'cerrado' && Date.now() - (guardado.t || 0) < 30 * 864e5);
+    if (!invitacionActiva || yaVista) return;
+    let mostrada = false;
+    const hayOtraVentana = () => [checkoutModal, $('#productoModal'), $('#guiaModal'), cuentaModal].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
+    const intentar = () => {
+      if (mostrada || sesion) return;
+      if (hayOtraVentana()) { setTimeout(intentar, 8000); return; }
+      mostrada = true; window.removeEventListener('scroll', alBajar); abrirCuenta('invitacion');
+    };
+    const alBajar = () => { if (window.scrollY + innerHeight > document.documentElement.scrollHeight * 0.6) intentar(); };
+    setTimeout(intentar, 15000);
+    window.addEventListener('scroll', alBajar, { passive: true });
+  });
+
   document.addEventListener('click', async (e) => {
     const b = e.target.closest('[data-copiar]'); if (!b) return;
     try { await navigator.clipboard.writeText(b.dataset.copiar); b.textContent = '¡Copiado!'; } catch { b.textContent = b.dataset.copiar; }
@@ -1361,10 +1660,16 @@
       const guardado = storage.get('insanity-cliente');
       if (guardado) Object.entries(guardado).forEach(([k, v]) => { if (f[k] && k !== 'autorizo' && !f[k].value) f[k].value = v; });
       if (guardado?.dep) { f.dep.dispatchEvent(new Event('change')); f.ciudad.value = guardado.ciudad || ''; if (f.ciudad.value === OTRA) f.ciudadOtra.classList.remove('hidden'); }
+      if (cuenta?.perfil) { if (!f.nombre.value) f.nombre.value = cuenta.perfil.nombre; if (!f.celular.value) f.celular.value = cuenta.perfil.celular; }
       f.nombre.focus();
     }
   }
-  btnPedido.addEventListener('click', () => { if (carrito.length) { setCarrito(false); setCheckout(true); } });
+  btnPedido.addEventListener('click', () => {
+    if (!carrito.length) return;
+    setCarrito(false);
+    if (!cuentaLista()) { guardarPendiente({ tipo: 'checkout' }); abrirCuenta(null, 'Para hacer tu pedido necesitas una cuenta.'); return; }
+    setCheckout(true);
+  });
   $('#cerrarCheckout').addEventListener('click', () => { setCheckout(false); setCarrito(true); });
   $('#cerrarCheckoutModal').addEventListener('click', () => setCheckout(false));
   checkoutModal.addEventListener('click', (e) => { if (e.target === checkoutModal) setCheckout(false); });
@@ -1382,11 +1687,10 @@
       try {
         const ctrl = new AbortController();
         const t = setTimeout(() => ctrl.abort(), 8000);
-        const r = await fetch(`${cfgSb.supabaseUrl.replace(/\/+$/, '')}/rest/v1/rpc/crear_pedido`, {
-          method: 'POST', signal: ctrl.signal,
-          headers: { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' },
-          body: cuerpo
-        });
+        const headers = { apikey: cfgSb.supabaseKey, 'Content-Type': 'application/json' };
+        const token = await tokenActual();
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const r = await fetch(`${urlBase}/rest/v1/rpc/crear_pedido`, { method: 'POST', signal: ctrl.signal, headers, body: cuerpo });
         clearTimeout(t);
         if (r.ok) return Number(await r.json()) || null;
         const txt = await r.text();
@@ -1394,6 +1698,7 @@
         if (/CUPON_YA_USADO/.test(txt)) return { cupon: 'usado' };
         if (/CUPON_NO_VALIDO/.test(txt)) return { cupon: 'invalido' };
         if (/CUPON_PERSONAL/.test(txt)) return { cupon: 'personal' };
+        if (/CUENTA_REQUERIDA|PERFIL_INCOMPLETO/.test(txt)) return { cuenta: true };
         console.warn('[Insanity] No se pudo registrar el pedido:', r.status, txt);
         if (r.status < 500) return null; // error de datos: reintentar no ayuda
       } catch (err) {
@@ -1426,6 +1731,20 @@
       departamento: f.dep.value, ciudad, direccion: f.direccion.value.trim(), barrio: f.barrio.value.trim(), notas: f.notas.value.trim()
     });
     enviando = false; btnEnviar.disabled = false; btnEnviar.textContent = btnEnviar.dataset.texto;
+    if (resultado && typeof resultado === 'object' && resultado.cuenta) {
+      try { win?.close(); } catch { /* */ }
+      guardarPendiente({ tipo: 'checkout' });
+      setCheckout(false);
+      abrirCuenta(null, 'Tu sesión se cerró. Entra de nuevo para enviar tu pedido.');
+      return;
+    }
+    // Con código de descuento el pedido tiene que quedar registrado (así se controla su uso)
+    if (!resultado && cuentasActivas && descuentoCupon()) {
+      try { win?.close(); } catch { /* */ }
+      const av = $('#checkoutAviso');
+      if (av) { av.textContent = 'No pudimos registrar tu pedido. Revisa tu conexión y vuelve a intentarlo (o quita el código para enviarlo directo por WhatsApp).'; av.classList.remove('hidden'); av.scrollIntoView({ block: 'nearest' }); }
+      return;
+    }
     if (resultado && typeof resultado === 'object' && resultado.cupon) {
       // No se envía nada: se quita el código y la persona decide si sigue sin él
       try { win?.close(); } catch { /* */ }
@@ -1433,13 +1752,13 @@
       cupon = null; storage.set(CLAVE_CUPON, null); guardarYRender();
       pintarTotalCheckout();
       const aviso = resultado.cupon === 'usado'
-        ? `El código ${codigoQuitado} ya fue usado con este celular o cédula (es de un solo uso por persona). Lo quitamos: revisa el nuevo total y vuelve a enviar.`
+        ? `El código ${codigoQuitado} ya fue usado con tu cuenta, este celular o esta cédula (es de un solo uso por persona). Lo quitamos: revisa el nuevo total y vuelve a enviar.`
         : resultado.cupon === 'personal'
-          ? `El código ${codigoQuitado} es personal de la Lista VIP: solo funciona con el celular con el que se suscribió. Lo quitamos: revisa el nuevo total y vuelve a enviar.`
+          ? `El código ${codigoQuitado} es personal de otra persona. Lo quitamos: revisa el nuevo total y vuelve a enviar.`
           : `El código ${codigoQuitado} ya no está disponible. Lo quitamos: revisa el nuevo total y vuelve a enviar.`;
       const av = $('#checkoutAviso');
       if (av) { av.textContent = aviso; av.classList.remove('hidden'); av.scrollIntoView({ block: 'nearest' }); }
-      toast(resultado.cupon === 'usado' ? `El código ${codigoQuitado} ya fue usado. Revisa el nuevo total.` : resultado.cupon === 'personal' ? `El código ${codigoQuitado} es personal de otro celular.` : `El código ${codigoQuitado} ya no está disponible.`);
+      toast(resultado.cupon === 'usado' ? `El código ${codigoQuitado} ya fue usado. Revisa el nuevo total.` : resultado.cupon === 'personal' ? `El código ${codigoQuitado} es personal de otra persona.` : `El código ${codigoQuitado} ya no está disponible.`);
       return;
     }
     const numeroPedido = resultado;
@@ -1521,7 +1840,7 @@
   // ---------- Ventanas abiertas: Escape y botón "atrás" las cierran ----------
   // Orden: de la que queda encima a la de abajo.
   const ventanas = [
-    [vipModal, () => !vipModal.classList.contains('hidden'), () => cerrarVip()],
+    [cuentaModal, () => !cuentaModal.classList.contains('hidden'), () => cerrarCuenta()],
     [guiaModal, () => !guiaModal.classList.contains('hidden'), () => setGuia(false)],
     [productoModal, () => !productoModal.classList.contains('hidden'), () => cerrarProducto()],
     [checkoutModal, () => !checkoutModal.classList.contains('hidden'), () => setCheckout(false)],

@@ -1,6 +1,7 @@
 /* =========================================================
-   INSANITY SOCIETY — Lista VIP (panel)
-   Configuración (contenido -> 'vip'), suscriptores y sus códigos personales.
+   INSANITY SOCIETY — Cuentas y Lista VIP (panel)
+   Configuración de la invitación (contenido -> 'vip'), cuentas de clientes con su
+   código de bienvenida, y la Lista VIP (quienes aceptaron recibir promociones).
    ========================================================= */
 (() => {
   'use strict';
@@ -12,6 +13,11 @@
   let usos = {};      // codigo -> { n, total }
   let cfg = {};
   let mostrarHasta = 100;
+  let clientes = [];
+  let pedidosCli = {}; // cliente_id -> { n, total }
+  let mostrarCli = 50;
+  let sinCuentas = false;
+  const esPersonal = (c) => /^(VIP|BIEN)-/.test(c || '');
 
   const dinero = (n) => '$' + Math.round(Number(n) || 0).toLocaleString('es-CO');
   const numero = (n) => Math.round(Number(n) || 0).toLocaleString('es-CO');
@@ -25,11 +31,13 @@
   async function cargar() {
     core.errorEn('#vipError', '');
     if (!cargado) $('#vipLista').innerHTML = '<p class="admin-cargando">Cargando…</p>';
-    const [rc, rs, rcu, rp] = await Promise.all([
+    const [rc, rs, rcu, rp, rcl, rpc] = await Promise.all([
       core.sb.from('contenido').select('valor').eq('clave', 'vip').maybeSingle(),
       core.sb.from('suscriptores').select('*').order('creado_en', { ascending: false }),
       core.sb.from('cupones').select('codigo, activo, vence, valor, minimo_compra').not('celular_vip', 'is', null),
-      core.sb.from('pedidos').select('cupon, total, estado').like('cupon', 'VIP-%')
+      core.sb.from('pedidos').select('cupon, total, estado').or('cupon.like.VIP-%,cupon.like.BIEN-%'),
+      core.sb.from('clientes').select('*').order('creado_en', { ascending: false }).limit(5000),
+      core.sb.from('pedidos').select('cliente_id, total, estado').not('cliente_id', 'is', null).limit(10000)
     ]);
     const err = rs.error || rc.error || rcu.error;
     if (err) {
@@ -40,9 +48,16 @@
     }
     cfg = rc.data?.valor || {};
     subs = rs.data || [];
+    sinCuentas = !!rcl.error;
+    clientes = rcl.data || [];
+    pedidosCli = {};
+    (rpc.data || []).filter((p) => ['confirmado', 'enviado', 'entregado'].includes(p.estado)).forEach((p) => {
+      const u = pedidosCli[p.cliente_id] || (pedidosCli[p.cliente_id] = { n: 0, total: 0 });
+      u.n += 1; u.total += Number(p.total) || 0;
+    });
     codigos = Object.fromEntries((rcu.data || []).map((c) => [c.codigo, c]));
     usos = {};
-    (rp.data || []).filter((p) => p.estado !== 'cancelado' && /^VIP-/.test(p.cupon || '')).forEach((p) => {
+    (rp.data || []).filter((p) => p.estado !== 'cancelado' && esPersonal(p.cupon)).forEach((p) => {
       const u = usos[p.cupon] || (usos[p.cupon] = { n: 0, total: 0 });
       u.n += 1; u.total += Number(p.total) || 0;
     });
@@ -61,6 +76,7 @@
     $('#vCfgMinimo').value = cfg.minimo_compra ? numero(cfg.minimo_compra) : '';
     $('#vCfgDias').value = cfg.dias_validez || '';
     $('#vCfgPausar').checked = !!cfg.codigos_pausados;
+    $('#vCfgGoogle').checked = !!cfg.google_activo;
     avisoConfig();
     $('#vCfgEstado').textContent = '';
   }
@@ -71,14 +87,13 @@
     const min = soloNumero($('#vCfgMinimo').value);
     const dias = soloNumero($('#vCfgDias').value);
     let t;
-    if (!activo) t = 'La invitación está apagada: nadie la ve en la web.';
-    else if (!regalo) t = 'La gente se puede inscribir, pero sin código de descuento.';
-    else if (!pct) t = '⚠ Falta el porcentaje: mientras esté vacío NO se entregan códigos (la gente se inscribe sin regalo).';
-    else t = `Cada nuevo suscriptor recibe un código personal de ${pct}%${min ? ` para compras desde ${dinero(min)}` : ''}${dias ? `, válido por ${dias} día${dias === 1 ? '' : 's'}` : ', sin vencimiento'}. Un solo uso y solo con su celular.`;
+    if (!regalo) t = `La gente crea su cuenta sin código de descuento.${activo ? '' : ' La invitación está apagada (igual se pide cuenta para comprar).'}`;
+    else if (!pct) t = '⚠ Falta el porcentaje: mientras esté vacío NO se entregan códigos (la gente crea su cuenta sin regalo).';
+    else t = `Cada cuenta nueva recibe un código personal de ${pct}%${min ? ` para compras desde ${dinero(min)}` : ''}${dias ? `, válido por ${dias} día${dias === 1 ? '' : 's'}` : ', sin vencimiento'}. Un solo uso, solo en su cuenta, y uno por celular en toda la vida.${activo ? '' : ' (La invitación está apagada: no sale la ventanita ni la barra del pie.)'}`;
     $('#vCfgAviso').textContent = t;
     $('#vCfgAviso').classList.toggle('vip-aviso-alerta', activo && regalo && !pct);
   }
-  ['#vCfgActivo', '#vCfgRegalo', '#vCfgPausar'].forEach((s) => $(s).addEventListener('change', () => { avisoConfig(); $('#vCfgEstado').textContent = 'Cambios sin guardar'; }));
+  ['#vCfgActivo', '#vCfgRegalo', '#vCfgPausar', '#vCfgGoogle'].forEach((s) => $(s).addEventListener('change', () => { avisoConfig(); $('#vCfgEstado').textContent = 'Cambios sin guardar'; }));
   ['#vCfgPct', '#vCfgDias'].forEach((s) => $(s).addEventListener('input', (ev) => { ev.target.value = ev.target.value.replace(/\D/g, ''); avisoConfig(); $('#vCfgEstado').textContent = 'Cambios sin guardar'; }));
   $('#vCfgMinimo').addEventListener('input', (ev) => { const n = soloNumero(ev.target.value); ev.target.value = n == null ? '' : numero(n); avisoConfig(); $('#vCfgEstado').textContent = 'Cambios sin guardar'; });
   ['#vCfgTitulo', '#vCfgTexto'].forEach((s) => $(s).addEventListener('input', () => { $('#vCfgEstado').textContent = 'Cambios sin guardar'; }));
@@ -95,8 +110,9 @@
       minimo_compra: soloNumero($('#vCfgMinimo').value) || 0,
       dias_validez: soloNumero($('#vCfgDias').value) || null,
       codigos_pausados: $('#vCfgPausar').checked,
-      titulo: $('#vCfgTitulo').value.trim() || 'Únete a la Sociedad',
-      texto: $('#vCfgTexto').value.trim() || 'Entérate primero de lanzamientos, preventas y ofertas exclusivas.'
+      google_activo: $('#vCfgGoogle').checked,
+      titulo: $('#vCfgTitulo').value.trim() || 'Crea tu cuenta',
+      texto: $('#vCfgTexto').value.trim() || 'Guarda tus pedidos, síguelos desde cualquier dispositivo y entérate primero de lanzamientos y preventas.'
     };
     const btn = $('#vCfgGuardar'); btn.disabled = true;
     const { error } = await core.sb.from('contenido').upsert({ clave: 'vip', valor });
@@ -104,15 +120,16 @@
     if (error) { core.errorEn('#vipError', core.traducir(error)); return; }
     cfg = valor;
     $('#vCfgEstado').textContent = 'Guardado ✓';
-    core.toast('Configuración de la Lista VIP guardada');
+    core.toast('Configuración guardada');
     render();
   });
 
   // ---------- Suscriptores ----------
   function estadoCodigo(s) {
-    if (!s.codigo) return { txt: 'Sin código', cls: '' };
-    const c = codigos[s.codigo];
-    if (usos[s.codigo]?.n) return { txt: 'Usado', cls: 'vip-est--usado' };
+    const cod = s.codigo ?? s.codigo_bienvenida;
+    if (!cod) return { txt: 'Sin código', cls: '' };
+    const c = codigos[cod];
+    if (usos[cod]?.n) return { txt: 'Usado', cls: 'vip-est--usado' };
     if (!c || !c.activo) return { txt: 'Desactivado', cls: 'vip-est--off' };
     if (c.vence && new Date(c.vence) <= new Date()) return { txt: 'Vencido', cls: 'vip-est--off' };
     if (cfg.codigos_pausados) return { txt: 'Pausado', cls: 'vip-est--off' };
@@ -124,16 +141,17 @@
     return subs.filter((s) => !q || core.slug([s.nombre, s.correo, s.codigo].join(' ')).includes(q) || (qn && String(s.celular).includes(qn)));
   }
   function render() {
-    const conCodigo = subs.filter((s) => s.codigo);
-    const usados = conCodigo.filter((s) => usos[s.codigo]?.n);
+    const entregados = Object.keys(codigos).length;
+    const usados = Object.keys(codigos).filter((c) => usos[c]?.n).length;
     const ventas = Object.values(usos).reduce((t, u) => t + u.total, 0);
-    const conv = conCodigo.length ? Math.round((usados.length / conCodigo.length) * 100) : 0;
-    $('#vipConteo').textContent = `${numero(subs.length)} suscriptor${subs.length === 1 ? '' : 'es'}`;
+    const conv = entregados ? Math.round((usados / entregados) * 100) : 0;
+    $('#vipConteo').textContent = `${numero(clientes.length)} cuenta${clientes.length === 1 ? '' : 's'} · ${numero(subs.length)} en la Lista VIP`;
     $('#vipResumen').innerHTML = `
-      <div class="inv-card"><strong>${numero(subs.length)}</strong><span>suscriptores</span></div>
-      <div class="inv-card"><strong>${numero(conCodigo.length)}</strong><span>códigos entregados</span></div>
-      <div class="inv-card"><strong>${numero(usados.length)}</strong><span>códigos usados${conCodigo.length ? ` (${conv}%)` : ''}</span></div>
-      <div class="inv-card"><strong>${dinero(ventas)}</strong><span>en pedidos con código VIP</span></div>`;
+      <div class="inv-card"><strong>${numero(clientes.length)}</strong><span>cuentas creadas</span></div>
+      <div class="inv-card"><strong>${numero(subs.length)}</strong><span>en la Lista VIP (aceptan promociones)</span></div>
+      <div class="inv-card"><strong>${numero(usados)} / ${numero(entregados)}</strong><span>códigos de bienvenida usados${entregados ? ` (${conv}%)` : ''}</span></div>
+      <div class="inv-card"><strong>${dinero(ventas)}</strong><span>en pedidos con código de bienvenida</span></div>`;
+    renderClientes();
     const lista = filtrados();
     $('#vipLista').innerHTML = lista.length ? lista.slice(0, mostrarHasta).map((s) => {
       const est = estadoCodigo(s);
@@ -142,16 +160,41 @@
         <div class="vip-avatar" aria-hidden="true">${e((s.nombre || '?').trim().charAt(0).toUpperCase() || '?')}</div>
         <div class="admin-item-info">
           <h3>${e(s.nombre || 'Sin nombre')}</h3>
-          <p class="admin-meta"><a href="https://wa.me/57${e(s.celular)}" target="_blank" rel="noopener">${e(s.celular.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3'))}</a>${s.correo ? ' · ' + e(s.correo) : ''} · ${e(fecha(s.creado_en))}${s.origen ? ' · ' + e(s.origen === 'popup' ? 'ventanita' : s.origen === 'pie' ? 'pie de página' : s.origen) : ''}</p>
+          <p class="admin-meta"><a href="https://wa.me/57${e(s.celular)}" target="_blank" rel="noopener">${e(s.celular.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3'))}</a>${s.correo ? ' · ' + e(s.correo) : ''} · ${e(fecha(s.creado_en))}${s.origen ? ' · ' + e(s.origen === 'popup' ? 'ventanita' : s.origen === 'pie' ? 'pie de página' : s.origen === 'cuenta' ? 'al crear su cuenta' : s.origen) : ''}</p>
           ${s.codigo ? `<p class="vip-cod"><code>${e(s.codigo)}</code> <span class="vip-est ${est.cls}">${est.txt}</span>${codigos[s.codigo] ? ` <span class="admin-meta">${codigos[s.codigo].valor}%${codigos[s.codigo].vence ? ' · vence ' + e(fecha(codigos[s.codigo].vence)) : ''}</span>` : ''}</p>` : '<p class="admin-meta">Se inscribió sin regalo</p>'}
         </div>
         <div class="admin-item-acciones">
           <button type="button" class="btn-secundario admin-peligro" data-accion="borrar">Eliminar</button>
         </div>
       </article>`;
-    }).join('') : `<p class="admin-cargando">${subs.length ? 'Nadie coincide con la búsqueda.' : 'Aún no hay suscriptores. Activa la invitación arriba para empezar a recibirlos.'}</p>`;
+    }).join('') : `<p class="admin-cargando">${subs.length ? 'Nadie coincide con la búsqueda.' : 'Aún nadie se ha inscrito. Al crear su cuenta, el cliente puede marcar que quiere recibir promociones.'}</p>`;
     $('#vipMas').classList.toggle('hidden', lista.length <= mostrarHasta);
   }
+  // ---------- Cuentas ----------
+  function renderClientes() {
+    $('#cliConteo').textContent = clientes.length ? `(${numero(clientes.length)})` : '';
+    if (sinCuentas) { $('#cliLista').innerHTML = '<p class="admin-cargando">Las cuentas aún no están activas: ejecuta <code>supabase/cuentas.sql</code> en Supabase (SQL Editor).</p>'; $('#cliMas').classList.add('hidden'); return; }
+    const q = core.slug($('#cliBuscar').value.trim());
+    const qn = $('#cliBuscar').value.replace(/\D/g, '');
+    const lista = clientes.filter((c) => !q || core.slug([c.nombre, c.correo, c.codigo_bienvenida].join(' ')).includes(q) || (qn && String(c.celular).includes(qn)));
+    $('#cliLista').innerHTML = lista.length ? lista.slice(0, mostrarCli).map((c) => {
+      const est = estadoCodigo(c);
+      const compras = pedidosCli[c.id];
+      return `
+      <article class="admin-item vip-item">
+        <div class="vip-avatar" aria-hidden="true">${e((c.nombre || '?').trim().charAt(0).toUpperCase() || '?')}</div>
+        <div class="admin-item-info">
+          <h3>${e(c.nombre)}${c.acepta_promos ? ' <span class="vip-est vip-est--libre">Lista VIP</span>' : ''}</h3>
+          <p class="admin-meta"><a href="https://wa.me/57${e(c.celular)}" target="_blank" rel="noopener">${e(c.celular.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3'))}</a>${c.correo ? ' · ' + e(c.correo) : ''} · desde ${e(fecha(c.creado_en))}</p>
+          <p class="admin-meta">${compras ? `${compras.n} compra${compras.n === 1 ? '' : 's'} · ${dinero(compras.total)}` : 'Sin compras todavía'}</p>
+          ${c.codigo_bienvenida ? `<p class="vip-cod"><code>${e(c.codigo_bienvenida)}</code> <span class="vip-est ${est.cls}">${est.txt}</span></p>` : ''}
+        </div>
+      </article>`;
+    }).join('') : `<p class="admin-cargando">${clientes.length ? 'Nadie coincide con la búsqueda.' : 'Aún no hay cuentas creadas.'}</p>`;
+    $('#cliMas').classList.toggle('hidden', lista.length <= mostrarCli);
+  }
+  $('#cliBuscar').addEventListener('input', () => { mostrarCli = 50; renderClientes(); });
+  $('#cliMas').addEventListener('click', () => { mostrarCli += 50; renderClientes(); });
   $('#vipBuscar').addEventListener('input', () => { mostrarHasta = 100; render(); });
   $('#vipMas').addEventListener('click', () => { mostrarHasta += 100; render(); });
 

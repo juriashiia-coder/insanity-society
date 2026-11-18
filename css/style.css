@@ -838,23 +838,63 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
   .btn-carrito-txt { display: none; }
 }
 
-/* ---------- Lista VIP ---------- */
-.vip-modal { width: min(480px, 100%); position: relative; overflow: hidden; border-color: #3a1212; }
-.vip-modal::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--accent-dark), var(--accent)); }
-.vip-cerrar { position: absolute; top: .6rem; right: .6rem; z-index: 2; }
-.vip-caja { display: flex; flex-direction: column; gap: .8rem; padding: 1.6rem 1.4rem 1.4rem; }
+/* ---------- Cuenta / invitación ---------- */
+.visually-hidden { position: absolute !important; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.cuenta-modal { width: min(460px, 100%); position: relative; overflow: hidden; border-color: #3a1212; }
+.cuenta-modal::before { content: ''; position: absolute; inset: 0 0 auto 0; height: 4px; background: linear-gradient(90deg, var(--accent-dark), var(--accent)); z-index: 1; }
+.cuenta-cerrar { position: absolute; top: .6rem; right: .6rem; z-index: 2; }
+.cuenta-caja { padding: 2.6rem 1.4rem 1.4rem; }
+.cuenta-vista { display: flex; flex-direction: column; gap: .75rem; }
+.cuenta-vista[hidden] { display: none; }
+.cuenta-vista .vip-titulo { padding-right: 2.2rem; }
+.cuenta-motivo { background: #241a0b; border: 1px solid #6b4a00; color: #ffcf85; border-radius: 10px; padding: .55rem .75rem; font-size: .88rem; margin-bottom: .8rem; }
+.cuenta-motivo[hidden] { display: none; }
+.cuenta-botones { display: flex; flex-direction: column; gap: .55rem; margin-top: .3rem; }
+.cuenta-invitado { align-self: center; }
+.cuenta-nota { color: #8d8d8d; font-size: .78rem; text-align: center; }
+.cuenta-form { display: flex; flex-direction: column; gap: .6rem; }
+.cuenta-form label:not(.check-row) { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; color: #bbb; }
+.cuenta-form label small { color: #777; font-size: .72rem; }
+.cuenta-form input[type=text], .cuenta-form input[type=email], .cuenta-form input[type=tel], .cuenta-form input[type=password] {
+  background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .7rem .8rem; border-radius: 10px; width: 100%; font: inherit; font-size: 16px;
+}
+.cuenta-form input:focus { outline: none; border-color: #fff; }
+.cuenta-check { font-size: .76rem; color: #9a9a9a; align-items: flex-start; }
+.cuenta-form .btn-primario { margin-top: .3rem; }
+.cuenta-cambiar { text-align: center; font-size: .85rem; color: #9a9a9a; }
+.cuenta-cambiar .link-btn { color: #fff; }
+.btn-google { display: flex; align-items: center; justify-content: center; gap: .6rem; width: 100%; padding: .75rem 1rem; border-radius: 10px; border: 1px solid #dadce0; background: #fff; color: #1f1f1f; font: inherit; font-weight: 700; cursor: pointer; }
+.btn-google svg { width: 20px; height: 20px; }
+.btn-google:hover { background: #f2f2f2; }
+.btn-google[hidden], .cuenta-o[hidden] { display: none; }
+.cuenta-o { display: flex; align-items: center; gap: .7rem; color: #777; font-size: .78rem; }
+.cuenta-o::before, .cuenta-o::after { content: ''; flex: 1; height: 1px; background: #2f2f2f; }
+.cuenta-datos { display: grid; grid-template-columns: auto 1fr; gap: .35rem .9rem; font-size: .9rem; background: #111; border: 1px solid #262626; border-radius: 10px; padding: .7rem .85rem; }
+.cuenta-datos dt { color: #8d8d8d; }
+.cuenta-datos dd { color: #fff; margin: 0; word-break: break-all; }
+.cuenta-codigo { display: flex; flex-direction: column; gap: .45rem; text-align: center; }
+.cuenta-codigo:empty { display: none; }
+.cuenta-cargando { text-align: center; color: #aaa; padding: 2rem 0; }
+.btn-cuenta { cursor: pointer; padding: 0; font: inherit; }
+.btn-cuenta.active { border-color: var(--accent); }
+.cuenta-punto { position: absolute; top: 2px; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: #2ecc71; border: 2px solid #0b0b0b; }
+.cuenta-punto[hidden] { display: none; }
+.menu-cuenta { background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; width: 100%; }
+.mis-pedidos-entrar { background: #141414; border: 1px solid #2a2a2a; border-radius: var(--radius); padding: 1.4rem; text-align: center; display: flex; flex-direction: column; gap: .9rem; align-items: center; }
+.mis-pedidos-entrar[hidden], .buscar-pedido[hidden] { display: none; }
+.mis-pedidos-entrar-btns { display: flex; gap: .6rem; flex-wrap: wrap; justify-content: center; }
+@media (max-width: 700px) {
+  #cuentaModal { align-items: flex-end; padding: 0; }
+  #cuentaModal .cuenta-modal { max-height: 94dvh; border-radius: 18px 18px 0 0; border-top: 1px solid #3a1212; }
+  #cuentaModal .cuenta-caja { padding: 2.5rem 1.1rem calc(1.2rem + env(safe-area-inset-bottom)); }
+}
+
 .vip-eyebrow { color: var(--accent); font-weight: 800; letter-spacing: 2px; text-transform: uppercase; font-size: .75rem; }
 .vip-titulo { font-family: var(--font-title); font-size: clamp(1.5rem, 4vw, 2rem); text-transform: uppercase; letter-spacing: 1px; color: #fff; line-height: 1.05; margin: .15rem 0 .35rem; }
 .vip-texto { color: #cfcfcf; }
 .vip-regalo { margin-top: .5rem; background: rgba(229,9,20,.12); border: 1px dashed rgba(229,9,20,.6); color: #fff; font-weight: 700; padding: .55rem .75rem; border-radius: 10px; }
 .vip-regalo[hidden] { display: none; }
-.vip-campos { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; }
-.vip-campos label { display: flex; flex-direction: column; gap: .3rem; font-size: .8rem; color: #bbb; min-width: 0; }
-.vip-campos .vip-correo { grid-column: 1 / -1; }
-.vip-campos input { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .65rem .75rem; border-radius: 10px; width: 100%; }
-.vip-campos input:focus { outline: none; border-color: #fff; }
-.vip-autorizo { font-size: .76rem; color: #9a9a9a; margin: .7rem 0 .8rem; align-items: flex-start; }
-.vip-resultado[hidden], .vip-pre[hidden], .vip-form[hidden] { display: none; }
+.vip-resultado[hidden] { display: none; }
 .vip-resultado { text-align: center; display: flex; flex-direction: column; gap: .6rem; }
 .vip-ok-titulo { font-family: var(--font-title); font-size: 1.5rem; color: #fff; text-transform: uppercase; }
 .vip-codigo { display: flex; align-items: center; justify-content: center; gap: .6rem; flex-wrap: wrap; }
@@ -871,15 +911,6 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 @media (max-width: 600px) {
   .vip-barra { flex-direction: column; text-align: center; }
   .vip-barra .btn-primario { width: 100%; }
-}
-@media (max-width: 420px) {
-  .vip-campos { grid-template-columns: 1fr; }
-  .vip-caja { padding: 1.4rem 1rem 1rem; }
-}
-@media (max-width: 700px) {
-  #vipModal { align-items: flex-end; }
-  #vipModal .vip-modal { height: auto; max-height: 92dvh; border-radius: 18px 18px 0 0; border-top: 1px solid #3a1212; }
-  #vipModal .vip-caja { padding-bottom: calc(1.2rem + env(safe-area-inset-bottom)); }
 }
 
 /* ---------- Aviso de confección sobre pedido ---------- */

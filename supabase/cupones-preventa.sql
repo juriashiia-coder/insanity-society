@@ -23,11 +23,14 @@ alter table public.cupones add column if not exists celular_vip text;
 create index if not exists cupones_celular_vip_idx on public.cupones (celular_vip) where celular_vip is not null;
 
 -- Validar un código desde el carrito: además de activo y vigente, que no se haya agotado
-create or replace function public.validar_cupon(p_codigo text)
+-- (Si ya corriste cuentas.sql, esta versión NO se instala: la de cuentas es más nueva.)
+do $instalar$ begin
+  if coalesce(obj_description(to_regprocedure('public.validar_cupon(text)'), 'pg_proc'), '') not like '%[cuentas]%' then
+    execute $fn$create or replace function public.validar_cupon(p_codigo text)
 returns table (codigo text, tipo text, valor integer, minimo_compra integer)
 language sql stable security definer
 set search_path = public
-as $$
+as $f$
   select c.codigo, c.tipo, c.valor, c.minimo_compra
   from public.cupones c
   where c.codigo = upper(trim(p_codigo))
@@ -39,7 +42,10 @@ as $$
     and (c.celular_vip is null
          or not coalesce((select (k.valor->>'codigos_pausados')::boolean from public.contenido k where k.clave = 'vip'), false))
   limit 1;
-$$;
+$f$;
+$fn$;
+  end if;
+end $instalar$;
 revoke all on function public.validar_cupon(text) from public;
 grant execute on function public.validar_cupon(text) to anon, authenticated;
 
@@ -55,11 +61,14 @@ alter table public.productos add constraint productos_preventa_entrega_check
   check (preventa_entrega is null or length(preventa_entrega) <= 80);
 
 -- ---------- 3) Registrar pedidos con estas reglas ----------
-create or replace function public.crear_pedido(p_items jsonb, p_cliente jsonb, p_cupon text default null)
+-- (Si ya corriste cuentas.sql, esta versión NO se instala: la de cuentas es más nueva.)
+do $instalar$ begin
+  if coalesce(obj_description(to_regprocedure('public.crear_pedido(jsonb,jsonb,text)'), 'pg_proc'), '') not like '%[cuentas]%' then
+    execute $fn$create or replace function public.crear_pedido(p_items jsonb, p_cliente jsonb, p_cupon text default null)
 returns bigint
 language plpgsql security definer
 set search_path = public
-as $$
+as $f$
 declare
   it jsonb;
   pr public.productos%rowtype;
@@ -165,7 +174,10 @@ begin
 
   return nuevo_id;
 end;
-$$;
+$f$;
+$fn$;
+  end if;
+end $instalar$;
 revoke all on function public.crear_pedido(jsonb, jsonb, text) from public;
 grant execute on function public.crear_pedido(jsonb, jsonb, text) to anon, authenticated;
 

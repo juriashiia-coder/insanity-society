@@ -71,7 +71,7 @@
         <div class="admin-subtabs hidden" data-grupo="descuentos">
           <button type="button" class="admin-tab" data-seccion="cupones">Cupones</button>
           <button type="button" class="admin-tab" data-seccion="embajadores">Embajadores</button>
-          <button type="button" class="admin-tab" data-seccion="vip">Lista VIP</button>
+          <button type="button" class="admin-tab" data-seccion="vip">Cuentas y VIP</button>
         </div>
         <div class="admin-subtabs hidden" data-grupo="contenido">
           <button type="button" class="admin-tab" data-seccion="inicio">Inicio</button>
@@ -177,9 +177,9 @@
 
       <div id="subVip" class="hidden">
         <div class="admin-toolbar">
-          <h1>Lista VIP <span id="vipConteo" class="admin-conteo"></span></h1>
+          <h1>Cuentas y Lista VIP <span id="vipConteo" class="admin-conteo"></span></h1>
           <div class="admin-toolbar-acciones">
-            <button id="vipExportar" class="btn-secundario" type="button">Descargar lista (Excel/CSV)</button>
+            <button id="vipExportar" class="btn-secundario" type="button">Descargar Lista VIP (Excel/CSV)</button>
           </div>
         </div>
         <p id="vipError" class="admin-error hidden" role="alert"></p>
@@ -189,18 +189,18 @@
           <h2>Configuración</h2>
           <label class="check-row admin-check vip-interruptor">
             <input id="vCfgActivo" type="checkbox" />
-            <span><strong>Mostrar invitación a la Lista VIP en la web</strong><small class="admin-hint">Apagado: la ventanita y el bloque del pie de página desaparecen.</small></span>
+            <span><strong>Mostrar la invitación a crear cuenta en la web</strong><small class="admin-hint">La ventanita que sale sola y la barra del pie de página. Apagado: no aparecen, pero igual se pide cuenta para comprar.</small></span>
           </label>
           <div class="form-grid">
-            <div class="form-row"><label for="vCfgTitulo">Título</label><input id="vCfgTitulo" type="text" maxlength="60" placeholder="Únete a la Sociedad" /></div>
-            <div class="form-row"><label for="vCfgTexto">Texto</label><input id="vCfgTexto" type="text" maxlength="160" placeholder="Entérate primero de lanzamientos, preventas y ofertas exclusivas." /></div>
+            <div class="form-row"><label for="vCfgTitulo">Título</label><input id="vCfgTitulo" type="text" maxlength="60" placeholder="Crea tu cuenta" /></div>
+            <div class="form-row"><label for="vCfgTexto">Texto</label><input id="vCfgTexto" type="text" maxlength="160" placeholder="Guarda tus pedidos, síguelos desde cualquier dispositivo y entérate primero de lanzamientos y preventas." /></div>
           </div>
 
           <fieldset class="admin-fieldset">
-            <legend>Regalo de bienvenida (código personal)</legend>
+            <legend>Regalo de bienvenida (código personal por cuenta)</legend>
             <label class="check-row admin-check vip-interruptor">
               <input id="vCfgRegalo" type="checkbox" />
-              <span><strong>Dar código de descuento a los nuevos suscriptores</strong><small class="admin-hint">Apagado: la gente se sigue inscribiendo, pero sin cupón. No afecta los códigos ya entregados.</small></span>
+              <span><strong>Dar código de descuento a las cuentas nuevas</strong><small class="admin-hint">Apagado: la gente crea su cuenta igual, pero sin cupón. No afecta los códigos ya entregados.</small></span>
             </label>
             <div class="form-grid vip-config-3">
               <div class="form-row"><label for="vCfgPct">Descuento (%)</label><input id="vCfgPct" type="text" inputmode="numeric" maxlength="2" placeholder="Pendiente" /></div>
@@ -212,7 +212,11 @@
 
           <label class="check-row admin-check vip-interruptor vip-interruptor--peligro">
             <input id="vCfgPausar" type="checkbox" />
-            <span><strong>Pausar todos los códigos VIP ya entregados</strong><small class="admin-hint">Mientras esté marcado, ningún código VIP funciona en el carrito. Desmárcalo para reactivarlos.</small></span>
+            <span><strong>Pausar todos los códigos de bienvenida ya entregados</strong><small class="admin-hint">Mientras esté marcado, ningún código de bienvenida (BIEN-… y los VIP-… anteriores) funciona en el carrito. Desmárcalo para reactivarlos.</small></span>
+          </label>
+          <label class="check-row admin-check vip-interruptor">
+            <input id="vCfgGoogle" type="checkbox" />
+            <span><strong>Mostrar «Continuar con Google»</strong><small class="admin-hint">Actívalo solo después de configurar Google en Supabase (paso 2f de GUIA-PANEL.md). Si no está configurado, el botón da error.</small></span>
           </label>
           <div class="vip-config-acciones">
             <span id="vCfgEstado" class="admin-hint"></span>
@@ -221,7 +225,17 @@
         </form>
 
         <div class="admin-toolbar vip-lista-head">
-          <h2>Suscriptores</h2>
+          <h2>Cuentas <span id="cliConteo" class="admin-conteo"></span></h2>
+          <div class="admin-toolbar-acciones">
+            <input id="cliBuscar" type="search" placeholder="Buscar: nombre, celular, correo o código" aria-label="Buscar cuentas" />
+          </div>
+        </div>
+        <div id="cliLista" class="admin-lista" aria-live="polite"></div>
+        <button id="cliMas" class="btn-secundario btn-bloque hidden" type="button">Ver más</button>
+        <p class="admin-hint admin-ayuda">Para borrar una cuenta (si la persona lo pide): Supabase → Authentication → Users → busca el correo → Delete user. Su historial de pedidos se conserva.</p>
+
+        <div class="admin-toolbar vip-lista-head">
+          <h2>Lista VIP <small class="admin-hint">(aceptaron recibir promociones)</small></h2>
           <div class="admin-toolbar-acciones">
             <input id="vipBuscar" type="search" placeholder="Buscar: nombre, celular, correo o código" aria-label="Buscar suscriptores" />
           </div>
@@ -256,7 +270,7 @@
             <button id="btnNuevoCupon" class="btn-primario" type="button">+ Nuevo código</button>
           </div>
         </div>
-        <p class="admin-hint admin-ayuda">Los códigos personales de la Lista VIP (VIP-…) y los de los embajadores no aparecen aquí: se ven en sus propias pestañas. El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
+        <p class="admin-hint admin-ayuda">Los códigos personales de bienvenida (BIEN-… y VIP-…) y los de los embajadores no aparecen aquí: se ven en sus propias pestañas. El cliente escribe el código en el carrito y el descuento se aplica al total. Los clientes no pueden ver esta lista: solo validar un código que ya conocen.</p>
         <p id="cuponesError" class="admin-error hidden" role="alert"></p>
         <div id="listaCupones" class="admin-lista" aria-live="polite"></div>
       </div>

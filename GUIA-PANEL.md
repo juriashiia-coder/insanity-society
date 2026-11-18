@@ -48,7 +48,40 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 3. Luego pega `supabase/mis-pedidos.sql` y pulsa **Run** (seguimiento para clientes y guía de envío).
 4. Luego pega `supabase/cupones-preventa.sql` y pulsa **Run** (límite de uso de cupones y preventa).
 5. Luego pega `supabase/lista-vip.sql` y pulsa **Run** (Lista VIP con código personal de bienvenida).
-6. Por último pega `supabase/embajadores.sql` y pulsa **Run** (códigos de embajadores, comisiones y pagos).
+6. Luego pega `supabase/embajadores.sql` y pulsa **Run** (códigos de embajadores, comisiones y pagos).
+7. Por último pega `supabase/cuentas.sql` y pulsa **Run** (cuentas de clientes). **Antes**, haz el paso 2f: en cuanto publiques la web, comprar exige cuenta.
+
+### 2f. Cuentas de clientes: configuración (una sola vez)
+
+Con las cuentas, para agregar al carrito, usar códigos, pedir y ver "Mis pedidos" el cliente necesita una cuenta (correo y contraseña, o Google). Haz esto **antes de publicar** la web nueva:
+
+**A. Dirección de la tienda**
+1. Supabase → **Authentication** → **URL Configuration**.
+2. **Site URL:** `https://insanity-society.netlify.app`
+3. En **Redirect URLs** pulsa **Add URL** y agrega `https://insanity-society.netlify.app/**` → **Save**.
+
+**B. Correo (obligatorio).** Supabase ya no envía correos de registro a clientes reales con su servicio de prueba, así que se conecta Brevo (gratis):
+1. Crea una cuenta en **brevo.com** y verifica el correo remitente (ej. el Gmail de la marca) en **Senders, Domains & Dedicated IPs → Senders**.
+2. En Brevo: engranaje → **SMTP & API** → pestaña **SMTP** → copia el **Login** y pulsa **Generate a new SMTP key** (copia la clave; es distinta de una "API key").
+3. Supabase → **Authentication** → **Emails** → **SMTP Settings** → activa **Enable custom SMTP** y llena:
+   - Sender email: el correo verificado en Brevo · Sender name: `Insanity Society`
+   - Host: `smtp-relay.brevo.com` · Port: `587`
+   - Username: el **Login** de Brevo · Password: la **SMTP key**
+4. **Save**. Luego en **Authentication → Rate Limits** puedes subir "emails sent per hour" (arranca en 30).
+5. Recomendado: en **Authentication → Emails → Templates** traduce al español los asuntos de *Confirm signup* y *Reset password* (ej. "Confirma tu cuenta de Insanity Society").
+
+**C. Confirmación de correo:** en **Authentication → Sign In / Providers → Email** deja **Confirm email** activado (así nadie crea cuentas con correos ajenos).
+
+**D. Registro público ACTIVADO:** en la misma página, **Allow new users to sign up** debe estar **encendido** (ver paso 4).
+
+**E. "Continuar con Google" (opcional):**
+1. Entra a **console.cloud.google.com** con la cuenta Google de la marca y crea un proyecto.
+2. **APIs & Services → OAuth consent screen** (o *Google Auth Platform*): tipo **External**, nombre `Insanity Society`, tu correo de soporte; publica la app (**Publish app**).
+3. **Credentials → Create credentials → OAuth client ID** → tipo **Web application**:
+   - Authorized JavaScript origins: `https://insanity-society.netlify.app`
+   - Authorized redirect URIs: la **Callback URL** que muestra Supabase en **Authentication → Sign In / Providers → Google** (es `https://TU-PROYECTO.supabase.co/auth/v1/callback`).
+4. Copia el **Client ID** y el **Client secret**, pégalos en esa página de Supabase, activa **Enable Sign in with Google** y guarda.
+5. En el panel de la tienda → **Descuentos → Cuentas y VIP** marca **Mostrar «Continuar con Google»** y guarda.
 
 ## 3. Crear tu usuario de administrador
 
@@ -56,12 +89,14 @@ Esto guarda los textos actuales de la web para que puedas editarlos desde el pan
 2. Escribe tu correo y una contraseña. Marca **Auto Confirm User**.
 3. Pulsa **Create user**.
 
-## 4. Cerrar el registro público
+## 4. Registro público (déjalo ACTIVADO)
 
-Para que nadie más pueda crearse una cuenta:
+Antes se apagaba para que nadie más se creara una cuenta. Con las cuentas de clientes debe estar **encendido**:
 
-1. Ve a **Authentication** → **Sign In / Providers** (en algunas versiones está en **Authentication → Settings**).
-2. Desactiva **Allow new users to sign up** y guarda.
+1. Ve a **Authentication** → **Sign In / Providers**.
+2. **Allow new users to sign up** → encendido, y guarda.
+
+Es seguro: tener cuenta **no** da acceso al panel. Solo entra quien está en la lista de administradores (paso 5); todas las reglas de la base lo verifican.
 
 ## 5. Darte permisos de administrador
 
@@ -157,20 +192,18 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - Se muestra en cada prenda, en el carrito, en el formulario de compra, en el mensaje de WhatsApp ("desde la confirmación del pago") y en «Mis pedidos» cuando el pago está confirmado.
 - Las prendas en preventa muestran su propia fecha de entrega.
 
-### Lista VIP
+### Cuentas y Lista VIP
 
-- Pestaña **Lista VIP**. Todo empieza **apagado** y sin porcentaje.
-- **Mostrar invitación a la Lista VIP:** al encenderla aparece en la web una ventanita (una sola vez por visitante, a los 15 segundos o al bajar media página; si la cierran no vuelve en 30 días) y un bloque fijo antes del pie de página.
-- **Regalo de bienvenida:** cuando el dueño autorice, escribe el **%**, y si quieres una **compra mínima** y una **validez en días**. Cada nuevo suscriptor recibe un código único (ej. `VIP-7K3QM`) que:
-  - se aplica solo en su carrito,
-  - funciona **una sola vez** y **solo con el celular con el que se inscribió** (si lo comparte, a otro no le sirve),
-  - si la persona se vuelve a inscribir, recibe el mismo código, no uno nuevo.
-- **Sin porcentaje** o con el regalo apagado, la gente se puede inscribir pero no recibe código.
-- **Cambiar el %** solo afecta a los nuevos suscriptores; los códigos ya entregados conservan su valor.
-- **Pausar todos los códigos VIP ya entregados:** ninguno funciona mientras esté marcado; desmárcalo para reactivarlos.
-- Lista de suscriptores con su código y estado (sin usar, usado, vencido, pausado), buscador, botón de WhatsApp y **Descargar lista** (abre en Excel) para avisar lanzamientos por tu lista de difusión.
-- Si alguien pide la baja, bórralo con **Eliminar** (su código queda desactivado).
-- En **Estadísticas → Códigos de descuento usados** los VIP aparecen agrupados como "Lista VIP".
+- Pestaña **Descuentos → Cuentas y VIP**.
+- **Mostrar la invitación a crear cuenta:** la ventanita (una vez por visitante, a los 15 segundos o al bajar media página; si la cierran no vuelve en 30 días) con **Crear cuenta / Ya tengo cuenta / Continuar como invitado**, y la barra del pie de página. Aunque esté apagada, **comprar siempre exige cuenta**.
+- **Como invitado** se puede ver toda la tienda y guardar favoritos. Para agregar al carrito, usar códigos, pedir y ver "Mis pedidos" se pide entrar o crear cuenta; lo que intentaba agregar se agrega solo al entrar.
+- **Regalo de bienvenida:** % (y si quieres compra mínima y días de validez). Cada **cuenta nueva** recibe un código único (ej. `BIEN-7K3QM`) que se aplica solo en su carrito, sirve **una sola vez** y **solo en su cuenta**.
+- **Uno por celular en la vida:** cada celular solo puede estar en una cuenta, y si ese celular ya tenía código (de la Lista VIP anterior), se le asigna el mismo, no uno nuevo.
+- **Cualquier código** con límite por persona (ej. `BIENVENIDO10`) se controla por cuenta, por celular **y** por cédula: crear otra cuenta con la misma cédula o enviando al mismo celular no sirve para repetirlo.
+- **Pausar todos los códigos de bienvenida:** ninguno funciona mientras esté marcado.
+- **Cuentas:** lista con nombre, WhatsApp, correo, cuánto ha comprado y el estado de su código. Para borrar una cuenta: Supabase → Authentication → Users → Delete user.
+- **Lista VIP:** quienes marcaron "quiero enterarme de lanzamientos y promociones" al crear su cuenta (más los suscriptores anteriores). **Descargar Lista VIP** la baja en Excel para tu lista de difusión. Si alguien pide la baja, **Eliminar**.
+- En **Estadísticas → Códigos de descuento usados** los códigos personales aparecen juntos como "Códigos de bienvenida".
 
 ### Preventa
 
@@ -199,8 +232,9 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 
 ### Lo que ve el cliente
 
-- **Mis pedidos** (icono de caja arriba, o en el menú del celular): los pedidos hechos en ese dispositivo aparecen solos con su estado (Recibido → Pago confirmado → Enviado → Entregado) y la guía. Desde otro dispositivo se consultan con el número de pedido + el celular. No se muestra dirección, cédula ni nombre.
-- **Favoritos** (corazón): cada cliente guarda prendas con el ♥ de las tarjetas. Se guardan en su dispositivo, sin cuenta.
+- **Mi cuenta** (icono de persona arriba, o "Mi cuenta" en el menú del celular): sus datos, su código de bienvenida y **Cerrar sesión** (al salir se borra el carrito de ese dispositivo).
+- **Mis pedidos** (icono de caja arriba, o en el menú del celular): todos los pedidos de su cuenta, desde cualquier dispositivo, con su estado (Recibido → Pago confirmado → Enviado → Entregado) y la guía. Los pedidos de antes de crear la cuenta se consultan con el número de pedido + el celular.
+- **Favoritos** (corazón): cada cliente guarda prendas con el ♥ de las tarjetas. Se guardan en su dispositivo; no necesita cuenta.
 
 ### Estadísticas
 
@@ -220,7 +254,8 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 ## Si cambias a un dominio propio (.com)
 
 - En `index.html` y `mascaras.html` cambia `https://insanity-society.netlify.app` por tu dominio en las etiquetas `og:url` y `og:image` (es la imagen que sale al compartir el enlace por WhatsApp o redes: `img/compartir.jpg`).
-- En Supabase → Authentication → URL Configuration cambia la *Site URL* por el dominio nuevo.
+- En Supabase → Authentication → URL Configuration cambia la *Site URL* por el dominio nuevo y agrega `https://tudominio.com/**` en *Redirect URLs*.
+- Si usas "Continuar con Google": agrega el dominio nuevo en *Authorized JavaScript origins* de Google Cloud.
 
 ## Si algo falla
 
@@ -229,9 +264,13 @@ Arriba del panel hay pestañas: **Productos, Inicio, Colecciones, La Sociedad, T
 - **"Falta activar las promociones" en el panel:** ejecuta `supabase/promos.sql` (paso 2c).
 - **"Falta activar el inventario" en el panel:** ejecuta `supabase/inventario.sql` (paso 2d).
 - **"Falta activar los pedidos" en el panel:** ejecuta `supabase/pedidos.sql` (paso 2e).
-- **Volver a correr archivos SQL:** se puede hacer sin miedo; ninguno reemplaza las reglas nuevas de cupones, pedidos o Lista VIP. La única excepción es `catalogo-agosto-2026.sql`: córrelo **una sola vez**, porque devuelve los productos del catálogo a como estaban en el PDF.
+- **Volver a correr archivos SQL:** se puede hacer sin miedo; ninguno reemplaza las reglas nuevas de cupones, pedidos, Lista VIP o cuentas. La única excepción es `catalogo-agosto-2026.sql`: córrelo **una sola vez**, porque devuelve los productos del catálogo a como estaban en el PDF.
 - **"Falta activar Embajadores":** ejecuta `supabase/embajadores.sql`.
 - **"Falta activar la Lista VIP":** ejecuta `supabase/cupones-preventa.sql` y luego `supabase/lista-vip.sql`.
+- **"Las cuentas aún no están activas" / nadie puede comprar:** ejecuta `supabase/cuentas.sql` (paso 2e, punto 7).
+- **"No pudimos enviarte el correo":** revisa el paso 2f-B (Brevo). En Brevo → *Transactional → Logs* ves si el correo salió.
+- **El correo de confirmación lleva a una página en blanco o a otra web:** revisa el paso 2f-A (Site URL y Redirect URLs).
+- **"Continuar con Google" da error:** revisa el paso 2f-E; mientras tanto apágalo en el panel.
 - **"Falta activar preventa y límites de cupones":** ejecuta `supabase/cupones-preventa.sql` (paso 2e, punto 4).
 - **Plan gratuito:** Supabase puede pausar proyectos gratuitos que llevan un tiempo sin actividad. Si pasa, entra a supabase.com y pulsa *Restore project*.
 - **"Sin permisos" al entrar al panel:** falta el paso 5 con ese correo.
