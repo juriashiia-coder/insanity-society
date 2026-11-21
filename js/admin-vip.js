@@ -201,17 +201,28 @@
   $('#vipLista').addEventListener('click', async (ev) => {
     const b = ev.target.closest('[data-accion="borrar"]'); if (!b) return;
     const s = subs.find((x) => String(x.id) === b.closest('[data-id]').dataset.id); if (!s) return;
-    if (!confirm(`¿Eliminar a ${s.nombre || s.celular} de la Lista VIP?${s.codigo ? `\nSu código ${s.codigo} quedará desactivado.` : ''}\n\nHazlo, por ejemplo, si pidió darse de baja.`)) return;
-    if (s.codigo) {
+    // Si tiene cuenta, salir de la Lista VIP solo significa "no más promociones":
+    // conserva su cuenta y su código de bienvenida.
+    const cuentaDe = clientes.find((c) => c.celular === s.celular);
+    const apagarCodigo = !!s.codigo && !cuentaDe;
+    if (!confirm(`¿Quitar a ${s.nombre || s.celular} de la Lista VIP?\n\n${cuentaDe
+      ? 'Tiene cuenta: deja de recibir promociones, pero conserva su cuenta y su código de bienvenida.'
+      : (s.codigo ? `Su código ${s.codigo} quedará desactivado.` : 'Deja de recibir promociones.')}\n\nHazlo, por ejemplo, si pidió darse de baja.`)) return;
+    if (apagarCodigo) {
       const r = await core.sb.from('cupones').update({ activo: false }).eq('codigo', s.codigo);
       if (r.error) { core.toast(core.traducir(r.error)); return; }
+    }
+    if (cuentaDe) {
+      const r = await core.sb.from('clientes').update({ acepta_promos: false }).eq('id', cuentaDe.id);
+      if (r.error) { core.toast(core.traducir(r.error)); return; }
+      cuentaDe.acepta_promos = false;
     }
     const { error } = await core.sb.from('suscriptores').delete().eq('id', s.id);
     if (error) { core.toast(core.traducir(error)); return; }
     subs = subs.filter((x) => x.id !== s.id);
-    if (s.codigo && codigos[s.codigo]) codigos[s.codigo].activo = false;
+    if (apagarCodigo && codigos[s.codigo]) codigos[s.codigo].activo = false;
     render();
-    core.toast('Suscriptor eliminado');
+    core.toast('Quitado de la Lista VIP');
   });
 
   // ---------- Exportar (CSV que abre en Excel) ----------

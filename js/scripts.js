@@ -619,7 +619,15 @@
     if (card && (e.target.closest('[data-abrir]') || !e.target.closest('button, a'))) abrirProducto(card.dataset.id);
   }));
   $('#cerrarProducto')?.addEventListener('click', cerrarProducto);
-  productoModal?.addEventListener('click', (e) => { if (e.target === productoModal) cerrarProducto(); });
+  // Tocar el fondo cierra, pero solo si el clic empezó en el fondo: así seleccionar texto
+  // con el mouse y soltar afuera no cierra la ventana.
+  function cerrarAlTocarFondo(overlay, cerrar) {
+    if (!overlay) return;
+    let empezoEnFondo = false;
+    overlay.addEventListener('pointerdown', (e) => { empezoEnFondo = e.target === overlay; });
+    overlay.addEventListener('click', (e) => { if (e.target === overlay && empezoEnFondo) cerrar(); empezoEnFondo = false; });
+  }
+  cerrarAlTocarFondo(productoModal, () => cerrarProducto());
   const contenedoresTarjetas = [productoBody].filter(Boolean);
 
   // ---------- Favoritos: corazón, contador y sección #favoritos ----------
@@ -1180,7 +1188,6 @@
   }
   $('#cerrarCuenta')?.addEventListener('click', () => cerrarCuenta());
   cuentaModal?.addEventListener('click', (e) => {
-    if (e.target === cuentaModal) { cerrarCuenta(); return; }
     const ir = e.target.closest('[data-ir]'); if (ir) { mostrarVista(ir.dataset.ir, { motivo: $('.cuenta-motivo', cuentaModal)?.textContent }); return; }
     if (e.target.closest('[data-invitado]')) { cerrarCuenta({ invitado: true }); return; }
     if (e.target.closest('[data-cerrar-cuenta]')) { cerrarCuenta(); return; }
@@ -1680,7 +1687,7 @@
   });
   $('#cerrarCheckout').addEventListener('click', () => { setCheckout(false); setCarrito(true); });
   $('#cerrarCheckoutModal').addEventListener('click', () => setCheckout(false));
-  checkoutModal.addEventListener('click', (e) => { if (e.target === checkoutModal) setCheckout(false); });
+  // El formulario del pedido solo se cierra con la ✕ (o Esc): un clic afuera no borra lo escrito
 
   // Guarda el pedido en la base (para el panel y las estadísticas). Si falla, el pedido
   // igual se envía por WhatsApp: nunca se bloquea una venta por esto.
@@ -1843,7 +1850,7 @@
   document.addEventListener('click', (e) => { if (e.target.closest('[data-guia]')) { e.preventDefault(); setGuia(true); } });
   $('#cerrarGuia')?.addEventListener('click', () => setGuia(false));
   $('#cerrarGuia2')?.addEventListener('click', () => setGuia(false));
-  guiaModal?.addEventListener('click', (e) => { if (e.target === guiaModal) setGuia(false); });
+  cerrarAlTocarFondo(guiaModal, () => setGuia(false));
 
   // ---------- Ventanas abiertas: Escape y botón "atrás" las cierran ----------
   // Orden: de la que queda encima a la de abajo.
