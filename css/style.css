@@ -920,3 +920,19 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 .nota-envio { display: flex; gap: .45rem; align-items: flex-start; font-size: .8rem; line-height: 1.4; color: #a8a8a8; margin: -.2rem 0 .7rem; }
 .carrito-total small { font-size: .72rem; font-weight: 400; color: #888; margin-right: auto; margin-left: .35rem; align-self: center; }
 .checkout-total + .nota-envio { margin-top: -.6rem; }
+
+/* ---------- Cabecera en celular: que el nombre de la marca se vea completo ----------
+   Favoritos y Mis pedidos están en el menú ☰, así que en pantallas angostas
+   solo quedan Cuenta, Carrito y Menú, más compactos. */
+@media (max-width: 480px) {
+  .navbar { gap: .4rem; padding-inline: .7rem; }
+  .nav-actions { gap: .3rem; }
+  .nav-actions a.btn-nav-icono[href="#favoritos"] { display: none; }
+  .btn-nav-icono { width: 36px; height: 36px; }
+  .btn-nav-icono svg { width: 18px; height: 18px; }
+  .btn-carrito { padding: .4rem .6rem; }
+  .menu-toggle { width: 36px; }
+  .menu-toggle span { left: 8px; right: 8px; }
+  .logo { font-size: clamp(.8rem, 4.3vw, 1.2rem); letter-spacing: clamp(.5px, .3vw, 1.5px); -webkit-text-stroke: 1px #000; }
+}
+
