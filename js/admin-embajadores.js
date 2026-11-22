@@ -195,9 +195,7 @@
   $('#cerrarEmb').addEventListener('click', cerrarEditor);
   $('#btnCancelarEmb').addEventListener('click', cerrarEditor);
   $('#embModal').addEventListener('click', (ev) => { if (ev.target.id === 'embModal') cerrarEditor(); });
-  const limpiarCodigo = (v) => v.toUpperCase().replace(/[^A-Z0-9 -]/g, '').replace(/\s+/g, ' ').replace(/-+/g, '-');
-  const codigoValido = (c) => /^[A-Z0-9](?:[A-Z0-9 -]*[A-Z0-9])?$/.test(c) && c.replace(/[^A-Z0-9]/g, '').length >= 3 && c.length <= 30;
-  $('#eCodigo').addEventListener('input', (ev) => { ev.target.value = limpiarCodigo(ev.target.value); });
+  $('#eCodigo').addEventListener('input', (ev) => { ev.target.value = ev.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
   $('#eDescuento').addEventListener('input', (ev) => { ev.target.value = ev.target.value.replace(/\D/g, ''); });
   $('#eMinimo').addEventListener('input', (ev) => { const n = soloNumero(ev.target.value); ev.target.value = n == null ? '' : numero(n); });
   $('#eComision').addEventListener('input', vistaComision);
@@ -208,12 +206,13 @@
     err('');
     const nombre = $('#eNombre').value.trim();
     const cel = $('#eCelular').value.replace(/\D/g, '').replace(/^57(?=\d{10}$)/, '');
-    const codigo = limpiarCodigo($('#eCodigo').value).trim();
+    const codigo = $('#eCodigo').value.trim();
     const desc = soloNumero($('#eDescuento').value);
     const com = pctNum($('#eComision').value);
     if (nombre.length < 2) return err('Escribe el nombre del embajador.');
     if (cel && !/^3\d{9}$/.test(cel)) return err('El WhatsApp debe ser un celular de 10 dígitos (o déjalo vacío).');
-    if (!codigoValido(codigo)) return err('El código debe tener de 3 a 30 caracteres: letras, números, espacios o guiones.');
+    if (!/^[A-Z0-9]{3,30}$/.test(codigo)) return err('El código debe tener de 3 a 30 letras o números, sin espacios.');
+    if (codigo === 'JWDEV') return err('Ese código está reservado.');
     if (!desc || desc < 1 || desc > 90) return err('El descuento para el cliente debe estar entre 1% y 90%.');
     if (com == null || com < 0 || com > 50) return err('La comisión debe estar entre 0% y 50%.');
     const activo = $('#eActivo').checked;

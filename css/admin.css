@@ -368,3 +368,4 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
   .admin-subtabs { gap: .35rem; }
   .admin-tab { padding: .4rem .75rem; font-size: .82rem; }
 }
+.badge-exclusivo { display: inline-block; margin-left: .4rem; padding: .1rem .5rem; border-radius: 999px; font-size: .68rem; letter-spacing: .5px; vertical-align: middle; background: linear-gradient(90deg, #b8860b, #f0c14b); color: #111; font-weight: 800; }

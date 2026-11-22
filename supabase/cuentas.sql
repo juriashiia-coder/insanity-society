@@ -205,8 +205,9 @@ set search_path = public
 as $$
   select c.codigo, c.tipo, c.valor, c.minimo_compra
   from public.cupones c
-  -- Se compara sin espacios, guiones ni mayúsculas: "J-W DEV" = "jwdev" = "JW-DEV"
-  where regexp_replace(upper(c.codigo), '[^A-Z0-9]', '', 'g') = regexp_replace(upper(coalesce(p_codigo, '')), '[^A-Z0-9]', '', 'g')
+  where (c.codigo = upper(trim(p_codigo))
+         -- Código exclusivo J-W DEV: se reconoce aunque lo escriban "jwdev", "JW DEV", "j-w-dev"…
+         or (c.codigo = 'J-W DEV' and regexp_replace(upper(coalesce(p_codigo, '')), '[^A-Z0-9]', '', 'g') = 'JWDEV'))
     and c.activo
     and (c.vence is null or c.vence > now())
     and (c.usos_maximos is null
@@ -222,15 +223,38 @@ comment on function public.validar_cupon(text) is 'Insanity [cuentas]';
 revoke all on function public.validar_cupon(text) from public;
 grant execute on function public.validar_cupon(text) to anon, authenticated;
 
--- No permitir dos códigos que solo cambien en espacios o guiones (ej. JWDEV y J-W DEV)
-do $unico$
+-- ---------- Código exclusivo del desarrollador: J-W DEV ----------
+-- Es el ÚNICO código con guion y espacio. Se edita en el panel (porcentaje, límites,
+-- vencimiento, activo), pero no se puede renombrar ni borrar, y nadie puede crear
+-- otro parecido (JWDEV, JW-DEV, J W DEV…).
+drop index if exists public.cupones_codigo_normalizado_idx;
+insert into public.cupones (codigo, tipo, valor, minimo_compra, activo, nota, usos_por_cliente)
+values ('J-W DEV', 'porcentaje', 10, 0, false, 'Código exclusivo del desarrollador (J-W DEV)', 1)
+on conflict (codigo) do nothing;
+
+create or replace function public.proteger_codigo_exclusivo()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
 begin
-  create unique index if not exists cupones_codigo_normalizado_idx
-    on public.cupones (regexp_replace(upper(codigo), '[^A-Z0-9]', '', 'g'));
-exception when unique_violation then
-  raise notice 'Hay códigos repetidos al quitar espacios/guiones; revísalos en el panel.';
-end
-$unico$;
+  if tg_op = 'DELETE' then
+    if old.codigo = 'J-W DEV' then raise exception 'CODIGO_EXCLUSIVO: J-W DEV no se puede borrar (puedes pausarlo).'; end if;
+    return old;
+  end if;
+  if tg_op = 'UPDATE' and old.codigo = 'J-W DEV' and new.codigo <> old.codigo then
+    raise exception 'CODIGO_EXCLUSIVO: J-W DEV no se puede renombrar.';
+  end if;
+  if new.codigo <> 'J-W DEV' and regexp_replace(upper(new.codigo), '[^A-Z0-9]', '', 'g') = 'JWDEV' then
+    raise exception 'CODIGO_EXCLUSIVO: ese código está reservado.';
+  end if;
+  return new;
+end;
+$$;
+drop trigger if exists proteger_codigo_exclusivo on public.cupones;
+create trigger proteger_codigo_exclusivo
+  before insert or update or delete on public.cupones
+  for each row execute function public.proteger_codigo_exclusivo();
 
 -- Para el carrito: dice por qué un código no sirve en MI cuenta
 create or replace function public.revisar_cupon(p_codigo text)
