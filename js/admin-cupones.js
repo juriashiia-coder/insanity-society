@@ -115,7 +115,10 @@
   modal.addEventListener('click', (e) => { if (e.target === modal) cerrar(); });
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) cerrar(); });
 
-  $('#cCodigo').addEventListener('input', (e) => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); vista(); });
+  // Se permiten espacios y guiones (ej. J-W DEV); la tienda los ignora al validar
+  const limpiarCodigo = (v) => v.toUpperCase().replace(/[^A-Z0-9 -]/g, '').replace(/\s+/g, ' ').replace(/-+/g, '-');
+  const codigoValido = (c) => /^[A-Z0-9](?:[A-Z0-9 -]*[A-Z0-9])?$/.test(c) && c.replace(/[^A-Z0-9]/g, '').length >= 3 && c.length <= 30;
+  $('#cCodigo').addEventListener('input', (e) => { e.target.value = limpiarCodigo(e.target.value); vista(); });
   ['#cValor', '#cMinimo', '#cUsosMax'].forEach((s) => $(s).addEventListener('input', (e) => {
     const n = soloNumero(e.target.value); e.target.value = n == null ? '' : n.toLocaleString('es-CO'); vista();
   }));
@@ -132,11 +135,11 @@
   $('#formCupon').addEventListener('submit', async (e) => {
     e.preventDefault();
     core.errorEn('#cuponError', '');
-    const codigo = $('#cCodigo').value.trim().toUpperCase();
+    const codigo = limpiarCodigo($('#cCodigo').value).trim();
     const tipo = $('#cTipo').value;
     const valor = soloNumero($('#cValor').value);
     const fallo =
-      !/^[A-Z0-9]{3,30}$/.test(codigo) ? 'El código debe tener entre 3 y 30 letras o números, sin espacios.' :
+      !codigoValido(codigo) ? 'El código debe tener de 3 a 30 caracteres: letras, números, espacios o guiones (sin empezar ni terminar con ellos).' :
       !valor ? 'Escribe el valor del descuento.' :
       tipo === 'porcentaje' && valor > 90 ? 'El porcentaje máximo es 90%.' : null;
     if (fallo) { core.errorEn('#cuponError', fallo); return; }
@@ -158,7 +161,7 @@
       : await core.sb.from('cupones').insert({ codigo, ...fila });
     btn.disabled = false; btn.textContent = 'Guardar';
     if (error) {
-      core.errorEn('#cuponError', /duplicate key|already exists/i.test(error.message || '') ? `Ya existe un código ${codigo}.` : core.traducir(error));
+      core.errorEn('#cuponError', /duplicate key|already exists/i.test(error.message || '') ? `Ya existe un código igual a ${codigo} (sin contar espacios ni guiones).` : core.traducir(error));
       return;
     }
     core.toast(editando ? 'Código actualizado' : `Código ${codigo} creado`);

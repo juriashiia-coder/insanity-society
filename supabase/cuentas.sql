@@ -205,7 +205,8 @@ set search_path = public
 as $$
   select c.codigo, c.tipo, c.valor, c.minimo_compra
   from public.cupones c
-  where c.codigo = upper(trim(p_codigo))
+  -- Se compara sin espacios, guiones ni mayúsculas: "J-W DEV" = "jwdev" = "JW-DEV"
+  where regexp_replace(upper(c.codigo), '[^A-Z0-9]', '', 'g') = regexp_replace(upper(coalesce(p_codigo, '')), '[^A-Z0-9]', '', 'g')
     and c.activo
     and (c.vence is null or c.vence > now())
     and (c.usos_maximos is null
@@ -220,6 +221,16 @@ $$;
 comment on function public.validar_cupon(text) is 'Insanity [cuentas]';
 revoke all on function public.validar_cupon(text) from public;
 grant execute on function public.validar_cupon(text) to anon, authenticated;
+
+-- No permitir dos códigos que solo cambien en espacios o guiones (ej. JWDEV y J-W DEV)
+do $unico$
+begin
+  create unique index if not exists cupones_codigo_normalizado_idx
+    on public.cupones (regexp_replace(upper(codigo), '[^A-Z0-9]', '', 'g'));
+exception when unique_violation then
+  raise notice 'Hay códigos repetidos al quitar espacios/guiones; revísalos en el panel.';
+end
+$unico$;
 
 -- Para el carrito: dice por qué un código no sirve en MI cuenta
 create or replace function public.revisar_cupon(p_codigo text)
