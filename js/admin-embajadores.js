@@ -118,7 +118,7 @@
       <article class="admin-item emb-item${x.activo ? '' : ' is-pausado'}" data-id="${x.id}">
         <div class="vip-avatar" aria-hidden="true">${e(x.nombre.trim().charAt(0).toUpperCase())}</div>
         <div class="admin-item-info">
-          <h3>${e(x.nombre)} ${ig ? `<a class="admin-meta" href="https://instagram.com/${e(ig.slice(1))}" target="_blank" rel="noopener">${e(ig)}</a>` : ''} ${x.activo ? '' : '<span class="vip-est vip-est--off">Pausado</span>'}</h3>
+          <h3>${e(x.nombre)}${cup?.codigo === EXCLUSIVO ? ' <span class="badge-exclusivo">Exclusivo</span>' : ''} ${ig ? `<a class="admin-meta" href="https://instagram.com/${e(ig.slice(1))}" target="_blank" rel="noopener">${e(ig)}</a>` : ''} ${x.activo ? '' : '<span class="vip-est vip-est--off">Pausado</span>'}</h3>
           <p class="emb-cod">${cup ? `<code>${e(cup.codigo)}</code> <button type="button" class="link-btn" data-copiar="${e(cup.codigo)}">copiar</button> · cliente −${cup.valor}%${cup.minimo_compra ? ` desde ${dinero(cup.minimo_compra)}` : ''}` : '<span class="admin-meta">Sin código</span>'} · comisión <strong>${Number(x.comision_pct)}%</strong></p>
           <div class="emb-cifras">
             <span><b>${numero(c.pedidos)}</b> pedido${c.pedidos === 1 ? '' : 's'}</span>
@@ -169,9 +169,12 @@
       ? `Ejemplo: en un pedido de ${dinero(200000)} gana ${dinero(200000 * pct / 100)}.`
       : 'Sobre el total pagado de cada pedido con su código.';
   }
+  const EXCLUSIVO = 'J-W DEV'; // código del desarrollador: no se renombra ni se borra
   function abrirEditor(x = null) {
     editando = x;
     const cup = x ? cupones.find((k) => k.embajador_id === x.id) : null;
+    const exclusivo = cup?.codigo === EXCLUSIVO;
+    $('#eCodigo').disabled = exclusivo;
     $('#embTitulo').textContent = x ? `Editar: ${x.nombre}` : 'Nuevo embajador';
     $('#eNombre').value = x?.nombre || '';
     $('#eInstagram').value = x?.instagram || '';
@@ -184,7 +187,7 @@
     $('#eComision').value = x ? Number(x.comision_pct) : '';
     $('#eNotas').value = x?.notas || '';
     $('#eActivo').checked = x ? !!x.activo : true;
-    $('#btnBorrarEmb').classList.toggle('hidden', !x);
+    $('#btnBorrarEmb').classList.toggle('hidden', !x || exclusivo);
     core.errorEn('#embFormError', '');
     vistaComision();
     $('#embModal').classList.remove('hidden');
@@ -206,20 +209,23 @@
     err('');
     const nombre = $('#eNombre').value.trim();
     const cel = $('#eCelular').value.replace(/\D/g, '').replace(/^57(?=\d{10}$)/, '');
-    const codigo = $('#eCodigo').value.trim();
+    const actualCup = editando ? cupones.find((k) => k.embajador_id === editando.id) : null;
+    const esExclusivo = actualCup?.codigo === EXCLUSIVO;
+    const codigo = esExclusivo ? EXCLUSIVO : $('#eCodigo').value.trim();
     const desc = soloNumero($('#eDescuento').value);
     const com = pctNum($('#eComision').value);
     if (nombre.length < 2) return err('Escribe el nombre del embajador.');
     if (cel && !/^3\d{9}$/.test(cel)) return err('El WhatsApp debe ser un celular de 10 dígitos (o déjalo vacío).');
-    if (!/^[A-Z0-9]{3,30}$/.test(codigo)) return err('El código debe tener de 3 a 30 letras o números, sin espacios.');
-    if (codigo === 'JWDEV') return err('Ese código está reservado.');
+    if (!esExclusivo && !/^[A-Z0-9]{3,30}$/.test(codigo)) return err('El código debe tener de 3 a 30 letras o números, sin espacios.');
+    if (!esExclusivo && codigo === 'JWDEV') return err('Ese código está reservado.');
     if (!desc || desc < 1 || desc > 90) return err('El descuento para el cliente debe estar entre 1% y 90%.');
     if (com == null || com < 0 || com > 50) return err('La comisión debe estar entre 0% y 50%.');
     const activo = $('#eActivo').checked;
     const filaEmb = { nombre, celular: cel || null, instagram: $('#eInstagram').value.trim() || null, comision_pct: com, notas: $('#eNotas').value.trim() || null, activo };
     const filaCup = {
       codigo, tipo: 'porcentaje', valor: desc, minimo_compra: soloNumero($('#eMinimo').value) || 0,
-      usos_por_cliente: parseInt($('#eUsos').value, 10) || 0, activo, nota: `Embajador: ${nombre}`
+      usos_por_cliente: parseInt($('#eUsos').value, 10) || 0, activo,
+      nota: esExclusivo ? 'Código exclusivo del desarrollador (J-W DEV)' : `Embajador: ${nombre}`
     };
     const btn = $('#btnGuardarEmb'); btn.disabled = true;
     try {

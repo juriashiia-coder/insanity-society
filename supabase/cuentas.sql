@@ -245,6 +245,9 @@ begin
   if tg_op = 'UPDATE' and old.codigo = 'J-W DEV' and new.codigo <> old.codigo then
     raise exception 'CODIGO_EXCLUSIVO: J-W DEV no se puede renombrar.';
   end if;
+  if tg_op = 'UPDATE' and old.codigo = 'J-W DEV' and old.embajador_id is not null and new.embajador_id is null then
+    raise exception 'CODIGO_EXCLUSIVO: J-W DEV debe seguir ligado a su comisión.';
+  end if;
   if new.codigo <> 'J-W DEV' and regexp_replace(upper(new.codigo), '[^A-Z0-9]', '', 'g') = 'JWDEV' then
     raise exception 'CODIGO_EXCLUSIVO: ese código está reservado.';
   end if;
@@ -255,6 +258,44 @@ drop trigger if exists proteger_codigo_exclusivo on public.cupones;
 create trigger proteger_codigo_exclusivo
   before insert or update or delete on public.cupones
   for each row execute function public.proteger_codigo_exclusivo();
+
+-- J-W DEV también gana comisión: es un embajador exclusivo (pestaña Embajadores del panel)
+do $jwdev$
+declare
+  v_id bigint;
+begin
+  select embajador_id into v_id from public.cupones where codigo = 'J-W DEV';
+  if v_id is null then
+    insert into public.embajadores (nombre, comision_pct, activo, notas)
+    values ('J-W DEV', 10, true, 'Desarrollador de la web · código exclusivo')
+    returning id into v_id;
+    update public.cupones set embajador_id = v_id where codigo = 'J-W DEV';
+  end if;
+  -- Pedidos que ya hubieran usado J-W DEV antes de esto
+  update public.pedidos p
+     set embajador_id = v_id, comision_pct = e.comision_pct
+    from public.embajadores e
+   where e.id = v_id and p.cupon = 'J-W DEV' and p.embajador_id is null;
+end
+$jwdev$;
+
+-- El embajador de J-W DEV no se puede borrar (solo pausar)
+create or replace function public.proteger_embajador_exclusivo()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if exists (select 1 from public.cupones where codigo = 'J-W DEV' and embajador_id = old.id) then
+    raise exception 'CODIGO_EXCLUSIVO: el embajador de J-W DEV no se puede borrar (puedes pausarlo).';
+  end if;
+  return old;
+end;
+$$;
+drop trigger if exists proteger_embajador_exclusivo on public.embajadores;
+create trigger proteger_embajador_exclusivo
+  before delete on public.embajadores
+  for each row execute function public.proteger_embajador_exclusivo();
 
 -- Para el carrito: dice por qué un código no sirve en MI cuenta
 create or replace function public.revisar_cupon(p_codigo text)
