@@ -966,3 +966,5 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 .card.producto-mini .precio-antes { color: #777; }
 .card.producto-mini .btn-fav { background: rgba(20,20,20,.75); }
 .producto-mini.is-agotado .precio { color: #777; }
+/* Ficha de producto: solo el fondo de la prenda en cemento claro; el resto de la ficha sigue oscuro */
+.producto--detalle .product-media { background: #d5d5d2 url("../img/cemento-claro.webp") center / 512px; }
