@@ -14,7 +14,7 @@
 }
 .admin-form input:focus, .admin-form select:focus, .admin-toolbar input:focus, .admin-toolbar select:focus { outline: none; border-color: #fff; }
 .admin-form select option { background: #111; }
-.admin-error { background: rgba(179,0,0,.15); border: 1px solid #5a0000; color: #ff8a8a; padding: .6rem .8rem; border-radius: 10px; margin: .5rem 0 1rem; font-size: .9rem; }
+.admin-error { background: rgba(var(--accent-rgb),.15); border: 1px solid #5a0000; color: #ff8a8a; padding: .6rem .8rem; border-radius: 10px; margin: .5rem 0 1rem; font-size: .9rem; }
 .admin-hint { color: #8a8a8a; font-size: .8rem; }
 code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: .8rem; }
 
@@ -95,7 +95,7 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
 .admin-item-botones { display: flex; gap: .1rem; }
 .admin-item-botones .icon-btn { font-size: .95rem; padding: .2rem .45rem; }
 .admin-item-botones .icon-btn:disabled { opacity: .25; cursor: default; }
-.admin-borrar-item:hover { color: #ff5a5f; }
+.admin-borrar-item:hover { color: var(--accent-soft); }
 .admin-item-campos { padding: .4rem .9rem .6rem; border-top: 1px solid #222; }
 .admin-img-fila { display: flex; gap: .8rem; align-items: center; }
 .admin-slot-img--mini { width: 120px; flex-shrink: 0; }
@@ -137,7 +137,7 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
 /* ---------- Promociones y cupones ---------- */
 .admin-badges { display: flex; flex-wrap: wrap; gap: .3rem; margin: .15rem 0 .1rem; }
 .admin-badge { font-size: .72rem; font-weight: 800; padding: .1rem .5rem; border-radius: 999px; background: #2a2410; color: #ffd166; border: 1px solid #4a3d10; }
-.admin-badge--oferta { background: rgba(229,9,20,.15); color: #ff8a8a; border-color: #5a0000; }
+.admin-badge--oferta { background: rgba(var(--accent-rgb),.15); color: #ff8a8a; border-color: #5a0000; }
 .admin-badge.is-vencida { opacity: .6; text-decoration: line-through; }
 .admin-cupon { grid-template-columns: auto 1fr auto; }
 .admin-cupon-codigo {
@@ -174,10 +174,10 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
 .inv-card strong { font-size: 1.6rem; font-family: var(--font-title); }
 .inv-card span { color: var(--muted); font-size: .82rem; }
 .inv-card--bajo strong { color: #ffb84d; }
-.inv-card--agotado strong { color: #ff6b70; }
+.inv-card--agotado strong { color: var(--accent-soft); }
 .inv-card--sin strong { color: #888; }
 .inv-estado { font-size: .78rem; font-weight: 800; padding: .2rem .55rem; border-radius: 999px; background: #222; }
-.inv-agotado .inv-estado { background: rgba(229,9,20,.18); color: #ff8a8a; }
+.inv-agotado .inv-estado { background: rgba(var(--accent-rgb),.18); color: #ff8a8a; }
 .inv-bajo .inv-estado { background: rgba(255,184,77,.14); color: #ffb84d; }
 .inv-ok .inv-estado { background: rgba(46,160,67,.14); color: #56d364; }
 .inv-sin-control .inv-estado { color: #888; }
@@ -201,9 +201,9 @@ code { background: #222; padding: .05rem .35rem; border-radius: 5px; font-size: 
 .admin-subtabs.hidden { display: none; }
 .admin-tab { background: #151515; border: 1px solid #2a2a2a; border-radius: 999px; color: #cfcfcf; font-weight: 700; font-size: .88rem; padding: .45rem .95rem; cursor: pointer; white-space: nowrap; transition: background .15s ease, border-color .15s ease, color .15s ease; }
 .admin-tab:hover { border-color: #555; color: #fff; }
-.admin-tab.active { background: rgba(229,9,20,.14); border-color: var(--accent); color: #fff; }
+.admin-tab.active { background: rgba(var(--accent-rgb),.14); border-color: var(--accent); color: #fff; }
 .admin-tab:focus-visible, .admin-grupo:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.admin-tab-num { display: inline-grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 .35rem; margin-left: .25rem; border-radius: 999px; background: var(--accent); color: #fff; font-size: .72rem; font-weight: 800; }
+.admin-tab-num { display: inline-grid; place-items: center; min-width: 1.3rem; height: 1.3rem; padding: 0 .35rem; margin-left: .25rem; border-radius: 999px; background: var(--accent-fill); color: #fff; font-size: .72rem; font-weight: 800; }
 .admin-tab-num.hidden { display: none; }
 .ped-item { grid-template-columns: 96px 1fr auto; }
 .ped-num { font-family: var(--font-title); font-size: 1.15rem; color: #fff; display: flex; flex-direction: column; gap: .15rem; line-height: 1.1; }
@@ -247,7 +247,7 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
 .est-periodos { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center; margin-bottom: .6rem; }
 .est-chip { background: #151515; border: 1px solid #2f2f2f; color: #ddd; padding: .45rem .85rem; border-radius: 999px; font-weight: 700; font-size: .85rem; cursor: pointer; }
 .est-chip:hover { border-color: #555; }
-.est-chip.is-activo { background: var(--accent); border-color: var(--accent); color: #fff; }
+.est-chip.is-activo { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
 .est-rango { display: flex; gap: .5rem; flex-wrap: wrap; margin-left: auto; }
 .est-rango label { display: flex; align-items: center; gap: .35rem; color: var(--muted); font-size: .82rem; }
 .est-rango input { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff; padding: .4rem .5rem; border-radius: 10px; color-scheme: dark; }
@@ -275,7 +275,7 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
 .est-columnas { position: absolute; inset: 0; display: grid; grid-template-columns: repeat(var(--n), minmax(0, 1fr)); }
 .est-col { position: relative; background: none; border: 0; padding: 0 1px; cursor: default; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
 .est-col:focus-visible { outline: 2px solid #fff; outline-offset: -2px; border-radius: 4px; }
-.est-col-barra { display: block; width: min(100%, 34px); margin: 0 auto 1.6rem; background: var(--accent); border-radius: 4px 4px 0 0; min-height: 0; transition: filter .15s ease; }
+.est-col-barra { display: block; width: min(100%, 34px); margin: 0 auto 1.6rem; background: var(--accent-fill); border-radius: 4px 4px 0 0; min-height: 0; transition: filter .15s ease; }
 .est-col.is-hover .est-col-barra { filter: brightness(1.35); }
 .est-col.is-hover::before { content: ''; position: absolute; inset: 0 0 1.6rem; background: rgba(255,255,255,.04); border-radius: 4px; }
 .est-col-x { position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); font-size: .7rem; color: #8a8a8a; white-space: nowrap; }
@@ -292,7 +292,7 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
 .est-barras-nombre { color: #eee; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .est-barras-valor { color: #aaa; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .est-barras-pista { display: block; height: 8px; background: #1f1f1f; border-radius: 4px; overflow: hidden; }
-.est-barras-barra { display: block; height: 100%; background: var(--accent); border-radius: 0 4px 4px 0; }
+.est-barras-barra { display: block; height: 100%; background: var(--accent-fill); border-radius: 0 4px 4px 0; }
 .est-barras li.is-otros .est-barras-barra { background: #6a6a6a; }
 .est-barras li.is-otros .est-barras-nombre { color: #aaa; font-style: italic; }
 
@@ -369,3 +369,6 @@ select.ped-estado { background: #0f0f0f; border: 1px solid #2f2f2f; color: #fff;
   .admin-tab { padding: .4rem .75rem; font-size: .82rem; }
 }
 .badge-exclusivo { display: inline-block; margin-left: .4rem; padding: .1rem .5rem; border-radius: 999px; font-size: .68rem; letter-spacing: .5px; vertical-align: middle; background: linear-gradient(90deg, #b8860b, #f0c14b); color: #111; font-weight: 800; }
+
+/* Filo rojo en las insignias del panel (paleta Sangre negra) */
+.admin-tab-num, .est-chip.is-activo { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent); }
