@@ -954,3 +954,15 @@ h1, h2, h3, h4 { font-family: var(--font-title); letter-spacing: .5px; line-heig
 .btn-primario, .promo-bar, .badge-oferta, .contador, .view-btn.active, .chip input:checked + span {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 70%, transparent);
 }
+
+/* Tarjetas de productos: cemento claro para que las prendas negras resalten (solo tienda y destacados) */
+.card.producto-mini { background: #d5d5d2 url("../img/cemento-claro.webp") center / 512px; border-color: #a9a9a4; box-shadow: 0 10px 26px rgba(0,0,0,.45); }
+.card.producto-mini .product-media { background: radial-gradient(circle at 50% 42%, rgba(255,255,255,.35), transparent 65%); }
+.card.producto-mini .producto-nombre, .card.producto-mini .precio { color: #141414; }
+.card.producto-mini .mini-resumen, .card.producto-mini .mini-desde { color: #555; }
+.card.producto-mini .swatch { border-color: rgba(0,0,0,.4); }
+.card.producto-mini .mini-preventa { color: #5b2ca0; }
+.card.producto-mini .mini-entrega { color: #444; }
+.card.producto-mini .precio-antes { color: #777; }
+.card.producto-mini .btn-fav { background: rgba(20,20,20,.75); }
+.producto-mini.is-agotado .precio { color: #777; }
