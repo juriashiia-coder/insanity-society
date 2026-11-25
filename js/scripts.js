@@ -1415,7 +1415,7 @@
     const yaVista = guardado?.estado === 'suscrito' || (guardado?.estado === 'cerrado' && Date.now() - (guardado.t || 0) < 30 * 864e5);
     if (!invitacionActiva || yaVista) return;
     let mostrada = false;
-    const hayOtraVentana = () => [checkoutModal, $('#productoModal'), $('#guiaModal'), cuentaModal].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
+    const hayOtraVentana = () => document.getElementById('intro') || [checkoutModal, $('#productoModal'), $('#guiaModal'), cuentaModal].some((m) => m && !m.classList.contains('hidden')) || carritoPanel.classList.contains('active');
     const intentar = () => {
       if (mostrada || sesion) return;
       if (hayOtraVentana()) { setTimeout(intentar, 8000); return; }
