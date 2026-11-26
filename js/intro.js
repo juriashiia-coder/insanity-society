@@ -21,7 +21,6 @@
   raiz.classList.add('con-intro');
   var video = intro.querySelector('.intro-video');
   var btnSaltar = intro.querySelector('.intro-saltar');
-  var btnSonido = intro.querySelector('.intro-sonido');
   var btnEntrar = intro.querySelector('.intro-entrar');
   var terminado = false;
 
@@ -54,13 +53,29 @@
       video.removeEventListener('loadedmetadata', f);
       try { if (video.currentTime < desde - 0.5) video.currentTime = desde; } catch (e) {}
     });
+    // 1) Intenta reproducir CON sonido. 2) Si el navegador no lo permite (regla de todos los
+    //    navegadores: no hay sonido sin una interacción previa), sigue en silencio y el sonido
+    //    se enciende solo con el primer toque, clic o tecla.
+    video.muted = false;
     var p = video.play();
     if (p && p.catch) p.catch(function () {
-      // El navegador bloqueó la reproducción automática (p. ej. modo ahorro en iPhone):
-      // se muestra un botón para entrar; al tocarlo se reproduce con sonido.
-      intro.classList.add('sin-autoplay');
+      video.muted = true;
+      var p2 = video.play();
+      if (p2 && p2.catch) p2.catch(function () {
+        // Ni siquiera en silencio (p. ej. modo ahorro en iPhone): botón para entrar.
+        intro.classList.add('sin-autoplay');
+      });
     });
   }
+
+  function activarSonido() {
+    if (terminado || !video.muted) return;
+    video.muted = false;
+    if (video.paused && !intro.classList.contains('sin-autoplay')) video.play().catch(function () {});
+  }
+  ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
+    document.addEventListener(ev, activarSonido, { capture: true, passive: true });
+  });
 
   function terminar() {
     if (terminado) return;
@@ -69,6 +84,9 @@
     intro.classList.add('saliendo');
     raiz.classList.remove('con-intro');
     document.removeEventListener('keydown', alTeclado);
+    ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
+      document.removeEventListener(ev, activarSonido, { capture: true });
+    });
     window.removeEventListener('resize', alCambiarTamano);
     setTimeout(function () {
       try { video.pause(); video.removeAttribute('src'); video.load(); } catch (e) {}
@@ -89,22 +107,12 @@
     }, 250);
   }
 
-  video.muted = true;
   video.addEventListener('ended', terminar);
   video.addEventListener('error', function () { if (!terminado) terminar(); });
   btnSaltar.addEventListener('click', terminar);
-  btnSonido.addEventListener('click', function () {
-    video.muted = !video.muted;
-    btnSonido.setAttribute('aria-pressed', String(!video.muted));
-    btnSonido.querySelector('span').textContent = video.muted ? 'Activar sonido' : 'Silenciar';
-    intro.classList.toggle('con-sonido', !video.muted);
-  });
   btnEntrar.addEventListener('click', function () {
     intro.classList.remove('sin-autoplay');
     video.muted = false;
-    btnSonido.setAttribute('aria-pressed', 'true');
-    btnSonido.querySelector('span').textContent = 'Silenciar';
-    intro.classList.add('con-sonido');
     var p = video.play();
     if (p && p.catch) p.catch(terminar);
   });

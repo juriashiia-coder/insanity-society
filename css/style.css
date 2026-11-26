@@ -983,26 +983,16 @@ html.con-intro, html.con-intro body { overflow: hidden; }
 }
 /* Pantallas muy anchas o muy altas: el emblema siempre queda centrado y completo */
 @media (min-aspect-ratio: 21/9) { .intro-video { object-fit: contain; } }
-.intro-controles {
-  position: absolute; z-index: 2; left: 0; right: 0;
-  bottom: max(1.25rem, env(safe-area-inset-bottom)); padding: 0 max(1.25rem, env(safe-area-inset-right)) 0 max(1.25rem, env(safe-area-inset-left));
-  display: flex; justify-content: space-between; align-items: center; gap: .75rem;
-  opacity: 0; animation: intro-aparecer .6s ease 1s forwards;
+.intro-saltar {
+  position: absolute; z-index: 2;
+  right: max(1.1rem, env(safe-area-inset-right)); bottom: max(1rem, env(safe-area-inset-bottom));
+  background: none; border: 0; padding: .5rem .25rem; cursor: pointer;
+  font: 500 .78rem/1 var(--font-body); letter-spacing: 2px; text-transform: uppercase;
+  color: rgba(255,255,255,.42); text-shadow: 0 1px 6px rgba(0,0,0,.8);
+  opacity: 0; animation: intro-aparecer .8s ease 1.5s forwards;
+  transition: color .2s ease;
 }
-.intro-controles button {
-  display: inline-flex; align-items: center; gap: .5rem; cursor: pointer;
-  font: 700 .82rem/1 var(--font-body); letter-spacing: 1px; text-transform: uppercase;
-  color: #e8e8e8; background: rgba(0,0,0,.45); border: 1px solid rgba(255,255,255,.22);
-  padding: .7rem 1rem; border-radius: 999px; min-height: 44px;
-  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-  transition: background .2s ease, border-color .2s ease, color .2s ease;
-}
-.intro-controles button:hover, .intro-controles button:focus-visible { background: rgba(0,0,0,.7); border-color: var(--accent); color: #fff; outline: none; }
-.intro-sonido svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.intro-sonido .ic-parlante { fill: currentColor; stroke: none; }
-.intro .ic-ondas { display: none; }
-.intro.con-sonido .ic-ondas { display: inline; }
-.intro.con-sonido .ic-mute { display: none; }
+.intro-saltar:hover, .intro-saltar:focus-visible { color: rgba(255,255,255,.85); outline: none; }
 .intro-entrar {
   display: none; position: relative; z-index: 2; cursor: pointer;
   font: 400 clamp(1.1rem, 4vw, 1.5rem)/1 "AndroidAssassin", var(--font-title); letter-spacing: 3px; text-transform: uppercase;
@@ -1011,8 +1001,4 @@ html.con-intro, html.con-intro body { overflow: hidden; }
   border: 1px solid var(--accent, #8a252b); box-shadow: 0 0 30px rgba(var(--accent-rgb, 58,6,10), .8);
 }
 .intro.sin-autoplay .intro-entrar { display: inline-block; }
-.intro.sin-autoplay .intro-sonido { visibility: hidden; }
 @keyframes intro-aparecer { to { opacity: 1; } }
-@media (max-width: 480px) {
-  .intro-controles button { font-size: .72rem; padding: .6rem .85rem; }
-}
