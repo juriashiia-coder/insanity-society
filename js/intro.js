@@ -68,13 +68,34 @@
     });
   }
 
+  // El sonido se enciende con un toque COMPLETO (al levantar el dedo), un clic o una tecla:
+  // son las únicas interacciones que los celulares aceptan como permiso para reproducir audio.
+  // Si aun así el navegador se niega, el video sigue en silencio: nunca se queda congelado.
+  var EVENTOS_SONIDO = ['touchend', 'click', 'keydown'];
   function activarSonido() {
-    if (terminado || !video.muted) return;
+    if (terminado || !video.muted || intro.classList.contains('sin-autoplay')) return;
     video.muted = false;
-    if (video.paused && !intro.classList.contains('sin-autoplay')) video.play().catch(function () {});
+    var p = video.play();
+    if (p && p.catch) p.catch(function () {
+      video.muted = true;
+      video.play().catch(function () {});
+    });
   }
-  ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
+  EVENTOS_SONIDO.forEach(function (ev) {
     document.addEventListener(ev, activarSonido, { capture: true, passive: true });
+  });
+
+  // Seguro anti-congelamiento: si algo pausa el video antes de terminar, se reanuda
+  // (en silencio si hace falta).
+  video.addEventListener('pause', function () {
+    if (terminado || video.ended || intro.classList.contains('sin-autoplay')) return;
+    setTimeout(function () {
+      if (terminado || !video.paused || video.ended) return;
+      video.play().catch(function () {
+        video.muted = true;
+        video.play().catch(function () {});
+      });
+    }, 60);
   });
 
   function terminar() {
@@ -84,7 +105,7 @@
     intro.classList.add('saliendo');
     raiz.classList.remove('con-intro');
     document.removeEventListener('keydown', alTeclado);
-    ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
+    EVENTOS_SONIDO.forEach(function (ev) {
       document.removeEventListener(ev, activarSonido, { capture: true });
     });
     window.removeEventListener('resize', alCambiarTamano);
